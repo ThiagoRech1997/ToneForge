@@ -20,7 +20,81 @@
             android:textStyle="bold"
             android:textColor="@color/white"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Presets de Efeitos -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+            <EditText
+                android:id="@+id/presetNameEdit"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:hint="Nome do preset"
+                android:textColorHint="@color/light_gray"
+                android:textColor="@color/white"
+                android:background="@android:color/transparent"
+                android:inputType="textPersonName"/>
+            <Button
+                android:id="@+id/savePresetButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Salvar"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+            <Spinner
+                android:id="@+id/presetSpinner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:spinnerMode="dropdown"
+                android:background="@android:color/transparent"
+                android:popupBackground="@color/black"
+                android:dropDownVerticalOffset="8dp"/>
+            <Button
+                android:id="@+id/deletePresetButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Excluir"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <!-- Ordem dos Efeitos -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ordem dos Efeitos"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp"/>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/effectsOrderRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Status do Pipeline -->
+        <TextView
+            android:id="@+id/effectsStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Iniciando pipeline de áudio..."
+            android:textSize="14sp"
+            android:textColor="@color/green"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"
+            android:padding="8dp"/>
 
         <!-- Ganho -->
         <LinearLayout
@@ -80,6 +154,51 @@
             android:progress="30"
             android:layout_marginBottom="16dp"/>
 
+        <!-- Tipo de Distorção -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Tipo de Distorção"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+            <Spinner
+                android:id="@+id/spinnerDistortionType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:entries="@array/distortion_types"
+                android:background="@android:color/transparent"
+                android:popupBackground="@color/black"/>
+        </LinearLayout>
+        <!-- Mix Dry/Wet Distorção -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Mix Distorção (Dry/Wet)"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekDistortionMix"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="100"
+            android:layout_marginBottom="16dp"/>
+
         <!-- Delay -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -107,6 +226,50 @@
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="20"
+            android:layout_marginBottom="8dp"/>
+        <!-- Feedback do Delay -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Feedback do Delay"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekDelayFeedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="50"
+            android:layout_marginBottom="16dp"/>
+        <!-- Mix Dry/Wet Delay -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Mix Delay (Dry/Wet)"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekDelayMix"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="100"
             android:layout_marginBottom="16dp"/>
 
         <!-- Reverb -->
@@ -136,7 +299,73 @@
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="40"
+            android:layout_marginBottom="8dp"/>
+        <!-- Room Size do Reverb -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Room Size do Reverb"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekReverbRoomSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="50"
+            android:layout_marginBottom="8dp"/>
+        <!-- Damping do Reverb -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Damping do Reverb"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekReverbDamping"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="50"
             android:layout_marginBottom="32dp"/>
+        <!-- Mix Dry/Wet Reverb -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Mix Reverb (Dry/Wet)"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekReverbMix"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="100"
+            android:layout_marginBottom="16dp"/>
 
     </LinearLayout>
 </ScrollView> 

@@ -37,6 +37,24 @@ extern "C" {
     bool isTunerActive();
     float getDetectedFrequency();
     void processTunerBuffer(const float* input, int numSamples);
+
+    // Ativação/desativação de efeitos
+    void setGainEnabled(bool enabled);
+    void setDistortionEnabled(bool enabled);
+    void setDelayEnabled(bool enabled);
+    void setReverbEnabled(bool enabled);
+
+    float getDelayTime();
+    float getDelayFeedback();
+    float getReverbRoomSize();
+    float getReverbDamping();
+
+    void setEffectOrder(const char** order, int count);
+
+    void setDistortionType(int type);
+    void setDistortionMix(float mix);
+    void setDelayMix(float mix);
+    void setReverbMix(float mix);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

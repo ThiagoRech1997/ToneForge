@@ -6,6 +6,7 @@
 #include <chrono>
 #include <vector>
 #include <mutex>
+#include <string>
 
 // Parâmetros dos efeitos
 static float currentGain = 1.0f;
@@ -57,6 +58,19 @@ static std::mutex tunerMutex;
 static const int FREQ_SMOOTH_SIZE = 5;
 static float freqHistory[FREQ_SMOOTH_SIZE] = {0};
 static int freqHistoryIdx = 0;
+
+// Flags de ativação dos efeitos
+static bool gainEnabled = true;
+static bool distortionEnabled = true;
+static bool delayEnabled = true;
+static bool reverbEnabled = true;
+
+static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Delay", "Reverb"};
+
+static int distortionType = 0; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
+static float distortionMix = 1.0f;
+static float delayMix = 1.0f;
+static float reverbMix = 1.0f;
 
 void initAudioEngine() {
     // Limpar buffers
@@ -183,39 +197,65 @@ void clearLooper() {
 bool isLooperRecording() { return looperRecording; }
 bool isLooperPlaying() { return looperPlaying; }
 
+void setGainEnabled(bool enabled) { gainEnabled = enabled; }
+void setDistortionEnabled(bool enabled) { distortionEnabled = enabled; }
+void setDelayEnabled(bool enabled) { delayEnabled = enabled; }
+void setReverbEnabled(bool enabled) { reverbEnabled = enabled; }
+
+void setDistortionType(int type) { distortionType = type; }
+void setDistortionMix(float mix) { distortionMix = mix; }
+void setDelayMix(float mix) { delayMix = mix; }
+void setReverbMix(float mix) { reverbMix = mix; }
+
 float processSample(float input) {
     float output = input;
-    
-    // Aplicar distorção
-    if (distortionAmount > 0.0f) {
-        float drive = 1.0f + distortionAmount * 10.0f;
-        output = tanh(output * drive) / tanh(drive);
+    float dry = input;
+    for (const std::string& effect : effectOrder) {
+        if (effect == "Ganho") {
+            if (gainEnabled) output *= currentGain;
+        } else if (effect == "Distorção") {
+            if (distortionEnabled && distortionAmount > 0.0f) {
+                float distorted = output;
+                float drive = 1.0f + distortionAmount * 10.0f;
+                switch (distortionType) {
+                    case 0: // Soft Clip
+                        distorted = tanh(distorted * drive) / tanh(drive);
+                        break;
+                    case 1: // Hard Clip
+                        distorted = std::max(-1.0f, std::min(1.0f, distorted * drive));
+                        break;
+                    case 2: // Fuzz
+                        distorted = sinf(distorted * drive);
+                        break;
+                    case 3: // Overdrive
+                        if (distorted > 0)
+                            distorted = 1.0f - expf(-distorted * drive);
+                        else
+                            distorted = -1.0f + expf(distorted * drive);
+                        break;
+                }
+                output = (1.0f - distortionMix) * output + distortionMix * distorted;
+            }
+        } else if (effect == "Delay") {
+            if (delayEnabled && delayTime > 0.0f && delayBufferSize > 0) {
+                float delayedSample = delayBuffer[delayBufferIndex];
+                float wet = output + delayedSample * delayFeedback;
+                output = (1.0f - delayMix) * output + delayMix * wet;
+                delayBuffer[delayBufferIndex] = wet;
+                delayBufferIndex = (delayBufferIndex + 1) % delayBufferSize;
+            }
+        } else if (effect == "Reverb") {
+            if (reverbEnabled && reverbRoomSize > 0.0f) {
+                float reverbSample = reverbBuffer[reverbIndex];
+                float wet = output + reverbSample * reverbRoomSize * (1.0f - reverbDamping);
+                output = (1.0f - reverbMix) * output + reverbMix * wet;
+                reverbBuffer[reverbIndex] = wet;
+                reverbIndex = (reverbIndex + 1) % REVERB_BUFFER_SIZE;
+            }
+        }
     }
-    
-    // Aplicar delay
-    if (delayTime > 0.0f && delayBufferSize > 0) {
-        float delayedSample = delayBuffer[delayBufferIndex];
-        output += delayedSample * delayFeedback;
-        
-        delayBuffer[delayBufferIndex] = output;
-        delayBufferIndex = (delayBufferIndex + 1) % delayBufferSize;
-    }
-    
-    // Aplicar reverb simples
-    if (reverbRoomSize > 0.0f) {
-        float reverbSample = reverbBuffer[reverbIndex];
-        output += reverbSample * reverbRoomSize * (1.0f - reverbDamping);
-        
-        reverbBuffer[reverbIndex] = output;
-        reverbIndex = (reverbIndex + 1) % REVERB_BUFFER_SIZE;
-    }
-    
-    // Aplicar ganho final
-    output *= currentGain;
-
     // Somar metrônomo
     output += getMetronomeSample();
-
     // Looper: gravação
     if (looperRecording && looperWriteIndex < LOOPER_MAX_SAMPLES) {
         looperBuffer[looperWriteIndex++] = output;
@@ -225,11 +265,9 @@ float processSample(float input) {
         output += looperBuffer[looperReadIndex++];
         if (looperReadIndex >= looperLength) looperReadIndex = 0;
     }
-    
     // Limitar para evitar clipping
     if (output > 1.0f) output = 1.0f;
     if (output < -1.0f) output = -1.0f;
-    
     return output;
 }
 
@@ -301,6 +339,18 @@ void processTunerBuffer(const float* input, int numSamples) {
         }
         detectedFrequency = (count > 0) ? (sum / count) : 0.0f;
         tunerBuffer.erase(tunerBuffer.begin(), tunerBuffer.begin() + windowSize/2); // overlap
+    }
+}
+
+float getDelayTime() { return delayTime; }
+float getDelayFeedback() { return delayFeedback; }
+float getReverbRoomSize() { return reverbRoomSize; }
+float getReverbDamping() { return reverbDamping; }
+
+void setEffectOrder(const char** order, int count) {
+    effectOrder.clear();
+    for (int i = 0; i < count; ++i) {
+        effectOrder.push_back(order[i]);
     }
 }
 

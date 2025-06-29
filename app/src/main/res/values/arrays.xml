@@ -1,0 +1,8 @@
+<resources>
+    <string-array name="distortion_types">
+        <item>Soft Clip</item>
+        <item>Hard Clip</item>
+        <item>Fuzz</item>
+        <item>Overdrive</item>
+    </string-array>
+</resources> 
