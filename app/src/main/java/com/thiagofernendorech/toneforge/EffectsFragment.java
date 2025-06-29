@@ -248,6 +248,54 @@ public class EffectsFragment extends Fragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // Flanger
+        Switch switchFlanger = view.findViewById(R.id.switchFlanger);
+        SeekBar seekFlangerDepth = view.findViewById(R.id.seekFlangerDepth);
+        SeekBar seekFlangerRate = view.findViewById(R.id.seekFlangerRate);
+        SeekBar seekFlangerFeedback = view.findViewById(R.id.seekFlangerFeedback);
+        SeekBar seekFlangerMix = view.findViewById(R.id.seekFlangerMix);
+        switchFlanger.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setFlangerEnabled(isChecked);
+        });
+        seekFlangerDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0-10ms (0.0-0.01s)
+                float value = progress / 10000.0f; // 0.0-0.01
+                AudioEngine.setFlangerDepth(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekFlangerRate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0-5Hz
+                float value = progress / 20.0f; // 0.0-5.0
+                AudioEngine.setFlangerRate(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekFlangerFeedback.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setFlangerFeedback(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekFlangerMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setFlangerMix(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
         // --- Presets UI ---
         presetSpinner = view.findViewById(R.id.presetSpinner);
         presetNameEdit = view.findViewById(R.id.presetNameEdit);

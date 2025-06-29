@@ -83,6 +83,18 @@ static std::vector<float> chorusBuffer(chorusBufferSize, 0.0f);
 static int chorusBufferIndex = 0;
 static float chorusPhase = 0.0f;
 
+// Flanger
+static bool flangerEnabled = false;
+static float flangerDepth = 0.003f; // 3 ms
+static float flangerRate = 0.3f;   // 0.3 Hz
+static float flangerFeedback = 0.5f;
+static float flangerMix = 0.5f;
+static int flangerSampleRate = 48000;
+static int flangerBufferSize = 48000; // 1 segundo
+static std::vector<float> flangerBuffer(flangerBufferSize, 0.0f);
+static int flangerBufferIndex = 0;
+static float flangerPhase = 0.0f;
+
 void initAudioEngine() {
     // Limpar buffers
     memset(delayBuffer, 0, sizeof(delayBuffer));
@@ -223,6 +235,12 @@ void setChorusDepth(float depth) { chorusDepth = depth; }
 void setChorusRate(float rate) { chorusRate = rate; }
 void setChorusMix(float mix) { chorusMix = mix; }
 
+void setFlangerEnabled(bool enabled) { flangerEnabled = enabled; }
+void setFlangerDepth(float depth) { flangerDepth = depth; }
+void setFlangerRate(float rate) { flangerRate = rate; }
+void setFlangerFeedback(float feedback) { flangerFeedback = feedback; }
+void setFlangerMix(float mix) { flangerMix = mix; }
+
 float processSample(float input) {
     float output = input;
     float dry = input;
@@ -231,10 +249,9 @@ float processSample(float input) {
             if (gainEnabled) output *= currentGain;
         } else if (effect == "Chorus") {
             if (chorusEnabled) {
-                // Chorus: delay modulado por LFO
                 chorusBuffer[chorusBufferIndex] = output;
-                float lfo = (sinf(chorusPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f; // 0..1
-                float delaySamples = chorusDepth * chorusSampleRate * lfo; // depth em segundos
+                float lfo = (sinf(chorusPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
+                float delaySamples = chorusDepth * chorusSampleRate * lfo;
                 int readIdx = chorusBufferIndex - (int)delaySamples;
                 if (readIdx < 0) readIdx += chorusBufferSize;
                 float delayed = chorusBuffer[readIdx % chorusBufferSize];
@@ -242,6 +259,20 @@ float processSample(float input) {
                 chorusBufferIndex = (chorusBufferIndex + 1) % chorusBufferSize;
                 chorusPhase += chorusRate / (float)chorusSampleRate;
                 if (chorusPhase > 1.0f) chorusPhase -= 1.0f;
+            }
+        } else if (effect == "Flanger") {
+            if (flangerEnabled) {
+                // Flanger: delay modulado por LFO + feedback
+                flangerBuffer[flangerBufferIndex] = output + flangerFeedback * flangerBuffer[flangerBufferIndex];
+                float lfo = (sinf(flangerPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
+                float delaySamples = 1.0f + flangerDepth * flangerSampleRate * lfo; // mínimo 1 sample
+                int readIdx = flangerBufferIndex - (int)delaySamples;
+                if (readIdx < 0) readIdx += flangerBufferSize;
+                float delayed = flangerBuffer[readIdx % flangerBufferSize];
+                output = (1.0f - flangerMix) * output + flangerMix * delayed;
+                flangerBufferIndex = (flangerBufferIndex + 1) % flangerBufferSize;
+                flangerPhase += flangerRate / (float)flangerSampleRate;
+                if (flangerPhase > 1.0f) flangerPhase -= 1.0f;
             }
         } else if (effect == "Distorção") {
             if (distortionEnabled && distortionAmount > 0.0f) {

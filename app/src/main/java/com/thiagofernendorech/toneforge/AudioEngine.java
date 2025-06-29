@@ -75,6 +75,13 @@ public class AudioEngine {
     public static native void setChorusRate(float rate);
     public static native void setChorusMix(float mix);
 
+    // Novos métodos JNI para Flanger
+    public static native void setFlangerEnabled(boolean enabled);
+    public static native void setFlangerDepth(float depth);
+    public static native void setFlangerRate(float rate);
+    public static native void setFlangerFeedback(float feedback);
+    public static native void setFlangerMix(float mix);
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

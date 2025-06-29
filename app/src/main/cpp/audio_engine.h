@@ -60,6 +60,12 @@ extern "C" {
     void setChorusDepth(float depth);
     void setChorusRate(float rate);
     void setChorusMix(float mix);
+
+    void setFlangerEnabled(bool enabled);
+    void setFlangerDepth(float depth);
+    void setFlangerRate(float rate);
+    void setFlangerFeedback(float feedback);
+    void setFlangerMix(float mix);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H
