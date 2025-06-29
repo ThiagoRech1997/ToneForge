@@ -123,4 +123,19 @@
     <!-- Tooltips para Exportar/Importar -->
     <string name="tooltip_export_preset">Exportar preset salvo para arquivo JSON</string>
     <string name="tooltip_import_preset">Importar preset de arquivo JSON</string>
+    
+    <!-- Favoritos -->
+    <string name="favorites">Favoritos</string>
+    <string name="add_to_favorites">Adicionar aos Favoritos</string>
+    <string name="remove_from_favorites">Remover dos Favoritos</string>
+    <string name="favorite_added">Adicionado aos favoritos!</string>
+    <string name="favorite_removed">Removido dos favoritos!</string>
+    <string name="show_favorites_only">Mostrar Apenas Favoritos</string>
+    <string name="show_all_presets">Mostrar Todos os Presets</string>
+    <string name="no_favorites">Nenhum preset favorito</string>
+    <string name="favorites_filter">Filtro de Favoritos</string>
+    
+    <!-- Tooltips para Favoritos -->
+    <string name="tooltip_favorite_button">Marcar/desmarcar como favorito</string>
+    <string name="tooltip_favorites_filter">Alternar entre todos os presets e apenas favoritos</string>
 </resources>

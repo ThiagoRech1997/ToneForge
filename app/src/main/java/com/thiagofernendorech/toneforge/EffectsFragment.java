@@ -48,6 +48,7 @@ public class EffectsFragment extends Fragment {
     private EffectOrderAdapter effectOrderAdapter;
     private RecyclerView effectsOrderRecycler;
     private ArrayList<String> effectOrder;
+    private boolean showFavoritesOnly = false;
 
     @Nullable
     @Override
@@ -574,7 +575,7 @@ public class EffectsFragment extends Fragment {
         presetList = loadPresets();
         ArrayList<String> presetNames = new ArrayList<>();
         for (EffectPreset p : presetList) presetNames.add(p.name);
-        presetAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, presetNames);
+        presetAdapter = new FavoritePresetAdapter(getContext(), presetNames);
         presetSpinner.setAdapter(presetAdapter);
 
         savePresetButton.setOnClickListener(v -> {
@@ -593,23 +594,26 @@ public class EffectsFragment extends Fragment {
             Toast.makeText(getContext(), "Preset salvo!", Toast.LENGTH_SHORT).show();
         });
 
-        presetSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+        presetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
                 if (position >= 0 && position < presetList.size()) {
                     applyPreset(presetList.get(position));
                 }
+                updateFavoriteButton();
             }
-            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
         deletePresetButton.setOnClickListener(v -> {
-            int pos = presetSpinner.getSelectedItemPosition();
-            if (pos >= 0 && pos < presetList.size()) {
-                deletePreset(presetList.get(pos));
-                atualizarListaPresets();
-                Toast.makeText(getContext(), "Preset excluído!", Toast.LENGTH_SHORT).show();
+            String selectedPreset = presetSpinner.getSelectedItem().toString();
+            for (EffectPreset p : presetList) {
+                if (p.name.equals(selectedPreset)) {
+                    deletePreset(p);
+                    break;
+                }
             }
+            atualizarListaPresets();
         });
 
         // --- Ordem dos Efeitos ---
@@ -697,10 +701,18 @@ public class EffectsFragment extends Fragment {
         btnExportPreset.setOnClickListener(v -> showExportPresetDialog());
         btnImportPreset.setOnClickListener(v -> selectPresetFile());
 
+        // Botão de Filtro de Favoritos
+        Button btnFavoritesFilter = view.findViewById(R.id.btnFavoritesFilter);
+        btnFavoritesFilter.setOnClickListener(v -> toggleFavoritesFilter());
+
         // Tooltips para todos os controles restantes
         setupTooltips(view);
 
         updateBypassIndicators(view);
+
+        // Botão de Favorito
+        Button favoritePresetButton = view.findViewById(R.id.favoritePresetButton);
+        favoritePresetButton.setOnClickListener(v -> toggleFavoritePreset());
 
         return view;
     }
@@ -859,12 +871,36 @@ public class EffectsFragment extends Fragment {
     }
 
     private void atualizarListaPresets() {
-        presetList = loadPresets();
+        if (showFavoritesOnly) {
+            presetList = loadFavoritePresets();
+        } else {
+            presetList = loadPresets();
+        }
+        
         ArrayList<String> presetNames = new ArrayList<>();
         for (EffectPreset p : presetList) presetNames.add(p.name);
         presetAdapter.clear();
         presetAdapter.addAll(presetNames);
         presetAdapter.notifyDataSetChanged();
+    }
+    
+    private ArrayList<EffectPreset> loadFavoritePresets() {
+        ArrayList<String> favoriteNames = FavoritesManager.getFavoritePresets(getContext());
+        ArrayList<EffectPreset> favoritePresets = new ArrayList<>();
+        
+        SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        Set<String> presetSet = prefs.getStringSet("effect_presets", new HashSet<>());
+        
+        for (String json : presetSet) {
+            try {
+                EffectPreset preset = EffectPreset.fromJson(new JSONObject(json));
+                if (favoriteNames.contains(preset.name)) {
+                    favoritePresets.add(preset);
+                }
+            } catch (JSONException e) { e.printStackTrace(); }
+        }
+        
+        return favoritePresets;
     }
 
     // Persistência da ordem dos efeitos
@@ -1499,6 +1535,20 @@ public class EffectsFragment extends Fragment {
             TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_import_preset));
             return true;
         });
+        
+        // Tooltips para Favoritos
+        Button btnFavoritesFilter = view.findViewById(R.id.btnFavoritesFilter);
+        Button favoritePresetButton = view.findViewById(R.id.favoritePresetButton);
+        
+        btnFavoritesFilter.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_favorites_filter));
+            return true;
+        });
+        
+        favoritePresetButton.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_favorite_button));
+            return true;
+        });
     }
     
     private void showExportPresetDialog() {
@@ -1581,6 +1631,67 @@ public class EffectsFragment extends Fragment {
                     Toast.makeText(getContext(), getString(R.string.preset_import_failed), Toast.LENGTH_SHORT).show();
                 }
             }
+        }
+    }
+
+    private void toggleFavoritesFilter() {
+        showFavoritesOnly = !showFavoritesOnly;
+        atualizarListaPresets();
+        updateFavoritesFilterButton();
+    }
+    
+    private void updateFavoritesFilterButton() {
+        View view = getView();
+        if (view == null) return;
+        
+        Button btnFavoritesFilter = view.findViewById(R.id.btnFavoritesFilter);
+        if (showFavoritesOnly) {
+            btnFavoritesFilter.setText(getString(R.string.show_all_presets));
+        } else {
+            btnFavoritesFilter.setText(getString(R.string.show_favorites_only));
+        }
+    }
+
+    private void toggleFavoritePreset() {
+        if (presetSpinner.getSelectedItem() == null) {
+            Toast.makeText(getContext(), "Selecione um preset primeiro", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String selectedPreset = presetSpinner.getSelectedItem().toString();
+        FavoritesManager.toggleFavorite(getContext(), selectedPreset);
+        
+        boolean isFavorite = FavoritesManager.isFavorite(getContext(), selectedPreset);
+        if (isFavorite) {
+            Toast.makeText(getContext(), getString(R.string.favorite_added), Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getContext(), getString(R.string.favorite_removed), Toast.LENGTH_SHORT).show();
+        }
+        
+        // Atualizar interface
+        atualizarListaPresets();
+        updateFavoriteButton();
+    }
+    
+    private void updateFavoriteButton() {
+        View view = getView();
+        if (view == null) return;
+        
+        Button favoritePresetButton = view.findViewById(R.id.favoritePresetButton);
+        if (presetSpinner.getSelectedItem() == null) {
+            favoritePresetButton.setText("❤");
+            return;
+        }
+        
+        String selectedPreset = presetSpinner.getSelectedItem().toString();
+        boolean isFavorite = FavoritesManager.isFavorite(getContext(), selectedPreset);
+        
+        if (isFavorite) {
+            favoritePresetButton.setText("❤");
+            favoritePresetButton.setTextColor(getResources().getColor(R.color.red));
+        } else {
+            favoritePresetButton.setText("🤍");
+            favoritePresetButton.setTextColor(getResources().getColor(R.color.white));
         }
     }
 } 
