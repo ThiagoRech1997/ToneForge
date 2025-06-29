@@ -4,4 +4,12 @@
     <string name="desc_distortion">Controle de distorção</string>
     <string name="desc_delay">Controle de delay</string>
     <string name="desc_reverb">Controle de reverb</string>
+    <string name="desc_chorus">Controle de chorus</string>
+    <string name="desc_flanger">Controle de flanger</string>
+    <string name="desc_phaser">Controle de phaser</string>
+    <string name="phaser">Phaser</string>
+    <string name="phaser_depth">Profundidade</string>
+    <string name="phaser_rate">Taxa</string>
+    <string name="phaser_feedback">Feedback</string>
+    <string name="phaser_mix">Mix</string>
 </resources>

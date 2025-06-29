@@ -66,6 +66,12 @@ extern "C" {
     void setFlangerRate(float rate);
     void setFlangerFeedback(float feedback);
     void setFlangerMix(float mix);
+
+    void setPhaserEnabled(bool enabled);
+    void setPhaserDepth(float depth);
+    void setPhaserRate(float rate);
+    void setPhaserFeedback(float feedback);
+    void setPhaserMix(float mix);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

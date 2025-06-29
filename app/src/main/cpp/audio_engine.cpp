@@ -65,7 +65,7 @@ static bool distortionEnabled = true;
 static bool delayEnabled = true;
 static bool reverbEnabled = true;
 
-static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Delay", "Reverb"};
+static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "Delay", "Reverb"};
 
 static int distortionType = 0; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
 static float distortionMix = 1.0f;
@@ -94,6 +94,19 @@ static int flangerBufferSize = 48000; // 1 segundo
 static std::vector<float> flangerBuffer(flangerBufferSize, 0.0f);
 static int flangerBufferIndex = 0;
 static float flangerPhase = 0.0f;
+
+// Phaser
+static bool phaserEnabled = false;
+static float phaserDepth = 0.8f;    // Profundidade da modulação (0-1)
+static float phaserRate = 0.5f;     // Taxa de modulação em Hz
+static float phaserFeedback = 0.6f; // Feedback do phaser
+static float phaserMix = 0.5f;      // Mix dry/wet
+static int phaserSampleRate = 48000;
+static int phaserBufferSize = 48000; // 1 segundo
+static std::vector<float> phaserBuffer(phaserBufferSize, 0.0f);
+static int phaserBufferIndex = 0;
+static float phaserPhase = 0.0f;
+static float phaserLfo = 0.0f;      // Valor atual do LFO
 
 void initAudioEngine() {
     // Limpar buffers
@@ -241,6 +254,12 @@ void setFlangerRate(float rate) { flangerRate = rate; }
 void setFlangerFeedback(float feedback) { flangerFeedback = feedback; }
 void setFlangerMix(float mix) { flangerMix = mix; }
 
+void setPhaserEnabled(bool enabled) { phaserEnabled = enabled; }
+void setPhaserDepth(float depth) { phaserDepth = depth; }
+void setPhaserRate(float rate) { phaserRate = rate; }
+void setPhaserFeedback(float feedback) { phaserFeedback = feedback; }
+void setPhaserMix(float mix) { phaserMix = mix; }
+
 float processSample(float input) {
     float output = input;
     float dry = input;
@@ -273,6 +292,55 @@ float processSample(float input) {
                 flangerBufferIndex = (flangerBufferIndex + 1) % flangerBufferSize;
                 flangerPhase += flangerRate / (float)flangerSampleRate;
                 if (flangerPhase > 1.0f) flangerPhase -= 1.0f;
+            }
+        } else if (effect == "Phaser") {
+            if (phaserEnabled) {
+                // Phaser: filtros passa-tudo em série com modulação
+                float lfo = sinf(phaserPhase * 2.0f * 3.14159265f);
+                float modDepth = phaserDepth * 0.5f; // 0-0.5 para evitar instabilidade
+                
+                // Aplicar filtros passa-tudo em série (4 estágios)
+                float filtered = output;
+                for (int stage = 0; stage < 4; ++stage) {
+                    float freq = 200.0f + 2000.0f * (stage / 3.0f); // 200Hz a 2kHz
+                    freq *= (1.0f + modDepth * lfo); // Modular a frequência
+                    
+                    // Filtro passa-tudo simples
+                    float w0 = 2.0f * 3.14159265f * freq / phaserSampleRate;
+                    float alpha = sinf(w0) * 0.5f;
+                    float b0 = 1.0f - alpha;
+                    float b1 = -2.0f * cosf(w0);
+                    float b2 = 1.0f + alpha;
+                    float a0 = 1.0f + alpha;
+                    float a1 = -2.0f * cosf(w0);
+                    float a2 = 1.0f - alpha;
+                    
+                    // Normalizar
+                    b0 /= a0; b1 /= a0; b2 /= a0;
+                    a1 /= a0; a2 /= a0; a0 = 1.0f;
+                    
+                    // Aplicar filtro (implementação simplificada)
+                    static float x1[4] = {0}, x2[4] = {0}, y1[4] = {0}, y2[4] = {0};
+                    float y = b0 * filtered + b1 * x1[stage] + b2 * x2[stage] 
+                             - a1 * y1[stage] - a2 * y2[stage];
+                    x2[stage] = x1[stage];
+                    x1[stage] = filtered;
+                    y2[stage] = y1[stage];
+                    y1[stage] = y;
+                    filtered = y;
+                }
+                
+                // Aplicar feedback
+                phaserBuffer[phaserBufferIndex] = filtered + phaserFeedback * phaserBuffer[phaserBufferIndex];
+                float wet = phaserBuffer[phaserBufferIndex];
+                
+                // Mix dry/wet
+                output = (1.0f - phaserMix) * output + phaserMix * wet;
+                
+                // Atualizar buffer e fase
+                phaserBufferIndex = (phaserBufferIndex + 1) % phaserBufferSize;
+                phaserPhase += phaserRate / (float)phaserSampleRate;
+                if (phaserPhase > 1.0f) phaserPhase -= 1.0f;
             }
         } else if (effect == "Distorção") {
             if (distortionEnabled && distortionAmount > 0.0f) {

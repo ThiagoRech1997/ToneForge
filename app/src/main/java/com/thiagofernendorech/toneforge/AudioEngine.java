@@ -82,6 +82,13 @@ public class AudioEngine {
     public static native void setFlangerFeedback(float feedback);
     public static native void setFlangerMix(float mix);
 
+    // Novos métodos JNI para Phaser
+    public static native void setPhaserEnabled(boolean enabled);
+    public static native void setPhaserDepth(float depth);
+    public static native void setPhaserRate(float rate);
+    public static native void setPhaserFeedback(float feedback);
+    public static native void setPhaserMix(float mix);
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

@@ -296,6 +296,54 @@ public class EffectsFragment extends Fragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // Phaser
+        Switch switchPhaser = view.findViewById(R.id.switchPhaser);
+        SeekBar seekPhaserDepth = view.findViewById(R.id.seekPhaserDepth);
+        SeekBar seekPhaserRate = view.findViewById(R.id.seekPhaserRate);
+        SeekBar seekPhaserFeedback = view.findViewById(R.id.seekPhaserFeedback);
+        SeekBar seekPhaserMix = view.findViewById(R.id.seekPhaserMix);
+        switchPhaser.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setPhaserEnabled(isChecked);
+        });
+        seekPhaserDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0-1.0 (profundidade da modulação)
+                float value = progress / 100.0f;
+                AudioEngine.setPhaserDepth(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekPhaserRate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0-5Hz
+                float value = progress / 20.0f; // 0.0-5.0
+                AudioEngine.setPhaserRate(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekPhaserFeedback.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setPhaserFeedback(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekPhaserMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setPhaserMix(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
         // --- Presets UI ---
         presetSpinner = view.findViewById(R.id.presetSpinner);
         presetNameEdit = view.findViewById(R.id.presetNameEdit);
@@ -350,6 +398,9 @@ public class EffectsFragment extends Fragment {
             effectOrder = new ArrayList<>();
             effectOrder.add("Ganho");
             effectOrder.add("Distorção");
+            effectOrder.add("Chorus");
+            effectOrder.add("Flanger");
+            effectOrder.add("Phaser");
             effectOrder.add("Delay");
             effectOrder.add("Reverb");
         }
