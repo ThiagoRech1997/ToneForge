@@ -286,3 +286,23 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbMix(JNIEnv* env, jclass clazz, jfloat mix) {
     setReverbMix(mix);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setChorusEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setChorusEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setChorusDepth(JNIEnv* env, jclass clazz, jfloat depth) {
+    setChorusDepth(depth);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setChorusRate(JNIEnv* env, jclass clazz, jfloat rate) {
+    setChorusRate(rate);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setChorusMix(JNIEnv* env, jclass clazz, jfloat mix) {
+    setChorusMix(mix);
+}

@@ -210,6 +210,44 @@ public class EffectsFragment extends Fragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // Chorus
+        Switch switchChorus = view.findViewById(R.id.switchChorus);
+        SeekBar seekChorusDepth = view.findViewById(R.id.seekChorusDepth);
+        SeekBar seekChorusRate = view.findViewById(R.id.seekChorusRate);
+        SeekBar seekChorusMix = view.findViewById(R.id.seekChorusMix);
+        switchChorus.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setChorusEnabled(isChecked);
+        });
+        seekChorusDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0-40ms (0.0-0.04s)
+                float value = progress / 2500.0f; // 0.0-0.04
+                AudioEngine.setChorusDepth(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekChorusRate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0-5Hz
+                float value = progress / 20.0f; // 0.0-5.0
+                AudioEngine.setChorusRate(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekChorusMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setChorusMix(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
         // --- Presets UI ---
         presetSpinner = view.findViewById(R.id.presetSpinner);
         presetNameEdit = view.findViewById(R.id.presetNameEdit);

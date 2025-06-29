@@ -55,6 +55,11 @@ extern "C" {
     void setDistortionMix(float mix);
     void setDelayMix(float mix);
     void setReverbMix(float mix);
+
+    void setChorusEnabled(bool enabled);
+    void setChorusDepth(float depth);
+    void setChorusRate(float rate);
+    void setChorusMix(float mix);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

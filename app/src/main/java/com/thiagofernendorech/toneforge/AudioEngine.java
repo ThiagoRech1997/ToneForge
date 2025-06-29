@@ -69,6 +69,12 @@ public class AudioEngine {
     public static native void setDelayMix(float mix);
     public static native void setReverbMix(float mix);
 
+    // Novos métodos JNI para Chorus
+    public static native void setChorusEnabled(boolean enabled);
+    public static native void setChorusDepth(float depth);
+    public static native void setChorusRate(float rate);
+    public static native void setChorusMix(float mix);
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

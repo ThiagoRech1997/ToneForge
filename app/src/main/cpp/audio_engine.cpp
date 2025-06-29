@@ -72,6 +72,17 @@ static float distortionMix = 1.0f;
 static float delayMix = 1.0f;
 static float reverbMix = 1.0f;
 
+// Chorus
+static bool chorusEnabled = false;
+static float chorusDepth = 0.02f; // 20 ms
+static float chorusRate = 1.0f;   // 1 Hz
+static float chorusMix = 0.5f;
+static int chorusSampleRate = 48000;
+static int chorusBufferSize = 48000; // 1 segundo
+static std::vector<float> chorusBuffer(chorusBufferSize, 0.0f);
+static int chorusBufferIndex = 0;
+static float chorusPhase = 0.0f;
+
 void initAudioEngine() {
     // Limpar buffers
     memset(delayBuffer, 0, sizeof(delayBuffer));
@@ -207,12 +218,31 @@ void setDistortionMix(float mix) { distortionMix = mix; }
 void setDelayMix(float mix) { delayMix = mix; }
 void setReverbMix(float mix) { reverbMix = mix; }
 
+void setChorusEnabled(bool enabled) { chorusEnabled = enabled; }
+void setChorusDepth(float depth) { chorusDepth = depth; }
+void setChorusRate(float rate) { chorusRate = rate; }
+void setChorusMix(float mix) { chorusMix = mix; }
+
 float processSample(float input) {
     float output = input;
     float dry = input;
     for (const std::string& effect : effectOrder) {
         if (effect == "Ganho") {
             if (gainEnabled) output *= currentGain;
+        } else if (effect == "Chorus") {
+            if (chorusEnabled) {
+                // Chorus: delay modulado por LFO
+                chorusBuffer[chorusBufferIndex] = output;
+                float lfo = (sinf(chorusPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f; // 0..1
+                float delaySamples = chorusDepth * chorusSampleRate * lfo; // depth em segundos
+                int readIdx = chorusBufferIndex - (int)delaySamples;
+                if (readIdx < 0) readIdx += chorusBufferSize;
+                float delayed = chorusBuffer[readIdx % chorusBufferSize];
+                output = (1.0f - chorusMix) * output + chorusMix * delayed;
+                chorusBufferIndex = (chorusBufferIndex + 1) % chorusBufferSize;
+                chorusPhase += chorusRate / (float)chorusSampleRate;
+                if (chorusPhase > 1.0f) chorusPhase -= 1.0f;
+            }
         } else if (effect == "Distorção") {
             if (distortionEnabled && distortionAmount > 0.0f) {
                 float distorted = output;
