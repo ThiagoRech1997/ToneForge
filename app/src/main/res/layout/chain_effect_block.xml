@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="64dp"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:layout_marginEnd="12dp">
+
+    <ImageView
+        android:id="@+id/effectIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:contentDescription="Ícone do efeito"/>
+
+    <TextView
+        android:id="@+id/effectName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Efeito"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="2dp"/>
+
+    <View
+        android:id="@+id/effectStatus"
+        android:layout_width="24dp"
+        android:layout_height="4dp"
+        android:layout_marginTop="2dp"
+        android:background="@color/green"/>
+</LinearLayout> 

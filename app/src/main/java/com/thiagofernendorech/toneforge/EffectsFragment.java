@@ -34,6 +34,7 @@ import android.widget.ImageView;
 import android.content.Intent;
 import android.net.Uri;
 import android.app.AlertDialog;
+import android.widget.LinearLayout;
 
 public class EffectsFragment extends Fragment {
     private static final int EXPORT_PRESET_REQUEST = 1001;
@@ -631,11 +632,13 @@ public class EffectsFragment extends Fragment {
             effectOrder.add("Delay");
             effectOrder.add("Reverb");
         }
+        updateChainView();
         effectOrderAdapter = new EffectOrderAdapter(effectOrder, newOrder -> {
             effectOrder = new ArrayList<>(newOrder);
             saveEffectOrderToPrefs(effectOrder);
             // Enviar ordem para o C++
             AudioEngine.setEffectOrder(effectOrder.toArray(new String[0]));
+            updateChainView();
         });
         effectsOrderRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         effectsOrderRecycler.setAdapter(effectOrderAdapter);
@@ -1692,6 +1695,95 @@ public class EffectsFragment extends Fragment {
         } else {
             favoritePresetButton.setText("🤍");
             favoritePresetButton.setTextColor(getResources().getColor(R.color.white));
+        }
+    }
+
+    private void updateChainView() {
+        View view = getView();
+        if (view == null) return;
+        LinearLayout chainContainer = view.findViewById(R.id.chainContainer);
+        if (chainContainer == null) return;
+        chainContainer.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        for (String effect : effectOrder) {
+            View block = inflater.inflate(R.layout.chain_effect_block, chainContainer, false);
+            ImageView icon = block.findViewById(R.id.effectIcon);
+            TextView name = block.findViewById(R.id.effectName);
+            View status = block.findViewById(R.id.effectStatus);
+
+            name.setText(effect);
+            // Ícone por efeito
+            switch (effect) {
+                case "Ganho":
+                    icon.setImageResource(R.drawable.ic_volume_up);
+                    status.setBackgroundResource(isEffectEnabled("Ganho") ? R.color.green : R.color.red);
+                    break;
+                case "Distorção":
+                    icon.setImageResource(R.drawable.ic_launcher_foreground);
+                    status.setBackgroundResource(isEffectEnabled("Distorção") ? R.color.green : R.color.red);
+                    break;
+                case "Chorus":
+                    icon.setImageResource(R.drawable.ic_waves);
+                    status.setBackgroundResource(isEffectEnabled("Chorus") ? R.color.green : R.color.red);
+                    break;
+                case "Flanger":
+                    icon.setImageResource(R.drawable.ic_rotate_left);
+                    status.setBackgroundResource(isEffectEnabled("Flanger") ? R.color.green : R.color.red);
+                    break;
+                case "Phaser":
+                    icon.setImageResource(R.drawable.ic_target);
+                    status.setBackgroundResource(isEffectEnabled("Phaser") ? R.color.green : R.color.red);
+                    break;
+                case "EQ":
+                    icon.setImageResource(R.drawable.ic_graphic_eq);
+                    status.setBackgroundResource(isEffectEnabled("EQ") ? R.color.green : R.color.red);
+                    break;
+                case "Compressor":
+                    icon.setImageResource(R.drawable.ic_mic);
+                    status.setBackgroundResource(isEffectEnabled("Compressor") ? R.color.green : R.color.red);
+                    break;
+                case "Delay":
+                    icon.setImageResource(R.drawable.ic_av_timer);
+                    status.setBackgroundResource(isEffectEnabled("Delay") ? R.color.green : R.color.red);
+                    break;
+                case "Reverb":
+                    icon.setImageResource(R.drawable.ic_waves);
+                    status.setBackgroundResource(isEffectEnabled("Reverb") ? R.color.green : R.color.red);
+                    break;
+                default:
+                    icon.setImageResource(R.drawable.ic_launcher_foreground);
+                    status.setBackgroundResource(R.color.light_gray);
+            }
+            chainContainer.addView(block);
+        }
+    }
+
+    // Método auxiliar para saber se o efeito está ativado
+    private boolean isEffectEnabled(String effect) {
+        View view = getView();
+        if (view == null) return false;
+        switch (effect) {
+            case "Ganho":
+                return ((Switch)view.findViewById(R.id.switchGain)).isChecked();
+            case "Distorção":
+                return ((Switch)view.findViewById(R.id.switchDistortion)).isChecked();
+            case "Chorus":
+                return ((Switch)view.findViewById(R.id.switchChorus)).isChecked();
+            case "Flanger":
+                return ((Switch)view.findViewById(R.id.switchFlanger)).isChecked();
+            case "Phaser":
+                return ((Switch)view.findViewById(R.id.switchPhaser)).isChecked();
+            case "EQ":
+                return ((Switch)view.findViewById(R.id.switchEQ)).isChecked();
+            case "Compressor":
+                return ((Switch)view.findViewById(R.id.switchCompressor)).isChecked();
+            case "Delay":
+                return ((Switch)view.findViewById(R.id.switchDelay)).isChecked();
+            case "Reverb":
+                return ((Switch)view.findViewById(R.id.switchReverb)).isChecked();
+            default:
+                return false;
         }
     }
 } 

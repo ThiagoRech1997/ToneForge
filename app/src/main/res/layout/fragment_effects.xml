@@ -145,6 +145,31 @@
                 android:layout_marginStart="8dp"/>
         </LinearLayout>
 
+        <!-- Visualização gráfica da cadeia de efeitos -->
+        <TextView
+            android:id="@+id/labelChainView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cadeia de Efeitos"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+        <HorizontalScrollView
+            android:id="@+id/chainScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="true"
+            android:scrollbars="none"
+            android:layout_marginBottom="16dp">
+            <LinearLayout
+                android:id="@+id/chainContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"/>
+        </HorizontalScrollView>
+
         <!-- Ordem dos Efeitos -->
         <TextView
             android:layout_width="wrap_content"

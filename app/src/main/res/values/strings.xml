@@ -138,4 +138,7 @@
     <!-- Tooltips para Favoritos -->
     <string name="tooltip_favorite_button">Marcar/desmarcar como favorito</string>
     <string name="tooltip_favorites_filter">Alternar entre todos os presets e apenas favoritos</string>
+    
+    <!-- Nova string para label da visualização gráfica da cadeia -->
+    <string name="chain_view_label">Cadeia de Efeitos</string>
 </resources>
