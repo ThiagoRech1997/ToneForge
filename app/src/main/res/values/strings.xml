@@ -35,4 +35,69 @@
     <string name="reset">Reset</string>
     <string name="reset_all">Reset All</string>
     <string name="reset_effect">Reset Effect</string>
+    
+    <!-- Tooltips para Ganho -->
+    <string name="tooltip_gain">Controla o volume geral do sinal de entrada</string>
+    <string name="tooltip_gain_enable">Ativa/desativa o controle de ganho</string>
+    
+    <!-- Tooltips para Distorção -->
+    <string name="tooltip_distortion">Controla a intensidade da distorção aplicada</string>
+    <string name="tooltip_distortion_type">Tipo de distorção: Soft Clip (suave), Hard Clip (dura), Fuzz (fuzzy)</string>
+    <string name="tooltip_distortion_mix">Mistura entre sinal original e distorcido (Dry/Wet)</string>
+    <string name="tooltip_distortion_enable">Ativa/desativa o efeito de distorção</string>
+    
+    <!-- Tooltips para Delay -->
+    <string name="tooltip_delay_time">Tempo de atraso em milissegundos</string>
+    <string name="tooltip_delay_sync_bpm">Sincroniza o delay com o BPM da música</string>
+    <string name="tooltip_delay_bpm">BPM para sincronização do delay</string>
+    <string name="tooltip_delay_feedback">Quantidade de repetições do delay</string>
+    <string name="tooltip_delay_mix">Mistura entre sinal original e delay (Dry/Wet)</string>
+    <string name="tooltip_delay_enable">Ativa/desativa o efeito de delay</string>
+    
+    <!-- Tooltips para Reverb -->
+    <string name="tooltip_reverb">Controla a intensidade do reverb</string>
+    <string name="tooltip_reverb_type">Tipo de reverb: Hall (sala), Plate (placa), Spring (mola)</string>
+    <string name="tooltip_reverb_room_size">Tamanho da sala virtual</string>
+    <string name="tooltip_reverb_damping">Absorção de frequências altas</string>
+    <string name="tooltip_reverb_mix">Mistura entre sinal original e reverb (Dry/Wet)</string>
+    <string name="tooltip_reverb_enable">Ativa/desativa o efeito de reverb</string>
+    
+    <!-- Tooltips para Chorus -->
+    <string name="tooltip_chorus_depth">Profundidade da modulação do chorus</string>
+    <string name="tooltip_chorus_rate">Velocidade da modulação do chorus</string>
+    <string name="tooltip_chorus_mix">Mistura entre sinal original e chorus (Dry/Wet)</string>
+    <string name="tooltip_chorus_enable">Ativa/desativa o efeito de chorus</string>
+    
+    <!-- Tooltips para Flanger -->
+    <string name="tooltip_flanger_depth">Profundidade da modulação do flanger</string>
+    <string name="tooltip_flanger_rate">Velocidade da modulação do flanger</string>
+    <string name="tooltip_flanger_feedback">Feedback do flanger para efeito mais intenso</string>
+    <string name="tooltip_flanger_mix">Mistura entre sinal original e flanger (Dry/Wet)</string>
+    <string name="tooltip_flanger_enable">Ativa/desativa o efeito de flanger</string>
+    
+    <!-- Tooltips para Phaser -->
+    <string name="tooltip_phaser_depth">Profundidade da modulação do phaser</string>
+    <string name="tooltip_phaser_rate">Velocidade da modulação do phaser</string>
+    <string name="tooltip_phaser_feedback">Feedback do phaser para efeito mais intenso</string>
+    <string name="tooltip_phaser_mix">Mistura entre sinal original e phaser (Dry/Wet)</string>
+    <string name="tooltip_phaser_enable">Ativa/desativa o efeito de phaser</string>
+    
+    <!-- Tooltips para EQ -->
+    <string name="tooltip_eq_low">Ajusta as frequências graves (baixas)</string>
+    <string name="tooltip_eq_mid">Ajusta as frequências médias</string>
+    <string name="tooltip_eq_high">Ajusta as frequências agudas (altas)</string>
+    <string name="tooltip_eq_mix">Mistura entre sinal original e EQ (Dry/Wet)</string>
+    <string name="tooltip_eq_enable">Ativa/desativa o equalizador</string>
+    
+    <!-- Tooltips para Compressor -->
+    <string name="tooltip_compressor_threshold">Nível em que o compressor começa a atuar</string>
+    <string name="tooltip_compressor_ratio">Quantidade de compressão aplicada</string>
+    <string name="tooltip_compressor_attack">Velocidade com que o compressor responde</string>
+    <string name="tooltip_compressor_release">Velocidade com que o compressor para de atuar</string>
+    <string name="tooltip_compressor_mix">Mistura entre sinal original e comprimido (Dry/Wet)</string>
+    <string name="tooltip_compressor_enable">Ativa/desativa o compressor</string>
+    
+    <!-- Tooltips gerais -->
+    <string name="tooltip_reset">Restaura os parâmetros para valores padrão</string>
+    <string name="tooltip_reset_all">Restaura todos os efeitos para valores padrão</string>
 </resources>

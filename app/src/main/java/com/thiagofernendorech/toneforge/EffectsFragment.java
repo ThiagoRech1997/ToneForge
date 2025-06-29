@@ -81,6 +81,17 @@ public class EffectsFragment extends Fragment {
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
+        
+        // Tooltips para Ganho
+        seekGain.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_gain));
+            return true;
+        });
+        
+        switchGain.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_gain_enable));
+            return true;
+        });
 
         // Distorção
         Switch switchDistortion = view.findViewById(R.id.switchDistortion);
@@ -98,6 +109,17 @@ public class EffectsFragment extends Fragment {
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        
+        // Tooltips para Distorção
+        seekDistortion.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_distortion));
+            return true;
+        });
+        
+        switchDistortion.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_distortion_enable));
+            return true;
         });
 
         // Delay
@@ -156,6 +178,37 @@ public class EffectsFragment extends Fragment {
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        // Tooltips para Delay
+        seekDelayTime.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_delay_time));
+            return true;
+        });
+        
+        switchDelay.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_delay_enable));
+            return true;
+        });
+        
+        switchDelaySyncBPM.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_delay_sync_bpm));
+            return true;
+        });
+        
+        seekDelayBPM.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_delay_bpm));
+            return true;
+        });
+        
+        seekDelayFeedback.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_delay_feedback));
+            return true;
+        });
+        
+        seekDelayMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_delay_mix));
+            return true;
         });
 
         // Reverb
@@ -230,6 +283,32 @@ public class EffectsFragment extends Fragment {
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        // Tooltips para Reverb
+        seekReverb.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reverb));
+            return true;
+        });
+        
+        switchReverb.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reverb_enable));
+            return true;
+        });
+        
+        seekReverbRoomSize.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reverb_room_size));
+            return true;
+        });
+        
+        seekReverbDamping.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reverb_damping));
+            return true;
+        });
+        
+        seekReverbMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reverb_mix));
+            return true;
         });
 
         // Chorus
@@ -604,6 +683,9 @@ public class EffectsFragment extends Fragment {
         
         Button btnResetCompressor = view.findViewById(R.id.btnResetCompressor);
         btnResetCompressor.setOnClickListener(v -> resetCompressor());
+
+        // Tooltips para todos os controles restantes
+        setupTooltips(view);
 
         updateBypassIndicators(view);
 
@@ -1147,5 +1229,248 @@ public class EffectsFragment extends Fragment {
         
         // Feedback visual
         Toast.makeText(getContext(), "Compressor resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    // Tooltips para todos os controles restantes
+    private void setupTooltips(View view) {
+        // Tooltips para Chorus
+        SeekBar seekChorusDepth = view.findViewById(R.id.seekChorusDepth);
+        SeekBar seekChorusRate = view.findViewById(R.id.seekChorusRate);
+        SeekBar seekChorusMix = view.findViewById(R.id.seekChorusMix);
+        Switch switchChorus = view.findViewById(R.id.switchChorus);
+        Button btnResetChorus = view.findViewById(R.id.btnResetChorus);
+        
+        seekChorusDepth.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_chorus_depth));
+            return true;
+        });
+        
+        seekChorusRate.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_chorus_rate));
+            return true;
+        });
+        
+        seekChorusMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_chorus_mix));
+            return true;
+        });
+        
+        switchChorus.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_chorus_enable));
+            return true;
+        });
+        
+        btnResetChorus.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        // Tooltips para Flanger
+        SeekBar seekFlangerDepth = view.findViewById(R.id.seekFlangerDepth);
+        SeekBar seekFlangerRate = view.findViewById(R.id.seekFlangerRate);
+        SeekBar seekFlangerFeedback = view.findViewById(R.id.seekFlangerFeedback);
+        SeekBar seekFlangerMix = view.findViewById(R.id.seekFlangerMix);
+        Switch switchFlanger = view.findViewById(R.id.switchFlanger);
+        Button btnResetFlanger = view.findViewById(R.id.btnResetFlanger);
+        
+        seekFlangerDepth.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_flanger_depth));
+            return true;
+        });
+        
+        seekFlangerRate.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_flanger_rate));
+            return true;
+        });
+        
+        seekFlangerFeedback.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_flanger_feedback));
+            return true;
+        });
+        
+        seekFlangerMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_flanger_mix));
+            return true;
+        });
+        
+        switchFlanger.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_flanger_enable));
+            return true;
+        });
+        
+        btnResetFlanger.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        // Tooltips para Phaser
+        SeekBar seekPhaserDepth = view.findViewById(R.id.seekPhaserDepth);
+        SeekBar seekPhaserRate = view.findViewById(R.id.seekPhaserRate);
+        SeekBar seekPhaserFeedback = view.findViewById(R.id.seekPhaserFeedback);
+        SeekBar seekPhaserMix = view.findViewById(R.id.seekPhaserMix);
+        Switch switchPhaser = view.findViewById(R.id.switchPhaser);
+        Button btnResetPhaser = view.findViewById(R.id.btnResetPhaser);
+        
+        seekPhaserDepth.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_phaser_depth));
+            return true;
+        });
+        
+        seekPhaserRate.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_phaser_rate));
+            return true;
+        });
+        
+        seekPhaserFeedback.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_phaser_feedback));
+            return true;
+        });
+        
+        seekPhaserMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_phaser_mix));
+            return true;
+        });
+        
+        switchPhaser.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_phaser_enable));
+            return true;
+        });
+        
+        btnResetPhaser.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        // Tooltips para EQ
+        SeekBar seekEQLow = view.findViewById(R.id.seekEQLow);
+        SeekBar seekEQMid = view.findViewById(R.id.seekEQMid);
+        SeekBar seekEQHigh = view.findViewById(R.id.seekEQHigh);
+        SeekBar seekEQMix = view.findViewById(R.id.seekEQMix);
+        Switch switchEQ = view.findViewById(R.id.switchEQ);
+        Button btnResetEQ = view.findViewById(R.id.btnResetEQ);
+        
+        seekEQLow.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_eq_low));
+            return true;
+        });
+        
+        seekEQMid.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_eq_mid));
+            return true;
+        });
+        
+        seekEQHigh.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_eq_high));
+            return true;
+        });
+        
+        seekEQMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_eq_mix));
+            return true;
+        });
+        
+        switchEQ.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_eq_enable));
+            return true;
+        });
+        
+        btnResetEQ.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        // Tooltips para Compressor
+        SeekBar seekCompressorThreshold = view.findViewById(R.id.seekCompressorThreshold);
+        SeekBar seekCompressorRatio = view.findViewById(R.id.seekCompressorRatio);
+        SeekBar seekCompressorAttack = view.findViewById(R.id.seekCompressorAttack);
+        SeekBar seekCompressorRelease = view.findViewById(R.id.seekCompressorRelease);
+        SeekBar seekCompressorMix = view.findViewById(R.id.seekCompressorMix);
+        Switch switchCompressor = view.findViewById(R.id.switchCompressor);
+        Button btnResetCompressor = view.findViewById(R.id.btnResetCompressor);
+        
+        seekCompressorThreshold.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_compressor_threshold));
+            return true;
+        });
+        
+        seekCompressorRatio.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_compressor_ratio));
+            return true;
+        });
+        
+        seekCompressorAttack.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_compressor_attack));
+            return true;
+        });
+        
+        seekCompressorRelease.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_compressor_release));
+            return true;
+        });
+        
+        seekCompressorMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_compressor_mix));
+            return true;
+        });
+        
+        switchCompressor.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_compressor_enable));
+            return true;
+        });
+        
+        btnResetCompressor.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        // Tooltips para controles adicionais
+        SeekBar seekDistortionMix = view.findViewById(R.id.seekDistortionMix);
+        Spinner spinnerDistortionType = view.findViewById(R.id.spinnerDistortionType);
+        Spinner spinnerReverbType = view.findViewById(R.id.spinnerReverbType);
+        Button btnResetAll = view.findViewById(R.id.btnResetAll);
+        Button btnResetGain = view.findViewById(R.id.btnResetGain);
+        Button btnResetDistortion = view.findViewById(R.id.btnResetDistortion);
+        Button btnResetDelay = view.findViewById(R.id.btnResetDelay);
+        Button btnResetReverb = view.findViewById(R.id.btnResetReverb);
+        
+        seekDistortionMix.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_distortion_mix));
+            return true;
+        });
+        
+        spinnerDistortionType.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_distortion_type));
+            return true;
+        });
+        
+        spinnerReverbType.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reverb_type));
+            return true;
+        });
+        
+        btnResetAll.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset_all));
+            return true;
+        });
+        
+        btnResetGain.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        btnResetDistortion.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        btnResetDelay.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
+        
+        btnResetReverb.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
+            return true;
+        });
     }
 } 
