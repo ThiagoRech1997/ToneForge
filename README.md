@@ -105,6 +105,55 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - **Persistência**: A ordem é salva automaticamente
 - **Tempo real**: Mudanças aplicadas instantaneamente
 
+
+## 🎛️ **Efeitos Implementados**
+
+### **Efeitos de Modulação**
+- **Chorus**: Efeito de modulação que adiciona espessura e movimento ao som
+  - **Depth**: Intensidade da modulação (0-100%)
+  - **Rate**: Velocidade da modulação (0.1-10 Hz)
+  - **Mix**: Controle dry/wet (0-100%)
+
+- **Flanger**: Efeito de modulação com delay variável
+  - **Depth**: Intensidade da modulação (0-100%)
+  - **Rate**: Velocidade da modulação (0.1-10 Hz)
+  - **Feedback**: Realimentação do sinal (0-100%)
+  - **Mix**: Controle dry/wet (0-100%)
+
+- **Phaser**: Efeito de modulação com filtros passa-tudo
+  - **Depth**: Intensidade da modulação (0-100%)
+  - **Rate**: Velocidade da modulação (0.1-10 Hz)
+  - **Feedback**: Realimentação do sinal (0-100%)
+  - **Mix**: Controle dry/wet (0-100%)
+
+### **Efeitos de Filtragem**
+- **Equalizador (EQ)**: Controle de frequências em 3 bandas
+  - **Graves**: Ganho para frequências baixas (-12dB a +12dB)
+  - **Médios**: Ganho para frequências médias (-12dB a +12dB)
+  - **Agudos**: Ganho para frequências altas (-12dB a +12dB)
+  - **Mix**: Controle dry/wet (0-100%)
+
+### **Efeitos de Dinâmica**
+- **Compressor**: Controle de dinâmica do sinal
+  - **Threshold**: Ponto onde a compressão começa (-60dB a 0dB)
+  - **Ratio**: Intensidade da compressão (1:1 a 20:1)
+  - **Attack**: Velocidade de resposta (0.1ms a 100ms)
+  - **Release**: Velocidade de recuperação (10ms a 1000ms)
+  - **Mix**: Controle dry/wet (0-100%)
+
+## 🎵 **Funcionalidades Principais**
+
+### **Efeitos Básicos**
+- **Ganho**: Controle de volume geral
+- **Distorção**: 4 tipos (Soft Clip, Hard Clip, Fuzz, Overdrive) com mix dry/wet
+- **Delay**: Efeito de eco com feedback e mix
+- **Reverb**: Reverb com decay e mix
+- **Chorus**: Modulação com depth, rate e mix
+- **Flanger**: Modulação com delay variável, feedback e mix
+- **Phaser**: Modulação com filtros passa-tudo, feedback e mix
+- **Equalizador**: 3 bandas (graves, médios, agudos) com mix
+- **Compressor**: Controle de dinâmica com threshold, ratio, attack, release e mix 
+
 ## 🏗️ Arquitetura
 
 ### Componentes Principais

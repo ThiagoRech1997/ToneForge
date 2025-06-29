@@ -65,7 +65,7 @@ static bool distortionEnabled = true;
 static bool delayEnabled = true;
 static bool reverbEnabled = true;
 
-static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "EQ", "Delay", "Reverb"};
+static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "EQ", "Compressor", "Delay", "Reverb"};
 
 static int distortionType = 0; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
 static float distortionMix = 1.0f;
@@ -120,6 +120,19 @@ static int eqSampleRate = 48000;
 static float eqLowX1 = 0.0f, eqLowX2 = 0.0f, eqLowY1 = 0.0f, eqLowY2 = 0.0f;
 static float eqMidX1 = 0.0f, eqMidX2 = 0.0f, eqMidY1 = 0.0f, eqMidY2 = 0.0f;
 static float eqHighX1 = 0.0f, eqHighX2 = 0.0f, eqHighY1 = 0.0f, eqHighY2 = 0.0f;
+
+// Compressor
+static bool compressorEnabled = false;
+static float compressorThreshold = -20.0f;  // dB
+static float compressorRatio = 4.0f;        // 4:1
+static float compressorAttack = 10.0f;      // ms
+static float compressorRelease = 100.0f;    // ms
+static float compressorMix = 1.0f;          // Mix dry/wet
+static int compressorSampleRate = 48000;
+
+// Estado do compressor
+static float compressorEnvelope = 0.0f;     // Envelope detector
+static float compressorGain = 1.0f;         // Gain reduction
 
 void initAudioEngine() {
     // Limpar buffers
@@ -278,6 +291,13 @@ void setEQLow(float gain) { eqLowGain = gain; }
 void setEQMid(float gain) { eqMidGain = gain; }
 void setEQHigh(float gain) { eqHighGain = gain; }
 void setEQMix(float mix) { eqMix = mix; }
+
+void setCompressorEnabled(bool enabled) { compressorEnabled = enabled; }
+void setCompressorThreshold(float threshold) { compressorThreshold = threshold; }
+void setCompressorRatio(float ratio) { compressorRatio = ratio; }
+void setCompressorAttack(float attack) { compressorAttack = attack; }
+void setCompressorRelease(float release) { compressorRelease = release; }
+void setCompressorMix(float mix) { compressorMix = mix; }
 
 float processSample(float input) {
     float output = input;
@@ -482,6 +502,37 @@ float processSample(float input) {
                 output = (1.0f - reverbMix) * output + reverbMix * wet;
                 reverbBuffer[reverbIndex] = wet;
                 reverbIndex = (reverbIndex + 1) % REVERB_BUFFER_SIZE;
+            }
+        } else if (effect == "Compressor") {
+            if (compressorEnabled) {
+                // Compressor: detector de envelope + controle de ganho
+                float inputLevel = fabs(output);
+                float thresholdLinear = powf(10.0f, compressorThreshold / 20.0f);
+                
+                // Detector de envelope
+                float attackCoeff = expf(-1.0f / (compressorAttack * 0.001f * compressorSampleRate));
+                float releaseCoeff = expf(-1.0f / (compressorRelease * 0.001f * compressorSampleRate));
+                
+                if (inputLevel > compressorEnvelope) {
+                    compressorEnvelope = attackCoeff * compressorEnvelope + (1.0f - attackCoeff) * inputLevel;
+                } else {
+                    compressorEnvelope = releaseCoeff * compressorEnvelope + (1.0f - releaseCoeff) * inputLevel;
+                }
+                
+                // Calcular redução de ganho
+                float gainReduction = 1.0f;
+                if (compressorEnvelope > thresholdLinear) {
+                    float overThreshold = compressorEnvelope / thresholdLinear;
+                    float dbOver = 20.0f * log10f(overThreshold);
+                    float dbReduction = dbOver * (1.0f - 1.0f / compressorRatio);
+                    gainReduction = powf(10.0f, -dbReduction / 20.0f);
+                }
+                
+                // Aplicar compressão
+                float compressed = output * gainReduction;
+                
+                // Mix dry/wet
+                output = (1.0f - compressorMix) * output + compressorMix * compressed;
             }
         }
     }

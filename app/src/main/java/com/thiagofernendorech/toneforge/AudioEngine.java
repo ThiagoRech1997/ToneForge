@@ -96,6 +96,14 @@ public class AudioEngine {
     public static native void setEQHigh(float gain);
     public static native void setEQMix(float mix);
 
+    // Novos métodos JNI para Compressor
+    public static native void setCompressorEnabled(boolean enabled);
+    public static native void setCompressorThreshold(float threshold);
+    public static native void setCompressorRatio(float ratio);
+    public static native void setCompressorAttack(float attack);
+    public static native void setCompressorRelease(float release);
+    public static native void setCompressorMix(float mix);
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

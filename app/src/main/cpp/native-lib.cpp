@@ -381,3 +381,33 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setEQMix(JNIEnv* env, jclass clazz, jfloat mix) {
     setEQMix(mix);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setCompressorEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorThreshold(JNIEnv* env, jclass clazz, jfloat threshold) {
+    setCompressorThreshold(threshold);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorRatio(JNIEnv* env, jclass clazz, jfloat ratio) {
+    setCompressorRatio(ratio);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorAttack(JNIEnv* env, jclass clazz, jfloat attack) {
+    setCompressorAttack(attack);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorRelease(JNIEnv* env, jclass clazz, jfloat release) {
+    setCompressorRelease(release);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorMix(JNIEnv* env, jclass clazz, jfloat mix) {
+    setCompressorMix(mix);
+}

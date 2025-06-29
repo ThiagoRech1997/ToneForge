@@ -393,6 +393,66 @@ public class EffectsFragment extends Fragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // Compressor
+        Switch switchCompressor = view.findViewById(R.id.switchCompressor);
+        SeekBar seekCompressorThreshold = view.findViewById(R.id.seekCompressorThreshold);
+        SeekBar seekCompressorRatio = view.findViewById(R.id.seekCompressorRatio);
+        SeekBar seekCompressorAttack = view.findViewById(R.id.seekCompressorAttack);
+        SeekBar seekCompressorRelease = view.findViewById(R.id.seekCompressorRelease);
+        SeekBar seekCompressorMix = view.findViewById(R.id.seekCompressorMix);
+        switchCompressor.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setCompressorEnabled(isChecked);
+        });
+        seekCompressorThreshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> -60dB a 0dB
+                float value = (progress / 100.0f) * 60.0f - 60.0f; // -60 a 0 dB
+                AudioEngine.setCompressorThreshold(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekCompressorRatio.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 1:1 a 20:1
+                float value = 1.0f + (progress / 100.0f) * 19.0f; // 1.0 a 20.0
+                AudioEngine.setCompressorRatio(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekCompressorAttack.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 0.1ms a 100ms
+                float value = 0.1f + (progress / 100.0f) * 99.9f; // 0.1 a 100 ms
+                AudioEngine.setCompressorAttack(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekCompressorRelease.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> 10ms a 1000ms
+                float value = 10.0f + (progress / 100.0f) * 990.0f; // 10 a 1000 ms
+                AudioEngine.setCompressorRelease(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekCompressorMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setCompressorMix(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
         // --- Presets UI ---
         presetSpinner = view.findViewById(R.id.presetSpinner);
         presetNameEdit = view.findViewById(R.id.presetNameEdit);
@@ -451,6 +511,7 @@ public class EffectsFragment extends Fragment {
             effectOrder.add("Flanger");
             effectOrder.add("Phaser");
             effectOrder.add("EQ");
+            effectOrder.add("Compressor");
             effectOrder.add("Delay");
             effectOrder.add("Reverb");
         }

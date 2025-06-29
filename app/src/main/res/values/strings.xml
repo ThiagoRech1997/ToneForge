@@ -17,4 +17,10 @@
     <string name="eq_mid">Médios</string>
     <string name="eq_high">Agudos</string>
     <string name="eq_mix">Mix</string>
+    <string name="compressor">Compressor</string>
+    <string name="compressor_threshold">Threshold</string>
+    <string name="compressor_ratio">Ratio</string>
+    <string name="compressor_attack">Attack</string>
+    <string name="compressor_release">Release</string>
+    <string name="compressor_mix">Mix</string>
 </resources>

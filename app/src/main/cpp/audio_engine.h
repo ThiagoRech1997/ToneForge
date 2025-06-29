@@ -78,6 +78,13 @@ extern "C" {
     void setEQMid(float gain);
     void setEQHigh(float gain);
     void setEQMix(float mix);
+
+    void setCompressorEnabled(bool enabled);
+    void setCompressorThreshold(float threshold);
+    void setCompressorRatio(float ratio);
+    void setCompressorAttack(float attack);
+    void setCompressorRelease(float release);
+    void setCompressorMix(float mix);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H
