@@ -5,7 +5,9 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 ## ✨ Características
 
 - **Processamento em tempo real**: Baixa latência usando código C++ nativo via JNI
-- **Múltiplos efeitos**: Ganho, distorção, delay e reverb
+- **Múltiplos efeitos**: Ganho, distorção, delay, reverb, chorus, flanger e phaser
+- **Sistema de presets**: Salvar, carregar e excluir configurações de efeitos
+- **Ordem customizável**: Reordenar efeitos via drag-and-drop
 - **Interface moderna**: Design escuro com controles intuitivos
 - **Afinador em tempo real**: Pitch detection robusto, visual moderno, feedback instantâneo
 - **Compatibilidade**: Android 8.1+ (API 27) para suporte futuro ao AAudio
@@ -14,21 +16,44 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 
 ### 🔊 Ganho
 - Controle de volume de 0.0x a 2.0x
-- Aplicado como último estágio do processamento
+- Aplicado conforme ordem configurada na cadeia de efeitos
 
 ### 🎸 Distorção
-- Distorção baseada em tanh() com drive variável
+- **4 tipos de distorção**: Soft Clip, Hard Clip, Fuzz e Overdrive
 - Intensidade de 0% a 100%
-- Simula overdrive de amplificadores
+- Controle de mix dry/wet (0-100%)
+- Simula diferentes tipos de overdrive e distorção
+
+### 🎵 Chorus
+- **Depth**: 0-40ms de modulação
+- **Rate**: 0-5Hz de velocidade de modulação
+- **Mix**: Controle dry/wet (0-100%)
+- Efeito de modulação suave para enriquecer o som
+
+### 🌊 Flanger
+- **Depth**: 0-10ms de modulação
+- **Rate**: 0-5Hz de velocidade
+- **Feedback**: 0-100% de realimentação
+- **Mix**: Controle dry/wet (0-100%)
+- Efeito de modulação mais intenso que o chorus
+
+### 🔄 Phaser
+- **Depth**: 0-100% de profundidade da modulação
+- **Rate**: 0-5Hz de velocidade
+- **Feedback**: 0-100% de realimentação
+- **Mix**: Controle dry/wet (0-100%)
+- Implementação com filtros passa-tudo em série (4 estágios)
 
 ### ⏱️ Delay
-- Tempo de delay de 0ms a 1000ms
+- Tempo de delay configurável
 - Feedback de 0% a 100%
+- Controle de mix dry/wet (0-100%)
 - Buffer circular para eficiência
 
 ### 🏛️ Reverb
-- Reverb simples com tamanho de sala configurável
+- Reverb com tamanho de sala configurável
 - Amortecimento ajustável
+- Controle de mix dry/wet (0-100%)
 - Simula acústica de ambientes
 
 ### 🎵 Afinador (Tuner)
@@ -37,6 +62,21 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - Feedback visual instantâneo para facilitar a afinação precisa
 - Robusto contra rotação de tela e uso intenso (thread-safe, mutex, checagens de null)
 - Baixa latência e processamento eficiente
+
+## 🎚️ Sistema de Presets
+
+- **Salvar presets**: Guarde suas configurações favoritas com nomes personalizados
+- **Carregar presets**: Acesse rapidamente suas configurações salvas
+- **Excluir presets**: Remova presets que não usa mais
+- **Persistência**: Presets são salvos automaticamente no dispositivo
+- **Ordem dos efeitos**: Presets também salvam a ordem customizada dos efeitos
+
+## 🔄 Ordem Customizável de Efeitos
+
+- **Drag-and-drop**: Reordene efeitos arrastando e soltando
+- **Ordem padrão**: Ganho → Distorção → Chorus → Flanger → Phaser → Delay → Reverb
+- **Persistência**: A ordem é salva automaticamente
+- **Tempo real**: Mudanças aplicadas instantaneamente
 
 ## 🏗️ Arquitetura
 
@@ -53,7 +93,7 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 
 1. **Captura**: `AudioRecord` captura áudio do microfone
 2. **Processamento**: Buffer é enviado para `audio_engine.cpp` via JNI
-3. **Efeitos**: Aplicação sequencial de ganho, distorção, delay e reverb
+3. **Efeitos**: Aplicação sequencial conforme ordem configurada
 4. **Reprodução**: `AudioTrack` reproduz o áudio processado
 
 ### Estrutura de Arquivos
@@ -67,23 +107,31 @@ app/src/main/
 │   └── CMakeLists.txt      # Configuração do build
 ├── java/
 │   └── com/thiagofernendorech/toneforge/
-│       └── MainActivity.java  # Interface e lógica de áudio
+│       ├── MainActivity.java      # Interface principal
+│       ├── AudioEngine.java       # Pipeline de áudio
+│       ├── EffectsFragment.java   # Interface de efeitos
+│       └── EffectOrderAdapter.java # Adapter para ordem de efeitos
 └── res/
     ├── layout/
-    │   └── activity_main.xml  # Interface de usuário
+    │   ├── activity_main.xml      # Interface principal
+    │   └── fragment_effects.xml   # Interface de efeitos
     ├── drawable/
     │   └── button_background.xml
     └── values/
-        └── colors.xml
+        ├── colors.xml
+        ├── strings.xml
+        └── arrays.xml
 ```
 
 ## 🚀 Como Usar
 
 1. **Instalar**: Compile e instale o APK no dispositivo Android
 2. **Permissões**: Conceda permissão de gravação de áudio
-3. **Iniciar**: Toque em "▶️ Iniciar Áudio"
-4. **Ajustar**: Use os controles deslizantes para configurar os efeitos
-5. **Testar**: Fale ou toque um instrumento no microfone
+3. **Navegar**: Use a navegação inferior para acessar diferentes funcionalidades
+4. **Efeitos**: Na aba "Efeitos", ajuste os parâmetros em tempo real
+5. **Presets**: Salve suas configurações favoritas
+6. **Ordem**: Reordene os efeitos arrastando e soltando
+7. **Testar**: Fale ou toque um instrumento no microfone
 
 ## 🔧 Configuração de Desenvolvimento
 
@@ -112,16 +160,36 @@ O projeto usa:
 - **CMake**: Build do código nativo
 - **JNI**: Interface Java-C++
 - **AudioRecord/AudioTrack**: API de áudio Android
+- **Fragments**: Navegação multi-tela
+- **RecyclerView**: Interface de drag-and-drop
+- **SharedPreferences**: Persistência de dados
 
-## 🎯 Próximas Melhorias
+## 🎯 Roadmap de Evolução
 
-- [ ] Suporte ao AAudio para menor latência
-- [ ] Interface USB/OTG para instrumentos
-- [ ] Mais efeitos (chorus, flanger, compressor)
-- [ ] Presets salvos
-- [ ] Visualização de espectro
-- [ ] MIDI control
-- [ ] Loop de gravação
+### ✅ Concluído
+- [x] Pipeline de áudio em tempo real
+- [x] Efeitos básicos (Ganho, Distorção, Delay, Reverb)
+- [x] Afinador em tempo real
+- [x] Sistema de presets
+- [x] Ordem customizável de efeitos
+- [x] Efeitos de modulação (Chorus, Flanger, Phaser)
+- [x] Controles avançados (mix dry/wet, tipos de distorção)
+
+### 🚧 Em Desenvolvimento
+- [ ] Equalizador (EQ) com controles de graves, médios e agudos
+- [ ] Compressor para nivelamento de volume
+- [ ] Melhorias de interface (tooltips, reset rápido)
+
+### 📋 Próximas Funcionalidades
+- [ ] Exportar/importar presets
+- [ ] Favoritos e categorização
+- [ ] Visualização gráfica da cadeia de efeitos
+- [ ] Oversampling para melhor qualidade
+- [ ] Processamento em background
+- [ ] MIDI Learn para controle externo
+- [ ] Automação de parâmetros
+- [ ] Sincronização com metrônomo
+- [ ] Curvas de resposta customizáveis
 
 ## 📱 Compatibilidade
 
@@ -139,6 +207,8 @@ O projeto usa:
 2. **Latência alta**: Use dispositivo com baixa latência de áudio
 3. **Crash no start**: Verifique se NDK está instalado
 4. **Efeitos não aplicam**: Reinicie o áudio
+5. **Presets não salvam**: Verifique espaço em disco
+6. **Ordem não persiste**: Reinicie o app
 
 ### Logs
 
