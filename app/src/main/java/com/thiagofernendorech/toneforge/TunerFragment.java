@@ -109,13 +109,17 @@ public class TunerFragment extends Fragment {
         double A4 = 440.0;
         int noteNumber = (int) Math.round(12 * Math.log(freq / A4) / Math.log(2)) + 57;
         int noteIndex = (noteNumber + 1200) % 12;
-        String note = noteNames[noteIndex];
-        noteText.setText(note);
+        int octave = (noteNumber / 12) - 1;
+        String note = noteNames[noteIndex] + octave;
         freqText.setText(String.format("%.1f Hz", freq));
         // Calcular desvio em cents
         double noteFreq = A4 * Math.pow(2, (noteNumber - 57) / 12.0);
         int cents = (int) (1200 * Math.log(freq / noteFreq) / Math.log(2));
-        centsText.setText((cents > 0 ? "+" : "") + cents + " cents");
+        String arrow = "";
+        if (cents > 20) arrow = "↑";
+        else if (cents < -20) arrow = "↓";
+        centsText.setText(String.format("%s%s%d cents", arrow, (cents > 0 ? "+" : (cents < 0 ? "" : "")), cents));
+        noteText.setText(note);
         int progress = 50 + cents / 2; // -50 a +50 cents -> 0 a 100
         if (progress < 0) progress = 0;
         if (progress > 100) progress = 100;

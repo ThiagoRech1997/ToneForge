@@ -7,6 +7,7 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - **Processamento em tempo real**: Baixa latência usando código C++ nativo via JNI
 - **Múltiplos efeitos**: Ganho, distorção, delay e reverb
 - **Interface moderna**: Design escuro com controles intuitivos
+- **Afinador em tempo real**: Pitch detection robusto, visual moderno, feedback instantâneo
 - **Compatibilidade**: Android 8.1+ (API 27) para suporte futuro ao AAudio
 
 ## 🎛️ Efeitos Disponíveis
@@ -29,6 +30,13 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - Reverb simples com tamanho de sala configurável
 - Amortecimento ajustável
 - Simula acústica de ambientes
+
+### 🎵 Afinador (Tuner)
+- Detecção de frequência em tempo real (pitch detection via autocorrelação em C++)
+- Exibe nota, frequência (Hz), desvio em cents e barra de afinação com cor dinâmica (verde, amarelo, vermelho)
+- Feedback visual instantâneo para facilitar a afinação precisa
+- Robusto contra rotação de tela e uso intenso (thread-safe, mutex, checagens de null)
+- Baixa latência e processamento eficiente
 
 ## 🏗️ Arquitetura
 

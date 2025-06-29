@@ -53,6 +53,11 @@ static std::vector<float> tunerBuffer;
 static int tunerSampleRate = 48000;
 static std::mutex tunerMutex;
 
+// Parâmetros para filtro de média móvel
+static const int FREQ_SMOOTH_SIZE = 5;
+static float freqHistory[FREQ_SMOOTH_SIZE] = {0};
+static int freqHistoryIdx = 0;
+
 void initAudioEngine() {
     // Limpar buffers
     memset(delayBuffer, 0, sizeof(delayBuffer));
@@ -250,23 +255,30 @@ void stopTuner() {
 bool isTunerActive() { return tunerActive; }
 float getDetectedFrequency() { return detectedFrequency; }
 
-// Função auxiliar: autocorrelação para pitch detection
+// Função auxiliar: autocorrelação normalizada para pitch detection
 static float detectPitch(const float* buffer, int numSamples, int sampleRate) {
     int minLag = sampleRate / 1000; // 1000 Hz
     int maxLag = sampleRate / 50;   // 50 Hz
-    float maxCorr = 0.0f;
+    float maxNormCorr = 0.0f;
     int bestLag = 0;
+    // Threshold de energia (ignorar silêncio/ruído)
+    float energy = 0.0f;
+    for (int i = 0; i < numSamples; ++i) energy += buffer[i] * buffer[i];
+    if (energy / numSamples < 1e-5f) return 0.0f;
     for (int lag = minLag; lag < maxLag; ++lag) {
-        float corr = 0.0f;
+        float corr = 0.0f, norm1 = 0.0f, norm2 = 0.0f;
         for (int i = 0; i < numSamples - lag; ++i) {
             corr += buffer[i] * buffer[i + lag];
+            norm1 += buffer[i] * buffer[i];
+            norm2 += buffer[i + lag] * buffer[i + lag];
         }
-        if (corr > maxCorr) {
-            maxCorr = corr;
+        float normCorr = (norm1 > 0 && norm2 > 0) ? corr / sqrtf(norm1 * norm2) : 0.0f;
+        if (normCorr > maxNormCorr) {
+            maxNormCorr = normCorr;
             bestLag = lag;
         }
     }
-    if (bestLag > 0) {
+    if (bestLag > 0 && maxNormCorr > 0.7f) {
         return (float)sampleRate / bestLag;
     } else {
         return 0.0f;
@@ -279,7 +291,15 @@ void processTunerBuffer(const float* input, int numSamples) {
     tunerBuffer.insert(tunerBuffer.end(), input, input + numSamples);
     int windowSize = tunerSampleRate / 10; // 100ms
     if ((int)tunerBuffer.size() >= windowSize) {
-        detectedFrequency = detectPitch(tunerBuffer.data(), windowSize, tunerSampleRate);
+        float freq = detectPitch(tunerBuffer.data(), windowSize, tunerSampleRate);
+        // Filtro de média móvel para suavizar
+        freqHistory[freqHistoryIdx] = freq;
+        freqHistoryIdx = (freqHistoryIdx + 1) % FREQ_SMOOTH_SIZE;
+        float sum = 0.0f; int count = 0;
+        for (int i = 0; i < FREQ_SMOOTH_SIZE; ++i) {
+            if (freqHistory[i] > 0.0f) { sum += freqHistory[i]; count++; }
+        }
+        detectedFrequency = (count > 0) ? (sum / count) : 0.0f;
         tunerBuffer.erase(tunerBuffer.begin(), tunerBuffer.begin() + windowSize/2); // overlap
     }
 }
