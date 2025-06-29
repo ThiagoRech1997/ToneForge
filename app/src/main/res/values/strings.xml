@@ -157,4 +157,74 @@
     
     <!-- Nova string para label da visualização gráfica da cadeia -->
     <string name="chain_view_label">Cadeia de Efeitos</string>
+    
+    <!-- Audio Background Service -->
+    <string name="audio_background_service">Serviço de Áudio em Background</string>
+    <string name="audio_background_active">Áudio Ativo</string>
+    <string name="audio_background_paused">Áudio Pausado</string>
+    <string name="audio_background_processing">Processamento de áudio em background</string>
+    <string name="audio_background_toggle">Alternar</string>
+    <string name="audio_background_stop">Parar</string>
+    <string name="audio_background_start">Iniciar Áudio em Background</string>
+    <string name="audio_background_stop_service">Parar Serviço de Background</string>
+    <string name="audio_background_enabled">Áudio em background ativado</string>
+    <string name="audio_background_disabled">Áudio em background desativado</string>
+    <string name="audio_background_permission_required">Permissão necessária para áudio em background</string>
+    <string name="audio_background_channel_name">ToneForge Áudio</string>
+    <string name="audio_background_channel_description">Canal para notificações do ToneForge</string>
+    
+    <!-- Tooltips para Audio Background -->
+    <string name="tooltip_audio_background">Ativar/desativar processamento de áudio em background</string>
+    <string name="tooltip_audio_background_status">Status do processamento de áudio em background</string>
+    
+    <!-- Notificação Persistente Melhorada -->
+    <string name="notification_effects_active">Efeitos Ativos: %d</string>
+    <string name="notification_effects_none">Nenhum efeito ativo</string>
+    <string name="notification_preset_current">Preset: %s</string>
+    <string name="notification_preset_none">Sem preset</string>
+    <string name="notification_audio_level">Nível: %d%%</string>
+    <string name="notification_quick_gain">Ganho</string>
+    <string name="notification_quick_distortion">Distorção</string>
+    <string name="notification_quick_delay">Delay</string>
+    <string name="notification_quick_reverb">Reverb</string>
+    <string name="notification_open_effects">Efeitos</string>
+    <string name="notification_open_presets">Presets</string>
+    <string name="notification_status_processing">Processando áudio</string>
+    <string name="notification_status_standby">Em espera</string>
+    <string name="notification_status_error">Erro no áudio</string>
+    <string name="notification_audio_quality">Qualidade: %s</string>
+    <string name="notification_oversampling_on">Oversampling Ativo</string>
+    <string name="notification_oversampling_off">Oversampling Desativado</string>
+    
+    <!-- Pipeline Status -->
+    <string name="pipeline_error">Erro</string>
+    <string name="pipeline_recovering">Recuperando</string>
+    <string name="pipeline_uptime">Uptime: %ds</string>
+    <string name="pipeline_samples">Samples: %d</string>
+    <string name="pipeline_errors">Erros: %d</string>
+    <string name="pipeline_last_error">Último erro: %s</string>
+    <string name="pipeline_health_check">Verificação de saúde do pipeline</string>
+    <string name="pipeline_auto_recovery">Recuperação automática ativa</string>
+    <string name="pipeline_manual_restart">Reiniciar pipeline manualmente</string>
+    
+    <!-- Descrição do serviço -->
+    <string name="audio_background_service_description">Serviço para manter o processamento de áudio ativo em background</string>
+    
+    <!-- Recuperação de Estado -->
+    <string name="state_recovery_started">Recuperando configurações...</string>
+    <string name="state_recovery_completed">Configurações restauradas</string>
+    <string name="state_recovery_failed">Erro ao restaurar configurações</string>
+    <string name="state_saved">Estado salvo</string>
+    <string name="state_restored">Estado restaurado</string>
+    <string name="state_no_saved_data">Nenhum estado salvo encontrado</string>
+    
+    <!-- Mensagens de Permissão -->
+    <string name="permission_all_granted">Todas as permissões necessárias concedidas!</string>
+    <string name="permission_some_denied">Algumas permissões foram negadas. O app pode não funcionar corretamente.</string>
+    <string name="permission_explanation_needed">Explicação de permissões necessária. Verifique as configurações.</string>
+    <string name="permission_audio_required">Permissão de microfone necessária para os efeitos</string>
+    <string name="permission_notification_required">Permissão de notificação necessária para áudio em background</string>
+    <string name="permission_storage_required">Permissão de armazenamento necessária para exportar/importar presets</string>
+    <string name="permission_battery_optimization">Desabilite a otimização de bateria para melhor funcionamento em background</string>
+    <string name="permission_overlay">Permissão de overlay necessária para tooltips</string>
 </resources>

@@ -5,13 +5,16 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 ## ✨ Características
 
 - **Processamento em tempo real**: Baixa latência usando código C++ nativo via JNI
-- **Múltiplos efeitos**: Ganho, distorção, delay, reverb, chorus, flanger e phaser
-- **Sistema de presets**: Salvar, carregar e excluir configurações de efeitos
+- **Múltiplos efeitos**: Ganho, distorção, delay, reverb, chorus, flanger, phaser, EQ e compressor
+- **Sistema de presets**: Salvar, carregar, exportar/importar e favoritar configurações
 - **Ordem customizável**: Reordenar efeitos via drag-and-drop
-- **Interface moderna**: Design escuro com controles intuitivos
+- **Interface moderna**: Design escuro com controles intuitivos e tooltips informativos
 - **Afinador em tempo real**: Pitch detection robusto, visual moderno, feedback instantâneo
 - **Metrônomo**: Controle de BPM com integração ao motor de áudio
 - **Looper**: Gravação e reprodução de loops (funcionalidade básica)
+- **Processamento em background**: Áudio contínuo com tela desligada
+- **Recuperação de estado**: Restaura configurações ao retornar do background
+- **Oversampling**: Melhoria de qualidade para distorção e delay
 - **Compatibilidade**: Android 8.1+ (API 27) para suporte futuro ao AAudio
 
 ## 🎛️ Efeitos Disponíveis
@@ -90,11 +93,42 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - **Mix**: Controle dry/wet (0-100%) para dosar o quanto do sinal equalizado é misturado ao original.
 - **Aplicação**: Útil para adaptar o som ao instrumento, estilo musical ou ambiente, diretamente na cadeia de efeitos do app.
 
-## 🎚️ Sistema de Presets
+### 🎛️ Compressor
+- **Controle de dinâmica**: Nivela o volume do sinal para maior consistência
+- **Threshold**: Ponto onde a compressão começa (-60dB a 0dB)
+- **Ratio**: Intensidade da compressão (1:1 a 20:1)
+- **Attack**: Velocidade de resposta (0.1ms a 100ms)
+- **Release**: Velocidade de recuperação (10ms a 1000ms)
+- **Mix**: Controle dry/wet (0-100%) para misturar sinal original e comprimido
+
+## 🔄 Processamento em Background
+
+### 🎵 Áudio Contínuo
+- **ForegroundService**: Mantém o processamento de áudio ativo mesmo com a tela desligada
+- **Notificação persistente**: Mostra status do áudio e controles rápidos
+- **Controle de ativação**: Switch nas configurações para ativar/desativar
+- **Gerenciamento de pipeline**: Recuperação automática em caso de erros
+
+### 🔧 Recuperação de Estado
+- **Salvamento automático**: Estado salvo quando o app vai para background
+- **Restauração inteligente**: Configurações restauradas ao retornar
+- **Recuperação de**: Pipeline, presets, oversampling, efeitos ativos
+- **Sincronização**: Interface atualizada com estado real
+
+### 🛡️ Sistema de Permissões
+- **Permissões necessárias**: Microfone, notificações, armazenamento
+- **Permissões opcionais**: Overlay, otimização de bateria
+- **Verificação automática**: Solicitação de permissões ao iniciar
+- **Compatibilidade**: Suporte a diferentes versões do Android
+
+## 🎛️ Sistema de Presets
 
 - **Salvar presets**: Guarde suas configurações favoritas com nomes personalizados
 - **Carregar presets**: Acesse rapidamente suas configurações salvas
 - **Excluir presets**: Remova presets que não usa mais
+- **Exportar/Importar**: Compartilhe presets via arquivos JSON
+- **Favoritos**: Marque presets como favoritos para acesso rápido
+- **Filtro**: Visualize apenas favoritos ou todos os presets
 - **Persistência**: Presets são salvos automaticamente no dispositivo
 - **Ordem dos efeitos**: Presets também salvam a ordem customizada dos efeitos
 
@@ -183,17 +217,26 @@ app/src/main/
 │   └── CMakeLists.txt      # Configuração do build
 ├── java/
 │   └── com/thiagofernendorech/toneforge/
-│       ├── MainActivity.java      # Interface principal e navegação
-│       ├── AudioEngine.java       # Pipeline de áudio em tempo real
-│       ├── EffectsFragment.java   # Interface de efeitos e presets
-│       ├── EffectOrderAdapter.java # Adapter para ordem de efeitos
-│       ├── HomeFragment.java      # Tela inicial
-│       ├── TunerFragment.java     # Afinador em tempo real
-│       ├── MetronomeFragment.java # Metrônomo
-│       ├── LooperFragment.java    # Looper de gravação
-│       ├── RecorderFragment.java  # Gravador
-│       ├── LearningFragment.java  # Tela de aprendizado
-│       └── SettingsFragment.java  # Configurações
+│       ├── MainActivity.java              # Interface principal e navegação
+│       ├── AudioEngine.java               # Pipeline de áudio em tempo real
+│       ├── EffectsFragment.java           # Interface de efeitos e presets
+│       ├── EffectOrderAdapter.java        # Adapter para ordem de efeitos
+│       ├── HomeFragment.java              # Tela inicial
+│       ├── TunerFragment.java             # Afinador em tempo real
+│       ├── MetronomeFragment.java         # Metrônomo
+│       ├── LooperFragment.java            # Looper de gravação
+│       ├── RecorderFragment.java          # Gravador
+│       ├── LearningFragment.java          # Tela de aprendizado
+│       ├── SettingsFragment.java          # Configurações
+│       ├── AudioBackgroundService.java    # Serviço de áudio em background
+│       ├── AudioStateManager.java         # Gerenciamento de estado dos efeitos
+│       ├── PipelineManager.java           # Gerenciamento do pipeline de áudio
+│       ├── PermissionManager.java         # Gerenciamento de permissões
+│       ├── StateRecoveryManager.java      # Recuperação de estado
+│       ├── PresetManager.java             # Gerenciamento de presets
+│       ├── FavoritesManager.java          # Gerenciamento de favoritos
+│       ├── TooltipManager.java            # Gerenciamento de tooltips
+│       └── FavoritePresetAdapter.java     # Adapter para presets favoritos
 ├── res/
 │   ├── layout/
 │   │   ├── activity_main.xml      # Layout principal
@@ -232,12 +275,23 @@ app/src/main/
 ## 🚀 Como Usar
 
 1. **Instalar**: Compile e instale o APK no dispositivo Android
-2. **Permissões**: Conceda permissão de gravação de áudio
+2. **Permissões**: Conceda permissões de microfone, notificações e armazenamento
 3. **Navegar**: Use a navegação inferior para acessar diferentes funcionalidades
 4. **Efeitos**: Na aba "Efeitos", ajuste os parâmetros em tempo real
-5. **Presets**: Salve suas configurações favoritas
-6. **Ordem**: Reordene os efeitos arrastando e soltando
-7. **Testar**: Fale ou toque um instrumento no microfone
+5. **Presets**: Salve suas configurações favoritas e marque como favoritos
+6. **Exportar/Importar**: Compartilhe presets via arquivos JSON
+7. **Ordem**: Reordene os efeitos arrastando e soltando
+8. **Background**: Ative o processamento em background nas configurações
+9. **Tooltips**: Toque longo nos controles para ver explicações
+10. **Reset**: Use os botões de reset para restaurar valores padrão
+11. **Testar**: Fale ou toque um instrumento no microfone
+
+### 🎛️ Configurações Avançadas
+
+- **Oversampling**: Ative nas configurações para melhor qualidade (mais CPU)
+- **Áudio em Background**: Mantém o processamento ativo com tela desligada
+- **Recuperação de Estado**: Configurações são restauradas automaticamente
+- **Permissões**: Verifique se todas as permissões necessárias estão concedidas
 
 ## 🔧 Configuração de Desenvolvimento
 
@@ -281,6 +335,19 @@ O projeto usa:
 - [x] Efeitos de modulação (Chorus, Flanger, Phaser)
 - [x] Controles avançados (mix dry/wet, tipos de distorção)
 - [x] Interface multi-tela com navegação
+- [x] Equalizador (EQ) de 3 bandas
+- [x] Compressor com controles avançados
+- [x] Sistema de tooltips informativos
+- [x] Reset rápido de parâmetros
+- [x] Exportar/importar presets
+- [x] Sistema de favoritos
+- [x] Visualização gráfica da cadeia de efeitos
+- [x] Oversampling para melhor qualidade
+- [x] Processamento em background com ForegroundService
+- [x] Notificação persistente com controles rápidos
+- [x] Gerenciamento robusto de permissões
+- [x] Recuperação automática de estado
+- [x] Sistema de pipeline com recuperação automática
 
 ### 🚧 Parcialmente Implementado
 - [x] Metrônomo (UI + integração básica com C++)
@@ -291,20 +358,16 @@ O projeto usa:
 - [ ] Melhorias no metrônomo (animações, visualização)
 - [ ] Melhorias no looper (timer, visualização de duração)
 - [ ] Funcionalidade completa do gravador
-- [ ] Equalizador (EQ) com controles de graves, médios e agudos
-- [ ] Compressor para nivelamento de volume
-- [ ] Melhorias de interface (tooltips, reset rápido)
 
 ### 📋 Próximas Funcionalidades
-- [ ] Exportar/importar presets
-- [ ] Favoritos e categorização
-- [ ] Visualização gráfica da cadeia de efeitos
-- [ ] Oversampling para melhor qualidade
-- [ ] Processamento em background
+- [ ] Ajuste de latência (escolha entre menor latência ou maior estabilidade)
 - [ ] MIDI Learn para controle externo
 - [ ] Automação de parâmetros
 - [ ] Sincronização com metrônomo
 - [ ] Curvas de resposta customizáveis
+- [ ] Melhorias de interface (animações, transições)
+- [ ] Suporte a diferentes taxas de amostragem
+- [ ] Integração com DAWs externos
 
 ## 📱 Compatibilidade
 

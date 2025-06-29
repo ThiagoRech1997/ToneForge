@@ -77,6 +77,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekGain = view.findViewById(R.id.seekGain);
         switchGain.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setGainEnabled(isChecked);
+            AudioStateManager.updateEffectState("gain", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
         });
@@ -106,6 +108,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekDistortion = view.findViewById(R.id.seekDistortion);
         switchDistortion.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDistortionEnabled(isChecked);
+            AudioStateManager.updateEffectState("distortion", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
         });
@@ -140,6 +144,8 @@ public class EffectsFragment extends Fragment {
         
         switchDelay.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDelayEnabled(isChecked);
+            AudioStateManager.updateEffectState("delay", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
         });
@@ -224,6 +230,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekReverb = view.findViewById(R.id.seekReverb);
         switchReverb.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setReverbEnabled(isChecked);
+            AudioStateManager.updateEffectState("reverb", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
         });
@@ -326,6 +334,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekChorusMix = view.findViewById(R.id.seekChorusMix);
         switchChorus.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setChorusEnabled(isChecked);
+            AudioStateManager.updateEffectState("chorus", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekChorusDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -366,6 +376,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekFlangerMix = view.findViewById(R.id.seekFlangerMix);
         switchFlanger.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setFlangerEnabled(isChecked);
+            AudioStateManager.updateEffectState("flanger", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekFlangerDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -415,6 +427,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekPhaserMix = view.findViewById(R.id.seekPhaserMix);
         switchPhaser.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setPhaserEnabled(isChecked);
+            AudioStateManager.updateEffectState("phaser", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekPhaserDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -464,6 +478,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekEQMix = view.findViewById(R.id.seekEQMix);
         switchEQ.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setEQEnabled(isChecked);
+            AudioStateManager.updateEffectState("eq", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekEQLow.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -515,6 +531,8 @@ public class EffectsFragment extends Fragment {
         SeekBar seekCompressorMix = view.findViewById(R.id.seekCompressorMix);
         switchCompressor.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setCompressorEnabled(isChecked);
+            AudioStateManager.updateEffectState("compressor", isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekCompressorThreshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -687,6 +705,8 @@ public class EffectsFragment extends Fragment {
         // Listeners
         switchOversampling.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setOversamplingEnabled(isChecked);
+            AudioStateManager.getInstance(requireContext()).setOversamplingEnabled(isChecked);
+            AudioBackgroundService.updateNotification(requireContext());
             prefs.edit().putBoolean("oversampling_enabled", isChecked).apply();
             updateOversamplingQualityText(oversamplingQualityText, isChecked, oversamplingFactor);
         });
@@ -696,6 +716,8 @@ public class EffectsFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
                 int factor = position + 1; // 1x, 2x, 4x, 8x
                 AudioEngine.setOversamplingFactor(factor);
+                AudioStateManager.getInstance(requireContext()).setOversamplingFactor(factor);
+                AudioBackgroundService.updateNotification(requireContext());
                 prefs.edit().putInt("oversampling_factor", factor).apply();
                 updateOversamplingQualityText(oversamplingQualityText, oversamplingEnabled, factor);
             }

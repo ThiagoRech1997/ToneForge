@@ -1,20 +1,22 @@
 package com.thiagofernendorech.toneforge;
 
-import android.media.AudioFormat;
-import android.media.AudioRecord;
-import android.media.AudioTrack;
-import android.media.MediaRecorder;
-import android.os.Handler;
-import android.os.Looper;
-
 public class AudioEngine {
     static {
         System.loadLibrary("toneforge");
     }
 
     // Pipeline de áudio em tempo real
-    private static AudioPipeline audioPipeline;
-    private static boolean isAudioPipelineRunning = false;
+    public static void startAudioPipeline() {
+        PipelineManager.getInstance().startPipeline();
+    }
+
+    public static void stopAudioPipeline() {
+        PipelineManager.getInstance().stopPipeline();
+    }
+
+    public static boolean isAudioPipelineRunning() {
+        return PipelineManager.getInstance().isRunning();
+    }
 
     // Métodos JNI existentes
     public static native void setGainEnabled(boolean enabled);
@@ -117,129 +119,4 @@ public class AudioEngine {
     public static native void setOversamplingFactor(int factor);
     public static native boolean isOversamplingEnabled();
     public static native int getOversamplingFactor();
-
-    // Pipeline de áudio em tempo real
-    public static void startAudioPipeline() {
-        if (isAudioPipelineRunning) return;
-        
-        initAudioEngine();
-        audioPipeline = new AudioPipeline();
-        audioPipeline.start();
-        isAudioPipelineRunning = true;
-    }
-
-    public static void stopAudioPipeline() {
-        if (!isAudioPipelineRunning) return;
-        
-        if (audioPipeline != null) {
-            audioPipeline.stop();
-            audioPipeline = null;
-        }
-        cleanupAudioEngine();
-        isAudioPipelineRunning = false;
-    }
-
-    public static boolean isAudioPipelineRunning() {
-        return isAudioPipelineRunning;
-    }
-
-    // Classe interna para o pipeline de áudio
-    private static class AudioPipeline {
-        private static final int SAMPLE_RATE = 48000;
-        private static final int BUFFER_SIZE = 2048;
-        private static final int CHANNEL_CONFIG = AudioFormat.CHANNEL_OUT_MONO;
-        private static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_FLOAT;
-
-        private AudioRecord audioRecord;
-        private AudioTrack audioTrack;
-        private Thread audioThread;
-        private boolean isRunning = false;
-        private Handler uiHandler;
-
-        private float[] inputBuffer;
-        private float[] outputBuffer;
-
-        public AudioPipeline() {
-            uiHandler = new Handler(Looper.getMainLooper());
-            inputBuffer = new float[BUFFER_SIZE];
-            outputBuffer = new float[BUFFER_SIZE];
-        }
-
-        public void start() {
-            if (isRunning) return;
-
-            // Configurar AudioRecord (captura)
-            int minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, 
-                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT);
-            
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT, 
-                Math.max(minBufferSize, BUFFER_SIZE * 4));
-
-            // Configurar AudioTrack (reprodução)
-            int minTrackBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE, 
-                CHANNEL_CONFIG, AUDIO_FORMAT);
-            
-            audioTrack = new AudioTrack.Builder()
-                .setAudioAttributes(new android.media.AudioAttributes.Builder()
-                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build())
-                .setAudioFormat(new android.media.AudioFormat.Builder()
-                    .setEncoding(AUDIO_FORMAT)
-                    .setSampleRate(SAMPLE_RATE)
-                    .setChannelMask(CHANNEL_CONFIG)
-                    .build())
-                .setBufferSizeInBytes(Math.max(minTrackBufferSize, BUFFER_SIZE * 4))
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build();
-
-            audioRecord.startRecording();
-            audioTrack.play();
-            isRunning = true;
-
-            // Thread de processamento de áudio
-            audioThread = new Thread(() -> {
-                while (isRunning && audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
-                    try {
-                        // Capturar áudio
-                        int read = audioRecord.read(inputBuffer, 0, BUFFER_SIZE, AudioRecord.READ_BLOCKING);
-                        
-                        if (read > 0) {
-                            // Processar áudio com efeitos
-                            processBuffer(inputBuffer, outputBuffer, read);
-                            
-                            // Reproduzir áudio processado
-                            audioTrack.write(outputBuffer, 0, read, AudioTrack.WRITE_BLOCKING);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        break;
-                    }
-                }
-            });
-            audioThread.start();
-        }
-
-        public void stop() {
-            isRunning = false;
-            
-            if (audioThread != null) {
-                audioThread.interrupt();
-                audioThread = null;
-            }
-            
-            if (audioRecord != null) {
-                audioRecord.stop();
-                audioRecord.release();
-                audioRecord = null;
-            }
-            
-            if (audioTrack != null) {
-                audioTrack.stop();
-                audioTrack.release();
-                audioTrack = null;
-            }
-        }
-    }
 } 
