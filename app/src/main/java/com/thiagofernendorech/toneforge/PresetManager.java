@@ -20,12 +20,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
 public class PresetManager {
     private static final String TAG = "PresetManager";
-    private static final String PRESET_VERSION = "1.0";
+    private static final String PRESET_VERSION = "1.1";
     
     public static class PresetData {
         public String name;
@@ -34,6 +35,7 @@ public class PresetManager {
         public String version;
         public JSONObject effectData;
         public ArrayList<String> effectOrder;
+        public List<AutomationManager.AutomationData> automations;
         
         public PresetData(String name, JSONObject effectData, ArrayList<String> effectOrder) {
             this.name = name;
@@ -42,6 +44,17 @@ public class PresetManager {
             this.version = PRESET_VERSION;
             this.effectData = effectData;
             this.effectOrder = effectOrder;
+            this.automations = new ArrayList<>();
+        }
+        
+        public PresetData(String name, JSONObject effectData, ArrayList<String> effectOrder, List<AutomationManager.AutomationData> automations) {
+            this.name = name;
+            this.createdBy = "ToneForge User";
+            this.createdDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            this.version = PRESET_VERSION;
+            this.effectData = effectData;
+            this.effectOrder = effectOrder;
+            this.automations = automations != null ? automations : new ArrayList<>();
         }
     }
     
@@ -78,7 +91,15 @@ public class PresetManager {
                 }
             }
             
-            PresetData presetData = new PresetData(presetName, presetJson, effectOrder);
+            // Obter automações do preset
+            List<AutomationManager.AutomationData> automations = new ArrayList<>();
+            AutomationManager automationManager = AutomationManager.getInstance(context);
+            List<AutomationManager.AutomationData> presetAutomations = automationManager.getAutomationsForPreset(presetName);
+            if (presetAutomations != null) {
+                automations.addAll(presetAutomations);
+            }
+            
+            PresetData presetData = new PresetData(presetName, presetJson, effectOrder, automations);
             
             // Converter para JSON de exportação
             JSONObject exportJson = new JSONObject();
@@ -88,6 +109,13 @@ public class PresetManager {
             exportJson.put("version", presetData.version);
             exportJson.put("effectData", presetData.effectData);
             exportJson.put("effectOrder", new JSONArray(presetData.effectOrder));
+            
+            // Adicionar automações ao JSON de exportação
+            JSONArray automationsArray = new JSONArray();
+            for (AutomationManager.AutomationData automation : presetData.automations) {
+                automationsArray.put(automation.toJson());
+            }
+            exportJson.put("automations", automationsArray);
             
             return exportJson.toString(2); // Pretty print com indentação
             
@@ -161,6 +189,28 @@ public class PresetManager {
                 prefs.edit().putStringSet("effect_presets", newPresetSet).apply();
             }
             
+            // Importar automações se existirem
+            if (importJson.has("automations")) {
+                JSONArray automationsArray = importJson.getJSONArray("automations");
+                AutomationManager automationManager = AutomationManager.getInstance(context);
+                
+                for (int i = 0; i < automationsArray.length(); i++) {
+                    try {
+                        JSONObject automationJson = automationsArray.getJSONObject(i);
+                        AutomationManager.AutomationData automation = AutomationManager.AutomationData.fromJson(automationJson);
+                        
+                        // Garantir que o nome do preset está correto
+                        automation.presetName = presetName;
+                        
+                        // Salvar a automação
+                        automationManager.saveAutomation(automation);
+                        
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error importing automation " + i, e);
+                    }
+                }
+            }
+            
             return true;
             
         } catch (IOException | JSONException e) {
@@ -205,6 +255,127 @@ public class PresetManager {
                 names.add(obj.getString("name"));
             } catch (JSONException e) {
                 Log.e(TAG, "Error parsing preset name", e);
+            }
+        }
+        
+        return names;
+    }
+    
+    // Novos métodos para gerenciar automações
+    
+    /**
+     * Exporta uma automação específica para JSON
+     */
+    public static String exportAutomation(Context context, String presetName, String automationName) {
+        try {
+            AutomationManager automationManager = AutomationManager.getInstance(context);
+            List<AutomationManager.AutomationData> automations = automationManager.getAutomationsForPreset(presetName);
+            
+            if (automations != null) {
+                for (AutomationManager.AutomationData automation : automations) {
+                    if (automation.automationName.equals(automationName)) {
+                        JSONObject exportJson = new JSONObject();
+                        exportJson.put("presetName", automation.presetName);
+                        exportJson.put("automationName", automation.automationName);
+                        exportJson.put("automationData", automation.toJson());
+                        exportJson.put("exportDate", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+                        exportJson.put("version", "1.0");
+                        
+                        return exportJson.toString(2);
+                    }
+                }
+            }
+            
+            return null;
+            
+        } catch (JSONException e) {
+            Log.e(TAG, "Error exporting automation", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Importa uma automação de um arquivo JSON
+     */
+    public static boolean importAutomation(Context context, Uri fileUri) {
+        try {
+            // Ler arquivo JSON
+            InputStream inputStream = context.getContentResolver().openInputStream(fileUri);
+            if (inputStream == null) {
+                return false;
+            }
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+            reader.close();
+            inputStream.close();
+            
+            // Parse do JSON
+            JSONObject importJson = new JSONObject(stringBuilder.toString());
+            
+            // Validar formato
+            if (!importJson.has("automationData")) {
+                return false;
+            }
+            
+            JSONObject automationDataJson = importJson.getJSONObject("automationData");
+            AutomationManager.AutomationData automation = AutomationManager.AutomationData.fromJson(automationDataJson);
+            
+            // Salvar a automação
+            AutomationManager automationManager = AutomationManager.getInstance(context);
+            automationManager.saveAutomation(automation);
+            
+            return true;
+            
+        } catch (IOException | JSONException e) {
+            Log.e(TAG, "Error importing automation", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Salva uma automação em arquivo
+     */
+    public static boolean saveAutomationToFile(Context context, String presetName, String automationName, Uri fileUri) {
+        try {
+            String automationJson = exportAutomation(context, presetName, automationName);
+            if (automationJson == null) {
+                return false;
+            }
+            
+            OutputStream outputStream = context.getContentResolver().openOutputStream(fileUri);
+            if (outputStream == null) {
+                return false;
+            }
+            
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+            writer.write(automationJson);
+            writer.close();
+            outputStream.close();
+            
+            return true;
+            
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving automation to file", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Obtém lista de automações para um preset
+     */
+    public static ArrayList<String> getAutomationNames(Context context, String presetName) {
+        AutomationManager automationManager = AutomationManager.getInstance(context);
+        List<AutomationManager.AutomationData> automations = automationManager.getAutomationsForPreset(presetName);
+        
+        ArrayList<String> names = new ArrayList<>();
+        if (automations != null) {
+            for (AutomationManager.AutomationData automation : automations) {
+                names.add(automation.automationName);
             }
         }
         

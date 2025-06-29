@@ -145,6 +145,276 @@
                 android:layout_marginStart="8dp"/>
         </LinearLayout>
 
+        <!-- Automação -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/effect_enabled_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/automation"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+                
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/automation_description"
+                android:textColor="@color/light_gray"
+                android:textSize="12sp"
+                android:layout_marginBottom="12dp"/>
+            
+            <!-- Controles de Automação -->
+            <LinearLayout
+                android:id="@+id/automationContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/effect_enabled_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
+                
+                <!-- Cabeçalho da Automação -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+                    
+                    <ImageView
+                        android:id="@+id/automationIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_automation"
+                        android:tint="@color/white"
+                        android:layout_marginEnd="8dp"/>
+                        
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/automation_title"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold"/>
+                        
+                    <TextView
+                        android:id="@+id/automationStatusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/automation_ready"
+                        android:textSize="12sp"
+                        android:textColor="@color/light_gray"
+                        android:background="@drawable/status_background"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"/>
+                </LinearLayout>
+                
+                <!-- Campo de Nome da Automação -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/automation_name"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp"/>
+                        
+                    <EditText
+                        android:id="@+id/automationNameEdit"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:hint="@string/automation_name_hint"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/light_gray"
+                        android:background="@drawable/button_background"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:textSize="14sp"
+                        android:inputType="text"/>
+                </LinearLayout>
+                
+                <!-- Botões de Controle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+                    
+                    <Button
+                        android:id="@+id/btnStartRecording"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_record"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:drawableStart="@drawable/ic_record"
+                        android:drawablePadding="4dp"
+                        android:layout_marginEnd="4dp"/>
+                        
+                    <Button
+                        android:id="@+id/btnStopRecording"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_stop_record"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:drawableStart="@drawable/ic_stop"
+                        android:drawablePadding="4dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:enabled="false"/>
+                        
+                    <Button
+                        android:id="@+id/btnStartPlayback"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_play"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:drawableStart="@drawable/ic_play_automation"
+                        android:drawablePadding="4dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"/>
+                        
+                    <Button
+                        android:id="@+id/btnStopPlayback"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_stop_play"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:drawableStart="@drawable/ic_stop"
+                        android:drawablePadding="4dp"
+                        android:layout_marginStart="4dp"
+                        android:enabled="false"/>
+                </LinearLayout>
+                
+                <!-- Barra de Progresso da Automação -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="12dp">
+                    
+                    <TextView
+                        android:id="@+id/automationProgressText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="00:00 / 00:00"
+                        android:textSize="12sp"
+                        android:textColor="@color/light_gray"
+                        android:gravity="center"
+                        android:layout_marginBottom="4dp"/>
+                        
+                    <SeekBar
+                        android:id="@+id/automationProgressBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="1000"
+                        android:progress="0"
+                        android:enabled="false"/>
+                </LinearLayout>
+            </LinearLayout>
+            
+            <!-- Gerenciamento de Automações -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/effect_enabled_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
+                
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/automation_management"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"/>
+                    
+                <Spinner
+                    android:id="@+id/automationSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:spinnerMode="dropdown"
+                    android:background="@drawable/button_background"
+                    android:popupBackground="@color/black"
+                    android:dropDownVerticalOffset="8dp"
+                    android:layout_marginBottom="12dp"/>
+                    
+                <!-- Botões de Gerenciamento -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    
+                    <Button
+                        android:id="@+id/btnExportAutomation"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_export"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:layout_marginEnd="4dp"/>
+                        
+                    <Button
+                        android:id="@+id/btnImportAutomation"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_import"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"/>
+                        
+                    <Button
+                        android:id="@+id/btnDeleteAutomation"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/automation_delete"
+                        android:textSize="12sp"
+                        android:background="@drawable/button_background"
+                        android:textColor="@color/white"
+                        android:layout_marginStart="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- Visualização gráfica da cadeia de efeitos -->
         <TextView
             android:id="@+id/labelChainView"

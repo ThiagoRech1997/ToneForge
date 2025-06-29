@@ -15,6 +15,8 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - **Processamento em background**: Áudio contínuo com tela desligada
 - **Recuperação de estado**: Restaura configurações ao retornar do background
 - **Oversampling**: Melhoria de qualidade para distorção e delay
+- **MIDI Learn**: Controle de parâmetros via MIDI externo
+- **Sistema de automação**: Gravar e reproduzir mudanças de parâmetros ao longo do tempo
 - **Compatibilidade**: Android 8.1+ (API 27) para suporte futuro ao AAudio
 
 ## 🎛️ Efeitos Disponíveis
@@ -288,6 +290,114 @@ You can manage and clear mappings in the MIDI section of the settings.
 
 > **Note:** Requires a compatible MIDI device.
 
+## 🎛️ Sistema de Automação
+
+O ToneForge agora inclui um **sistema completo de automação** que permite gravar e reproduzir mudanças de parâmetros ao longo do tempo, criando performances dinâmicas e expressivas.
+
+### 🎬 Como Funciona
+
+O sistema de automação registra todas as mudanças de parâmetros (via interface ou MIDI) durante a gravação e as reproduz automaticamente, criando movimentos suaves e precisos nos efeitos.
+
+### 🎯 Fluxo de Automação
+
+#### 1. **Preparação**
+- Acesse a aba **"Efeitos"** no ToneForge
+- Configure os parâmetros iniciais dos efeitos desejados
+- Escolha um preset ou crie uma nova configuração
+
+#### 2. **Gravação**
+- Digite um nome para sua automação no campo **"Nome da Automação"**
+- Clique no botão **"🎙️ Gravar"** para iniciar a gravação
+- **Manipule os controles** em tempo real:
+  - Mova os sliders dos efeitos
+  - Ative/desative switches
+  - Use controles MIDI (se configurado)
+- Todas as mudanças são registradas com timestamp preciso
+- Clique em **"⏹️ Parar"** para finalizar a gravação
+
+#### 3. **Reprodução**
+- Clique no botão **"▶️ Reproduzir"** para ativar a reprodução
+- A automação aplica automaticamente os valores gravados
+- Os controles da interface se movem em tempo real
+- Clique em **"⏸️ Parar Reprodução"** para interromper
+
+#### 4. **Persistência**
+- As automações são salvas automaticamente com os presets
+- Cada preset pode ter múltiplas automações
+- As automações persistem entre sessões do app
+
+### 🎨 Características Técnicas
+
+#### **Estrutura de Dados**
+- **Eventos de automação**: Timestamp, parâmetro, valor
+- **Suporte a múltiplos parâmetros**: Todos os controles dos efeitos
+- **Interpolação suave**: Transições fluidas entre valores
+- **Alta precisão**: Atualização a ~60 FPS durante reprodução
+
+#### **Integração Completa**
+- **Interface**: Controles visuais para gravação/reprodução
+- **MIDI**: Automação via controles MIDI externos
+- **Presets**: Automações salvas junto com configurações
+- **Tempo real**: Aplicação instantânea durante reprodução
+
+#### **Controles Suportados**
+- **SeekBars**: Todos os parâmetros numéricos (depth, rate, mix, etc.)
+- **Switches**: Ativação/desativação de efeitos
+- **Spinners**: Seleção de tipos (distorção, reverb, etc.)
+- **MIDI**: Qualquer controle mapeado via MIDI Learn
+
+### 🎵 Casos de Uso
+
+#### **Performance Dinâmica**
+- Grave mudanças de intensidade de distorção durante um solo
+- Automatize variações de rate no chorus para criar movimento
+- Crie crescendos com mudanças graduais de volume
+
+#### **Transições Suaves**
+- Automatize mudanças de preset durante uma música
+- Crie transições de ambiente com reverb
+- Varie o feedback do delay para efeitos dramáticos
+
+#### **Expressão Musical**
+- Use automação para simular pedal wah
+- Crie variações de modulação em tempo real
+- Automatize mudanças de EQ para diferentes seções
+
+### 🔧 Configuração Avançada
+
+#### **Sincronização**
+- A automação funciona independentemente do tempo
+- Futuras versões incluirão sincronização com metrônomo
+- Suporte a múltiplas automações simultâneas
+
+#### **Edição**
+- Interface para visualizar e editar automações gravadas
+- Possibilidade de ajustar timestamps e valores
+- Exportação/importação de automações
+
+#### **Integração com Áudio**
+- Sincronização com looper e metrônomo
+- Automação baseada em triggers de áudio
+- Suporte a automação por envelope
+
+### 💡 Dicas de Uso
+
+1. **Planeje sua automação**: Teste os valores antes de gravar
+2. **Use movimentos suaves**: Evite mudanças bruscas para melhor resultado
+3. **Combine com MIDI**: Use controles físicos para maior expressão
+4. **Experimente**: Teste diferentes combinações de parâmetros
+5. **Salve variações**: Crie múltiplas automações para o mesmo preset
+
+### 🚀 Próximas Funcionalidades
+
+- [ ] **Editor visual**: Interface gráfica para editar automações
+- [ ] **Sincronização com tempo**: Integração com metrônomo e BPM
+- [ ] **Curvas de interpolação**: Diferentes tipos de transição
+- [ ] **Automação por envelope**: Baseada no nível de áudio
+- [ ] **Exportação**: Compartilhar automações entre usuários
+
+> **Nota**: O sistema de automação está em desenvolvimento ativo. Novas funcionalidades serão adicionadas regularmente.
+
 ## 🚀 Como Usar
 
 1. **Instalar**: Compile e instale o APK no dispositivo Android
@@ -302,6 +412,7 @@ You can manage and clear mappings in the MIDI section of the settings.
 10. **Reset**: Use os botões de reset para restaurar valores padrão
 11. **Testar**: Fale ou toque um instrumento no microfone
 12. **MIDI Learn**: Ative o MIDI nas configurações e mapeie controles externos para parâmetros dos efeitos
+13. **Automação**: Na aba "Efeitos", use os controles de automação para gravar e reproduzir mudanças de parâmetros
 
 ### 🎛️ Configurações Avançadas
 
@@ -367,6 +478,7 @@ O projeto usa:
 - [x] Sistema de pipeline com recuperação automática
 - [x] Ajuste de latência: Permitir escolha entre menor latência ou maior estabilidade
 - [x] MIDI Learn para controle externo
+- [x] Sistema de automação: Gravar e reproduzir mudanças de parâmetros
 
 ### 🚧 Parcialmente Implementado
 - [x] Metrônomo (UI + integração básica com C++)
@@ -379,8 +491,9 @@ O projeto usa:
 - [ ] Funcionalidade completa do gravador
 
 ### 📋 Próximas Funcionalidades
-- [ ] Automação de parâmetros
-- [ ] Sincronização com metrônomo
+- [ ] Persistência completa de automações (salvar/carregar)
+- [ ] Interface de edição de automações
+- [ ] Sincronização de automação com metrônomo
 - [ ] Curvas de resposta customizáveis
 - [ ] Melhorias de interface (animações, transições)
 - [ ] Suporte a diferentes taxas de amostragem

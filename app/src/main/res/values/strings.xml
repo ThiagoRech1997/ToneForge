@@ -307,4 +307,79 @@
     <string name="tooltip_midi_export">Exportar mapeamentos MIDI para arquivo</string>
     <string name="tooltip_midi_import">Importar mapeamentos MIDI de arquivo</string>
     <string name="tooltip_midi_clear">Limpar todos os mapeamentos MIDI</string>
+    
+    <!-- Automação -->
+    <string name="automation">Automação</string>
+    <string name="automation_description">Grave e reproduza mudanças automáticas nos parâmetros</string>
+    <string name="automation_title">Automação</string>
+    <string name="automation_name">Nome:</string>
+    <string name="automation_name_hint">Digite o nome da automação</string>
+    <string name="automation_record">Gravar</string>
+    <string name="automation_stop_record">Parar</string>
+    <string name="automation_play">Reproduzir</string>
+    <string name="automation_stop_play">Parar</string>
+    <string name="automation_ready">Pronto</string>
+    <string name="automation_recording">Gravando...</string>
+    <string name="automation_playing">Reproduzindo...</string>
+    <string name="automation_management">Gerenciar Automações</string>
+    
+    <!-- Tooltips para Automação -->
+    <string name="tooltip_automation_name">Digite um nome para a automação</string>
+    <string name="tooltip_automation_record">Iniciar gravação de mudanças de parâmetros</string>
+    <string name="tooltip_automation_stop_record">Parar gravação</string>
+    <string name="tooltip_automation_play">Reproduzir automação gravada</string>
+    <string name="tooltip_automation_stop_play">Parar reprodução</string>
+    <string name="tooltip_automation_status">Status atual da automação</string>
+    
+    <!-- Persistência de Automações -->
+    <string name="automation_export">Exportar Automação</string>
+    <string name="automation_import">Importar Automação</string>
+    <string name="automation_delete">Deletar Automação</string>
+    <string name="automation_exported">Automação exportada com sucesso!</string>
+    <string name="automation_imported">Automação importada com sucesso!</string>
+    <string name="automation_export_failed">Erro ao exportar automação</string>
+    <string name="automation_import_failed">Erro ao importar automação</string>
+    <string name="automation_invalid_format">Formato de automação inválido</string>
+    <string name="automation_already_exists">Automação já existe. Deseja substituir?</string>
+    <string name="select_automation_file">Selecionar arquivo de automação</string>
+    <string name="automation_file_description">Arquivo de automação ToneForge (.json)</string>
+    <string name="automation_export_title">Exportar Automação</string>
+    <string name="automation_import_title">Importar Automação</string>
+    <string name="automation_name_required_export">Nome da automação é obrigatório</string>
+    <string name="automation_created_by">Criado por: %s</string>
+    <string name="automation_created_date">Data: %s</string>
+    <string name="automation_version">Versão: %s</string>
+    <string name="automation_saved_automations">Automações Salvas</string>
+    <string name="automation_no_saved">Nenhuma automação salva</string>
+    <string name="automation_select_to_manage">Selecione uma automação para gerenciar</string>
+    <string name="automation_delete_confirm">Deseja deletar a automação "%s"?</string>
+    <string name="automation_delete_confirm_title">Deletar Automação</string>
+    <string name="automation_delete_confirm_message">Esta ação não pode ser desfeita.</string>
+    <string name="automation_delete_confirm_yes">Deletar</string>
+    <string name="automation_delete_confirm_no">Cancelar</string>
+    <string name="automation_preset_required">Selecione um preset primeiro</string>
+    <string name="automation_export_success">Automação exportada para: %s</string>
+    <string name="automation_import_success">Automação importada de: %s</string>
+    <string name="automation_events_count">%d eventos</string>
+    <string name="automation_duration_short">%.1fs</string>
+    
+    <!-- Tooltips para Persistência de Automações -->
+    <string name="tooltip_automation_export">Exportar automação salva para arquivo JSON</string>
+    <string name="tooltip_automation_import">Importar automação de arquivo JSON</string>
+    <string name="tooltip_automation_delete">Deletar automação selecionada</string>
+    <string name="tooltip_automation_list">Lista de automações salvas para o preset atual</string>
+    
+    <!-- Mensagens de Automação -->
+    <string name="automation_name_required">Nome da automação é obrigatório</string>
+    <string name="automation_recording_started">Gravação iniciada</string>
+    <string name="automation_recording_stopped">Gravação parada</string>
+    <string name="automation_playback_started">Reprodução iniciada</string>
+    <string name="automation_playback_stopped">Reprodução parada</string>
+    <string name="automation_not_found">Automação não encontrada</string>
+    <string name="automation_saved">Automação salva</string>
+    <string name="automation_deleted">Automação removida</string>
+    <string name="automation_events_recorded">%d eventos gravados</string>
+    <string name="automation_duration">Duração: %.1f segundos</string>
+    <string name="automation_no_events">Nenhum evento gravado</string>
+    <string name="automation_parameter_changed">Parâmetro %1$s alterado para %2$.2f</string>
 </resources>

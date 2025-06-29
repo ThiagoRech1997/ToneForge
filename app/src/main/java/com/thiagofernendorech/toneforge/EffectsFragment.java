@@ -36,6 +36,9 @@ import android.net.Uri;
 import android.app.AlertDialog;
 import android.widget.LinearLayout;
 import android.media.midi.MidiManager;
+import android.util.Log;
+import java.util.List;
+import android.app.Activity;
 
 public class EffectsFragment extends Fragment {
     private static final int EXPORT_PRESET_REQUEST = 1001;
@@ -53,6 +56,27 @@ public class EffectsFragment extends Fragment {
     private boolean showFavoritesOnly = false;
     private TooltipManager tooltipManager;
     private ToneForgeMidiManager midiManager;
+    
+    // Automação
+    private AutomationManager automationManager;
+    private EditText automationNameEdit;
+    private Button btnStartRecording, btnStopRecording, btnStartPlayback, btnStopPlayback;
+    private TextView automationStatusText;
+    private android.os.Handler automationHandler;
+    private Runnable automationUpdateRunnable;
+    
+    // Variáveis para persistência de automações
+    private Spinner automationSpinner;
+    private ArrayAdapter<String> automationAdapter;
+    private Button btnExportAutomation, btnImportAutomation, btnDeleteAutomation;
+    private static final int EXPORT_AUTOMATION_REQUEST = 1003;
+    private static final int IMPORT_AUTOMATION_REQUEST = 1004;
+    
+    // Variáveis para interface melhorada de automação
+    private ImageView automationIcon;
+    private TextView automationProgressText;
+    private SeekBar automationProgressBar;
+    private LinearLayout automationContainer;
 
     @Nullable
     @Override
@@ -84,12 +108,16 @@ public class EffectsFragment extends Fragment {
             AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
+            recordAutomationEvent("gain_enabled", isChecked ? 1.0f : 0.0f, "ui");
         });
         seekGain.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setGainLevel(value);
+                if (fromUser) {
+                    recordAutomationEvent("gain_level", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -115,12 +143,16 @@ public class EffectsFragment extends Fragment {
             AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
+            recordAutomationEvent("distortion_enabled", isChecked ? 1.0f : 0.0f, "ui");
         });
         seekDistortion.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setDistortionLevel(value);
+                if (fromUser) {
+                    recordAutomationEvent("distortion_amount", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -151,6 +183,7 @@ public class EffectsFragment extends Fragment {
             AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
+            recordAutomationEvent("delay_enabled", isChecked ? 1.0f : 0.0f, "ui");
         });
         
         seekDelayTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -158,6 +191,9 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress; // 0-1000 ms
                 AudioEngine.setDelayTime(value);
+                if (fromUser) {
+                    recordAutomationEvent("delay_time", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -165,6 +201,7 @@ public class EffectsFragment extends Fragment {
         
         switchDelaySyncBPM.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDelaySyncBPM(isChecked);
+            recordAutomationEvent("delay_sync_bpm", isChecked ? 1.0f : 0.0f, "ui");
         });
         
         seekDelayBPM.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -172,6 +209,9 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 int value = 60 + progress; // 60-260 BPM
                 AudioEngine.setDelayBPM(value);
+                if (fromUser) {
+                    recordAutomationEvent("delay_bpm", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -182,6 +222,9 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setDelayFeedback(value);
+                if (fromUser) {
+                    recordAutomationEvent("delay_feedback", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -192,6 +235,9 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setDelayMix(value);
+                if (fromUser) {
+                    recordAutomationEvent("delay_mix", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -237,12 +283,16 @@ public class EffectsFragment extends Fragment {
             AudioBackgroundService.updateNotification(requireContext());
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
+            recordAutomationEvent("reverb_enabled", isChecked ? 1.0f : 0.0f, "ui");
         });
         seekReverb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setReverbLevel(value);
+                if (fromUser) {
+                    recordAutomationEvent("reverb_level", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -255,6 +305,9 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setReverbRoomSize(value);
+                if (fromUser) {
+                    recordAutomationEvent("reverb_room_size", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -267,6 +320,9 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setReverbDamping(value);
+                if (fromUser) {
+                    recordAutomationEvent("reverb_damping", value, "ui");
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -822,6 +878,100 @@ public class EffectsFragment extends Fragment {
         setupMidiLearnForParameter(seekCompressorThreshold, "compressor_threshold");
         setupMidiLearnForParameter(seekCompressorRatio, "compressor_ratio");
 
+        // Automação
+        automationNameEdit = view.findViewById(R.id.automationNameEdit);
+        btnStartRecording = view.findViewById(R.id.btnStartRecording);
+        btnStopRecording = view.findViewById(R.id.btnStopRecording);
+        btnStartPlayback = view.findViewById(R.id.btnStartPlayback);
+        btnStopPlayback = view.findViewById(R.id.btnStopPlayback);
+        automationStatusText = view.findViewById(R.id.automationStatusText);
+        
+        // Inicializar AutomationManager
+        automationManager = AutomationManager.getInstance(requireContext());
+        
+        // Inicializar handler para reprodução de automação
+        automationHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        automationUpdateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (automationManager.isPlaying()) {
+                    applyAutomationValues();
+                    automationHandler.postDelayed(this, 16); // ~60 FPS
+                }
+            }
+        };
+        
+        btnStartRecording.setOnClickListener(v -> startRecordingAutomation());
+        btnStopRecording.setOnClickListener(v -> stopRecordingAutomation());
+        btnStartPlayback.setOnClickListener(v -> startPlaybackAutomation());
+        btnStopPlayback.setOnClickListener(v -> stopPlaybackAutomation());
+        
+        // Inicializar controles de persistência de automações
+        automationSpinner = view.findViewById(R.id.automationSpinner);
+        btnExportAutomation = view.findViewById(R.id.btnExportAutomation);
+        btnImportAutomation = view.findViewById(R.id.btnImportAutomation);
+        btnDeleteAutomation = view.findViewById(R.id.btnDeleteAutomation);
+        
+        // Inicializar controles de interface melhorada de automação
+        automationIcon = view.findViewById(R.id.automationIcon);
+        automationProgressText = view.findViewById(R.id.automationProgressText);
+        automationProgressBar = view.findViewById(R.id.automationProgressBar);
+        automationContainer = view.findViewById(R.id.automationContainer);
+        
+        // Configurar adapter para lista de automações
+        automationAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, new ArrayList<>());
+        automationAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        automationSpinner.setAdapter(automationAdapter);
+        
+        // Configurar listeners para botões de persistência
+        btnExportAutomation.setOnClickListener(v -> exportAutomation());
+        btnImportAutomation.setOnClickListener(v -> importAutomation());
+        btnDeleteAutomation.setOnClickListener(v -> deleteAutomation());
+        
+        // Atualizar lista de automações quando preset mudar
+        presetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateAutomationList();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        
+        // Atualizar status inicial
+        updateAutomationStatus();
+        
+        // Adicionar tooltips para controles de automação
+        automationNameEdit.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_automation_name));
+            return true;
+        });
+        
+        btnStartRecording.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_automation_record));
+            return true;
+        });
+        
+        btnStopRecording.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_automation_stop_record));
+            return true;
+        });
+        
+        btnStartPlayback.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_automation_play));
+            return true;
+        });
+        
+        btnStopPlayback.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_automation_stop_play));
+            return true;
+        });
+        
+        automationStatusText.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_automation_status));
+            return true;
+        });
+
         return view;
     }
 
@@ -842,6 +992,11 @@ public class EffectsFragment extends Fragment {
         super.onDestroyView();
         // Parar pipeline de áudio quando sair da tela de efeitos
         AudioEngine.stopAudioPipeline();
+        
+        // Limpar handler de automação
+        if (automationHandler != null) {
+            automationHandler.removeCallbacks(automationUpdateRunnable);
+        }
     }
 
     // Classe para armazenar um preset de efeitos
@@ -1752,6 +1907,32 @@ public class EffectsFragment extends Fragment {
                 } else {
                     Toast.makeText(getContext(), getString(R.string.preset_import_failed), Toast.LENGTH_SHORT).show();
                 }
+                
+            } else if (requestCode == EXPORT_AUTOMATION_REQUEST) {
+                // Exportar automação
+                String presetName = "Preset Padrão";
+                if (presetSpinner.getSelectedItem() != null) {
+                    presetName = presetSpinner.getSelectedItem().toString();
+                }
+                
+                String automationName = automationSpinner.getSelectedItem().toString();
+                
+                boolean success = PresetManager.saveAutomationToFile(requireContext(), presetName, automationName, uri);
+                if (success) {
+                    Toast.makeText(requireContext(), getString(R.string.automation_exported), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.automation_export_failed), Toast.LENGTH_SHORT).show();
+                }
+                
+            } else if (requestCode == IMPORT_AUTOMATION_REQUEST) {
+                // Importar automação
+                boolean success = PresetManager.importAutomation(requireContext(), uri);
+                if (success) {
+                    updateAutomationList();
+                    Toast.makeText(requireContext(), getString(R.string.automation_imported), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.automation_import_failed), Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
@@ -1940,6 +2121,9 @@ public class EffectsFragment extends Fragment {
     }
 
     private void applyMidiParameter(String parameter, float value) {
+        // Registrar evento de automação se estiver gravando
+        recordAutomationEvent(parameter, value, "midi");
+        
         // Aplicar valor MIDI ao parâmetro correspondente
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
@@ -2042,5 +2226,357 @@ public class EffectsFragment extends Fragment {
             seekBar.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
                 getResources().getColor(R.color.green)));
         }
+    }
+
+    // Automação
+    private void startRecordingAutomation() {
+        String automationName = automationNameEdit.getText().toString().trim();
+        if (automationName.isEmpty()) {
+            Toast.makeText(getContext(), getString(R.string.automation_name_required), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Obter nome do preset atual de forma segura
+        String presetName = "Preset Padrão";
+        if (presetSpinner.getSelectedItem() != null) {
+            presetName = presetSpinner.getSelectedItem().toString();
+        }
+        
+        automationManager.startRecording(presetName, automationName);
+        updateAutomationUI();
+        Toast.makeText(getContext(), getString(R.string.automation_recording_started), Toast.LENGTH_SHORT).show();
+    }
+
+    private void stopRecordingAutomation() {
+        if (!automationManager.isRecording()) {
+            return;
+        }
+        
+        automationManager.stopRecording();
+        updateAutomationUI();
+        
+        // Mostrar estatísticas da gravação
+        String automationName = automationManager.getCurrentAutomationName();
+        
+        // Obter nome do preset atual de forma segura
+        String presetName = "Preset Padrão";
+        if (presetSpinner.getSelectedItem() != null) {
+            presetName = presetSpinner.getSelectedItem().toString();
+        }
+        
+        List<AutomationManager.AutomationData> automations = automationManager.getAutomationsForPreset(presetName);
+        for (AutomationManager.AutomationData automation : automations) {
+            if (automation.automationName.equals(automationName)) {
+                String message = String.format(getString(R.string.automation_events_recorded), automation.events.size());
+                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                break;
+            }
+        }
+    }
+
+    private void startPlaybackAutomation() {
+        String automationName = automationNameEdit.getText().toString().trim();
+        if (automationName.isEmpty()) {
+            Toast.makeText(getContext(), getString(R.string.automation_name_required), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Obter nome do preset atual de forma segura
+        String presetName = "Preset Padrão";
+        if (presetSpinner.getSelectedItem() != null) {
+            presetName = presetSpinner.getSelectedItem().toString();
+        }
+        
+        automationManager.startPlayback(presetName, automationName);
+        updateAutomationUI();
+        
+        // Iniciar loop de atualização
+        automationHandler.post(automationUpdateRunnable);
+        
+        Toast.makeText(getContext(), getString(R.string.automation_playback_started), Toast.LENGTH_SHORT).show();
+    }
+
+    private void stopPlaybackAutomation() {
+        if (!automationManager.isPlaying()) {
+            return;
+        }
+        
+        automationManager.stopPlayback();
+        updateAutomationUI();
+        
+        // Parar loop de atualização
+        automationHandler.removeCallbacks(automationUpdateRunnable);
+        
+        Toast.makeText(getContext(), getString(R.string.automation_playback_stopped), Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateAutomationStatus() {
+        if (automationManager.isRecording()) {
+            automationStatusText.setText(getString(R.string.automation_recording));
+            automationStatusText.setTextColor(getResources().getColor(R.color.red));
+            automationStatusText.setBackground(getResources().getDrawable(R.drawable.recording_background));
+            automationIcon.setImageResource(R.drawable.ic_record);
+            automationIcon.setColorFilter(getResources().getColor(R.color.red));
+            
+            // Animar o container de gravação
+            if (automationContainer != null) {
+                automationContainer.setBackgroundResource(R.drawable.recording_background);
+            }
+            
+        } else if (automationManager.isPlaying()) {
+            automationStatusText.setText(getString(R.string.automation_playing));
+            automationStatusText.setTextColor(getResources().getColor(R.color.green));
+            automationStatusText.setBackground(getResources().getDrawable(R.drawable.status_background));
+            automationIcon.setImageResource(R.drawable.ic_play_automation);
+            automationIcon.setColorFilter(getResources().getColor(R.color.green));
+            
+            // Restaurar background normal
+            if (automationContainer != null) {
+                automationContainer.setBackgroundResource(R.color.effect_enabled_bg);
+            }
+            
+        } else {
+            automationStatusText.setText(getString(R.string.automation_ready));
+            automationStatusText.setTextColor(getResources().getColor(R.color.light_gray));
+            automationStatusText.setBackground(getResources().getDrawable(R.drawable.status_background));
+            automationIcon.setImageResource(R.drawable.ic_automation);
+            automationIcon.setColorFilter(getResources().getColor(R.color.white));
+            
+            // Restaurar background normal
+            if (automationContainer != null) {
+                automationContainer.setBackgroundResource(R.color.effect_enabled_bg);
+            }
+        }
+        
+        // Atualizar barra de progresso
+        updateAutomationProgress();
+    }
+    
+    /**
+     * Atualiza a barra de progresso da automação
+     */
+    private void updateAutomationProgress() {
+        if (automationProgressBar == null || automationProgressText == null) {
+            return;
+        }
+        
+        if (automationManager.isPlaying()) {
+            float progress = automationManager.getPlaybackProgress();
+            float duration = automationManager.getAutomationDuration();
+            
+            automationProgressBar.setEnabled(true);
+            automationProgressBar.setProgress((int) (progress * 1000));
+            
+            // Formatar tempo
+            String currentTime = formatTime(progress);
+            String totalTime = formatTime(duration);
+            automationProgressText.setText(String.format("%s / %s", currentTime, totalTime));
+            
+        } else if (automationManager.isRecording()) {
+            float recordingTime = automationManager.getRecordingTime();
+            
+            automationProgressBar.setEnabled(true);
+            automationProgressBar.setProgress((int) (recordingTime * 1000));
+            
+            String currentTime = formatTime(recordingTime);
+            automationProgressText.setText(String.format("%s / --:--", currentTime));
+            
+        } else {
+            automationProgressBar.setEnabled(false);
+            automationProgressBar.setProgress(0);
+            automationProgressText.setText("00:00 / 00:00");
+        }
+    }
+    
+    /**
+     * Formata tempo em segundos para formato MM:SS
+     */
+    private String formatTime(float seconds) {
+        int minutes = (int) (seconds / 60);
+        int secs = (int) (seconds % 60);
+        return String.format("%02d:%02d", minutes, secs);
+    }
+    
+    private void updateAutomationUI() {
+        boolean isRecording = automationManager.isRecording();
+        boolean isPlaying = automationManager.isPlaying();
+        
+        btnStartRecording.setEnabled(!isRecording && !isPlaying);
+        btnStopRecording.setEnabled(isRecording);
+        btnStartPlayback.setEnabled(!isRecording && !isPlaying);
+        btnStopPlayback.setEnabled(isPlaying);
+        
+        // Atualizar status e progresso
+        updateAutomationStatus();
+        
+        // Atualizar progresso em tempo real se necessário
+        if (isRecording || isPlaying) {
+            automationHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (automationManager.isRecording() || automationManager.isPlaying()) {
+                        updateAutomationProgress();
+                        automationHandler.postDelayed(this, 100); // Atualizar a cada 100ms
+                    }
+                }
+            }, 100);
+        }
+    }
+    
+    /**
+     * Registra um evento de automação quando um parâmetro é alterado
+     */
+    private void recordAutomationEvent(String parameter, float value, String source) {
+        if (automationManager.isRecording()) {
+            automationManager.recordEvent(parameter, value, source);
+            Log.d("Automation", String.format("Evento registrado: %s = %.2f (%s)", parameter, value, source));
+        }
+    }
+    
+    /**
+     * Aplica os valores de automação aos controles da interface
+     */
+    private void applyAutomationValues() {
+        if (!automationManager.isPlaying()) {
+            return;
+        }
+        
+        View view = getView();
+        if (view == null) return;
+        
+        // Aplicar valores para cada parâmetro
+        applyAutomationParameter("gain_level", view.findViewById(R.id.seekGain), 100.0f);
+        applyAutomationParameter("distortion_amount", view.findViewById(R.id.seekDistortion), 100.0f);
+        applyAutomationParameter("delay_time", view.findViewById(R.id.seekDelayTime), 1.0f);
+        applyAutomationParameter("delay_feedback", view.findViewById(R.id.seekDelayFeedback), 100.0f);
+        applyAutomationParameter("delay_mix", view.findViewById(R.id.seekDelayMix), 100.0f);
+        applyAutomationParameter("reverb_level", view.findViewById(R.id.seekReverb), 100.0f);
+        applyAutomationParameter("reverb_room_size", view.findViewById(R.id.seekReverbRoomSize), 100.0f);
+        applyAutomationParameter("reverb_damping", view.findViewById(R.id.seekReverbDamping), 100.0f);
+        
+        // Aplicar valores para switches
+        applyAutomationSwitch("gain_enabled", view.findViewById(R.id.switchGain));
+        applyAutomationSwitch("distortion_enabled", view.findViewById(R.id.switchDistortion));
+        applyAutomationSwitch("delay_enabled", view.findViewById(R.id.switchDelay));
+        applyAutomationSwitch("reverb_enabled", view.findViewById(R.id.switchReverb));
+    }
+    
+    /**
+     * Aplica um valor de automação a um SeekBar
+     */
+    private void applyAutomationParameter(String parameter, View control, float scale) {
+        if (!(control instanceof SeekBar)) return;
+        
+        float value = automationManager.getCurrentParameterValue(parameter);
+        if (!Float.isNaN(value)) {
+            SeekBar seekBar = (SeekBar) control;
+            int progress = (int) (value * scale);
+            if (progress != seekBar.getProgress()) {
+                seekBar.setProgress(progress);
+            }
+        }
+    }
+    
+    /**
+     * Aplica um valor de automação a um Switch
+     */
+    private void applyAutomationSwitch(String parameter, View control) {
+        if (!(control instanceof Switch)) return;
+        
+        float value = automationManager.getCurrentParameterValue(parameter);
+        if (!Float.isNaN(value)) {
+            Switch switchControl = (Switch) control;
+            boolean enabled = value > 0.5f;
+            if (enabled != switchControl.isChecked()) {
+                switchControl.setChecked(enabled);
+            }
+        }
+    }
+    
+    // Métodos para persistência de automações
+    
+    /**
+     * Atualiza a lista de automações no spinner
+     */
+    private void updateAutomationList() {
+        String presetName = "Preset Padrão";
+        if (presetSpinner.getSelectedItem() != null) {
+            presetName = presetSpinner.getSelectedItem().toString();
+        }
+        
+        ArrayList<String> automationNames = PresetManager.getAutomationNames(requireContext(), presetName);
+        automationNames.add(0, getString(R.string.automation_select_to_manage));
+        
+        automationAdapter.clear();
+        automationAdapter.addAll(automationNames);
+        automationAdapter.notifyDataSetChanged();
+    }
+    
+    /**
+     * Exporta a automação selecionada
+     */
+    private void exportAutomation() {
+        if (automationSpinner.getSelectedItem() == null || 
+            automationSpinner.getSelectedItemPosition() == 0) {
+            Toast.makeText(requireContext(), getString(R.string.automation_select_to_manage), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String presetName = "Preset Padrão";
+        if (presetSpinner.getSelectedItem() != null) {
+            presetName = presetSpinner.getSelectedItem().toString();
+        }
+        
+        String automationName = automationSpinner.getSelectedItem().toString();
+        
+        // Criar intent para salvar arquivo
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, automationName + ".json");
+        startActivityForResult(intent, EXPORT_AUTOMATION_REQUEST);
+    }
+    
+    /**
+     * Importa uma automação de arquivo
+     */
+    private void importAutomation() {
+        // Criar intent para selecionar arquivo
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent, IMPORT_AUTOMATION_REQUEST);
+    }
+    
+    /**
+     * Deleta a automação selecionada
+     */
+    private void deleteAutomation() {
+        if (automationSpinner.getSelectedItem() == null || 
+            automationSpinner.getSelectedItemPosition() == 0) {
+            Toast.makeText(requireContext(), getString(R.string.automation_select_to_manage), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String presetName = "Preset Padrão";
+        if (presetSpinner.getSelectedItem() != null) {
+            presetName = presetSpinner.getSelectedItem().toString();
+        }
+        
+        String automationName = automationSpinner.getSelectedItem().toString();
+        
+        final String presetNameFinal = presetName;
+        final String automationNameFinal = automationName;
+        // Mostrar diálogo de confirmação
+        new AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.automation_delete_confirm_title))
+            .setMessage(String.format(getString(R.string.automation_delete_confirm), automationName))
+            .setPositiveButton(getString(R.string.automation_delete_confirm_yes), (dialog, which) -> {
+                automationManager.deleteAutomation(presetNameFinal, automationNameFinal);
+                updateAutomationList();
+                Toast.makeText(requireContext(), getString(R.string.automation_deleted), Toast.LENGTH_SHORT).show();
+            })
+            .setNegativeButton(getString(R.string.automation_delete_confirm_no), null)
+            .show();
     }
 } 
