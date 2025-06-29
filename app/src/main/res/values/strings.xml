@@ -12,4 +12,9 @@
     <string name="phaser_rate">Taxa</string>
     <string name="phaser_feedback">Feedback</string>
     <string name="phaser_mix">Mix</string>
+    <string name="eq">Equalizador</string>
+    <string name="eq_low">Graves</string>
+    <string name="eq_mid">Médios</string>
+    <string name="eq_high">Agudos</string>
+    <string name="eq_mix">Mix</string>
 </resources>

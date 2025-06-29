@@ -356,3 +356,28 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setPhaserMix(JNIEnv* env, jclass clazz, jfloat mix) {
     setPhaserMix(mix);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setEQEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setEQEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setEQLow(JNIEnv* env, jclass clazz, jfloat gain) {
+    setEQLow(gain);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setEQMid(JNIEnv* env, jclass clazz, jfloat gain) {
+    setEQMid(gain);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setEQHigh(JNIEnv* env, jclass clazz, jfloat gain) {
+    setEQHigh(gain);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setEQMix(JNIEnv* env, jclass clazz, jfloat mix) {
+    setEQMix(mix);
+}

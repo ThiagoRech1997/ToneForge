@@ -344,6 +344,55 @@ public class EffectsFragment extends Fragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // Equalizer (EQ)
+        Switch switchEQ = view.findViewById(R.id.switchEQ);
+        SeekBar seekEQLow = view.findViewById(R.id.seekEQLow);
+        SeekBar seekEQMid = view.findViewById(R.id.seekEQMid);
+        SeekBar seekEQHigh = view.findViewById(R.id.seekEQHigh);
+        SeekBar seekEQMix = view.findViewById(R.id.seekEQMix);
+        switchEQ.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setEQEnabled(isChecked);
+        });
+        seekEQLow.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> -12dB a +12dB
+                float value = (progress - 50) / 50.0f * 12.0f; // -12 a +12 dB
+                AudioEngine.setEQLow(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekEQMid.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> -12dB a +12dB
+                float value = (progress - 50) / 50.0f * 12.0f; // -12 a +12 dB
+                AudioEngine.setEQMid(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekEQHigh.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // 0-100 -> -12dB a +12dB
+                float value = (progress - 50) / 50.0f * 12.0f; // -12 a +12 dB
+                AudioEngine.setEQHigh(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        seekEQMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setEQMix(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
         // --- Presets UI ---
         presetSpinner = view.findViewById(R.id.presetSpinner);
         presetNameEdit = view.findViewById(R.id.presetNameEdit);
@@ -401,6 +450,7 @@ public class EffectsFragment extends Fragment {
             effectOrder.add("Chorus");
             effectOrder.add("Flanger");
             effectOrder.add("Phaser");
+            effectOrder.add("EQ");
             effectOrder.add("Delay");
             effectOrder.add("Reverb");
         }

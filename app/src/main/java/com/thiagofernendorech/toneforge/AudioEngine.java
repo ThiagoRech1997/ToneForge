@@ -89,6 +89,13 @@ public class AudioEngine {
     public static native void setPhaserFeedback(float feedback);
     public static native void setPhaserMix(float mix);
 
+    // Novos métodos JNI para Equalizer (EQ)
+    public static native void setEQEnabled(boolean enabled);
+    public static native void setEQLow(float gain);
+    public static native void setEQMid(float gain);
+    public static native void setEQHigh(float gain);
+    public static native void setEQMix(float mix);
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

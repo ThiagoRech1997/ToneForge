@@ -65,7 +65,7 @@ static bool distortionEnabled = true;
 static bool delayEnabled = true;
 static bool reverbEnabled = true;
 
-static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "Delay", "Reverb"};
+static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "EQ", "Delay", "Reverb"};
 
 static int distortionType = 0; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
 static float distortionMix = 1.0f;
@@ -107,6 +107,19 @@ static std::vector<float> phaserBuffer(phaserBufferSize, 0.0f);
 static int phaserBufferIndex = 0;
 static float phaserPhase = 0.0f;
 static float phaserLfo = 0.0f;      // Valor atual do LFO
+
+// Equalizer (EQ)
+static bool eqEnabled = false;
+static float eqLowGain = 0.0f;      // Ganho para graves (60Hz)
+static float eqMidGain = 0.0f;      // Ganho para médios (1kHz)
+static float eqHighGain = 0.0f;     // Ganho para agudos (8kHz)
+static float eqMix = 1.0f;          // Mix dry/wet
+static int eqSampleRate = 48000;
+
+// Filtros do EQ (estados dos filtros)
+static float eqLowX1 = 0.0f, eqLowX2 = 0.0f, eqLowY1 = 0.0f, eqLowY2 = 0.0f;
+static float eqMidX1 = 0.0f, eqMidX2 = 0.0f, eqMidY1 = 0.0f, eqMidY2 = 0.0f;
+static float eqHighX1 = 0.0f, eqHighX2 = 0.0f, eqHighY1 = 0.0f, eqHighY2 = 0.0f;
 
 void initAudioEngine() {
     // Limpar buffers
@@ -260,6 +273,12 @@ void setPhaserRate(float rate) { phaserRate = rate; }
 void setPhaserFeedback(float feedback) { phaserFeedback = feedback; }
 void setPhaserMix(float mix) { phaserMix = mix; }
 
+void setEQEnabled(bool enabled) { eqEnabled = enabled; }
+void setEQLow(float gain) { eqLowGain = gain; }
+void setEQMid(float gain) { eqMidGain = gain; }
+void setEQHigh(float gain) { eqHighGain = gain; }
+void setEQMix(float mix) { eqMix = mix; }
+
 float processSample(float input) {
     float output = input;
     float dry = input;
@@ -341,6 +360,89 @@ float processSample(float input) {
                 phaserBufferIndex = (phaserBufferIndex + 1) % phaserBufferSize;
                 phaserPhase += phaserRate / (float)phaserSampleRate;
                 if (phaserPhase > 1.0f) phaserPhase -= 1.0f;
+            }
+        } else if (effect == "EQ") {
+            if (eqEnabled) {
+                // Equalizer: 3 filtros passa-banda (low, mid, high)
+                float filtered = output;
+                
+                // Filtro passa-baixa (graves - 60Hz)
+                if (eqLowGain != 0.0f) {
+                    float freq = 60.0f;
+                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
+                    float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
+                    float b0 = (1.0f - cosf(w0)) / 2.0f;
+                    float b1 = 1.0f - cosf(w0);
+                    float b2 = (1.0f - cosf(w0)) / 2.0f;
+                    float a0 = 1.0f + alpha;
+                    float a1 = -2.0f * cosf(w0);
+                    float a2 = 1.0f - alpha;
+                    
+                    // Normalizar
+                    b0 /= a0; b1 /= a0; b2 /= a0;
+                    a1 /= a0; a2 /= a0; a0 = 1.0f;
+                    
+                    float y = b0 * filtered + b1 * eqLowX1 + b2 * eqLowX2 - a1 * eqLowY1 - a2 * eqLowY2;
+                    eqLowX2 = eqLowX1; eqLowX1 = filtered;
+                    eqLowY2 = eqLowY1; eqLowY1 = y;
+                    
+                    // Aplicar ganho
+                    float lowBand = y * (eqLowGain > 0 ? (1.0f + eqLowGain) : (1.0f / (1.0f - eqLowGain)));
+                    filtered = filtered + (lowBand - y);
+                }
+                
+                // Filtro passa-banda (médios - 1kHz)
+                if (eqMidGain != 0.0f) {
+                    float freq = 1000.0f;
+                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
+                    float alpha = sinf(w0) / (2.0f * 0.707f);
+                    float b0 = alpha;
+                    float b1 = 0.0f;
+                    float b2 = -alpha;
+                    float a0 = 1.0f + alpha;
+                    float a1 = -2.0f * cosf(w0);
+                    float a2 = 1.0f - alpha;
+                    
+                    // Normalizar
+                    b0 /= a0; b1 /= a0; b2 /= a0;
+                    a1 /= a0; a2 /= a0; a0 = 1.0f;
+                    
+                    float y = b0 * filtered + b1 * eqMidX1 + b2 * eqMidX2 - a1 * eqMidY1 - a2 * eqMidY2;
+                    eqMidX2 = eqMidX1; eqMidX1 = filtered;
+                    eqMidY2 = eqMidY1; eqMidY1 = y;
+                    
+                    // Aplicar ganho
+                    float midBand = y * (eqMidGain > 0 ? (1.0f + eqMidGain) : (1.0f / (1.0f - eqMidGain)));
+                    filtered = filtered + (midBand - y);
+                }
+                
+                // Filtro passa-alta (agudos - 8kHz)
+                if (eqHighGain != 0.0f) {
+                    float freq = 8000.0f;
+                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
+                    float alpha = sinf(w0) / (2.0f * 0.707f);
+                    float b0 = (1.0f + cosf(w0)) / 2.0f;
+                    float b1 = -(1.0f + cosf(w0));
+                    float b2 = (1.0f + cosf(w0)) / 2.0f;
+                    float a0 = 1.0f + alpha;
+                    float a1 = -2.0f * cosf(w0);
+                    float a2 = 1.0f - alpha;
+                    
+                    // Normalizar
+                    b0 /= a0; b1 /= a0; b2 /= a0;
+                    a1 /= a0; a2 /= a0; a0 = 1.0f;
+                    
+                    float y = b0 * filtered + b1 * eqHighX1 + b2 * eqHighX2 - a1 * eqHighY1 - a2 * eqHighY2;
+                    eqHighX2 = eqHighX1; eqHighX1 = filtered;
+                    eqHighY2 = eqHighY1; eqHighY1 = y;
+                    
+                    // Aplicar ganho
+                    float highBand = y * (eqHighGain > 0 ? (1.0f + eqHighGain) : (1.0f / (1.0f - eqHighGain)));
+                    filtered = filtered + (highBand - y);
+                }
+                
+                // Mix dry/wet
+                output = (1.0f - eqMix) * output + eqMix * filtered;
             }
         } else if (effect == "Distorção") {
             if (distortionEnabled && distortionAmount > 0.0f) {

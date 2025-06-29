@@ -82,6 +82,14 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - Reprodução da última gravação
 - Funcionalidade básica implementada (UI pronta)
 
+### 🎚️ Equalizador (EQ)
+- **Equalizador de 3 bandas**: Permite esculpir o timbre do áudio em tempo real, ajustando graves, médios e agudos de forma independente.
+- **Low (Graves)**: Atua em 60Hz, ideal para reforçar ou suavizar o peso do som (-12dB a +12dB).
+- **Mid (Médios)**: Atua em 1kHz, essencial para dar presença, clareza ou remover frequências incômodas (-12dB a +12dB).
+- **High (Agudos)**: Atua em 8kHz, usado para adicionar brilho ou suavizar o som (-12dB a +12dB).
+- **Mix**: Controle dry/wet (0-100%) para dosar o quanto do sinal equalizado é misturado ao original.
+- **Aplicação**: Útil para adaptar o som ao instrumento, estilo musical ou ambiente, diretamente na cadeia de efeitos do app.
+
 ## 🎚️ Sistema de Presets
 
 - **Salvar presets**: Guarde suas configurações favoritas com nomes personalizados

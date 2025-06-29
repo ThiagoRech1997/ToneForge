@@ -72,6 +72,12 @@ extern "C" {
     void setPhaserRate(float rate);
     void setPhaserFeedback(float feedback);
     void setPhaserMix(float mix);
+
+    void setEQEnabled(bool enabled);
+    void setEQLow(float gain);
+    void setEQMid(float gain);
+    void setEQHigh(float gain);
+    void setEQMix(float mix);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H
