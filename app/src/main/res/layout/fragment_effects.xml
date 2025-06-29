@@ -406,6 +406,28 @@
             android:max="100"
             android:progress="50"
             android:layout_marginBottom="32dp"/>
+        <!-- Tipo de Reverb -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/reverb_type"
+                android:textColor="@color/white"
+                android:textSize="14sp"/>
+            <Spinner
+                android:id="@+id/spinnerReverbType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:entries="@array/reverb_types"
+                android:background="@android:color/transparent"
+                android:popupBackground="@color/black"/>
+        </LinearLayout>
         <!-- Mix Dry/Wet Reverb -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -417,7 +439,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Mix Reverb (Dry/Wet)"
+                android:text="@string/reverb_mix"
                 android:textColor="@color/white"
                 android:textSize="14sp"/>
         </LinearLayout>

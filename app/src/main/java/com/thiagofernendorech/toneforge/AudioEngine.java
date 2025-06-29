@@ -109,6 +109,9 @@ public class AudioEngine {
     public static native void setDelaySyncBPM(boolean sync);
     public static native void setDelayBPM(int bpm);
 
+    // Novos métodos JNI para setReverbType
+    public static native void setReverbType(int type); // 0=Hall, 1=Plate, 2=Spring
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

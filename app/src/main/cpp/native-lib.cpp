@@ -426,3 +426,8 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorMix(JNIEnv* env, jclass clazz, jfloat mix) {
     setCompressorMix(mix);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbType(JNIEnv* env, jclass clazz, jint type) {
+    setReverbType(type);
+}

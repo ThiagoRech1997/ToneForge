@@ -26,4 +26,10 @@
     <string name="delay_time">Tempo (ms)</string>
     <string name="delay_sync_bpm">Sincronizar BPM</string>
     <string name="delay_bpm">BPM</string>
+    <string name="reverb">Reverb</string>
+    <string name="reverb_type">Tipo de Reverb</string>
+    <string name="reverb_hall">Hall</string>
+    <string name="reverb_plate">Plate</string>
+    <string name="reverb_spring">Spring</string>
+    <string name="reverb_mix">Mix</string>
 </resources>

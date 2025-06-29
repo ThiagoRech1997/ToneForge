@@ -553,6 +553,16 @@ public class EffectsFragment extends Fragment {
         });
         itemTouchHelper.attachToRecyclerView(effectsOrderRecycler);
 
+        // Tipo de Reverb
+        Spinner spinnerReverbType = view.findViewById(R.id.spinnerReverbType);
+        spinnerReverbType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
+                AudioEngine.setReverbType(position); // 0=Hall, 1=Plate, 2=Spring
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
         return view;
     }
 

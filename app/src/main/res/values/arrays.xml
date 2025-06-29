@@ -5,4 +5,10 @@
         <item>Fuzz</item>
         <item>Overdrive</item>
     </string-array>
+
+    <string-array name="reverb_types">
+        <item>@string/reverb_hall</item>
+        <item>@string/reverb_plate</item>
+        <item>@string/reverb_spring</item>
+    </string-array>
 </resources> 

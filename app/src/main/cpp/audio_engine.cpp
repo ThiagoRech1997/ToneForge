@@ -137,6 +137,8 @@ static int compressorSampleRate = 48000;
 static float compressorEnvelope = 0.0f;     // Envelope detector
 static float compressorGain = 1.0f;         // Gain reduction
 
+static int reverbType = 0; // 0=Hall, 1=Plate, 2=Spring
+
 void initAudioEngine() {
     // Limpar buffers
     memset(delayBuffer, 0, sizeof(delayBuffer));
@@ -343,6 +345,10 @@ void setCompressorAttack(float attack) { compressorAttack = attack; }
 void setCompressorRelease(float release) { compressorRelease = release; }
 void setCompressorMix(float mix) { compressorMix = mix; }
 
+void setReverbType(int type) {
+    reverbType = type;
+}
+
 float processSample(float input) {
     float output = input;
     float dry = input;
@@ -541,10 +547,21 @@ float processSample(float input) {
             }
         } else if (effect == "Reverb") {
             if (reverbEnabled && reverbRoomSize > 0.0f) {
-                float reverbSample = reverbBuffer[reverbIndex];
-                float wet = output + reverbSample * reverbRoomSize * (1.0f - reverbDamping);
+                float wet = 0.0f;
+                switch (reverbType) {
+                    case 0: // Hall
+                        wet = reverbBuffer[reverbIndex];
+                        break;
+                    case 1: // Plate
+                        wet = 0.6f * reverbBuffer[reverbIndex] + 0.4f * reverbBuffer[(reverbIndex + REVERB_BUFFER_SIZE/2) % REVERB_BUFFER_SIZE];
+                        break;
+                    case 2: // Spring
+                        wet = sinf(reverbBuffer[reverbIndex]) * 0.7f + 0.3f * reverbBuffer[(reverbIndex + REVERB_BUFFER_SIZE/4) % REVERB_BUFFER_SIZE];
+                        break;
+                }
+                // Mix dry/wet
                 output = (1.0f - reverbMix) * output + reverbMix * wet;
-                reverbBuffer[reverbIndex] = wet;
+                reverbBuffer[reverbIndex] = output + reverbRoomSize * reverbBuffer[reverbIndex];
                 reverbIndex = (reverbIndex + 1) % REVERB_BUFFER_SIZE;
             }
         } else if (effect == "Compressor") {

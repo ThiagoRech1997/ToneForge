@@ -89,6 +89,8 @@ extern "C" {
     void setDelayTime(float timeMs);
     void setDelaySyncBPM(bool sync);
     void setDelayBPM(int bpm);
+
+    void setReverbType(int type); // 0=Hall, 1=Plate, 2=Spring
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H
