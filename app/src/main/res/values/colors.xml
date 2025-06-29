@@ -16,4 +16,10 @@
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
     <color name="yellow">#FFEB3B</color>
+    
+    <!-- Cores para indicadores de bypass -->
+    <color name="effect_enabled">#FF4CAF50</color>  <!-- Verde para ativado -->
+    <color name="effect_disabled">#FF757575</color> <!-- Cinza para desativado -->
+    <color name="effect_enabled_bg">#1A4CAF50</color> <!-- Background verde transparente -->
+    <color name="effect_disabled_bg">#1A757575</color> <!-- Background cinza transparente -->
 </resources>

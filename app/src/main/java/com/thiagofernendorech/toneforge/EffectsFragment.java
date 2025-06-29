@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 
 public class EffectsFragment extends Fragment {
     private TextView statusText;
@@ -69,6 +70,7 @@ public class EffectsFragment extends Fragment {
         switchGain.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setGainEnabled(isChecked);
             updateStatus();
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekGain.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -86,6 +88,7 @@ public class EffectsFragment extends Fragment {
         switchDistortion.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDistortionEnabled(isChecked);
             updateStatus();
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekDistortion.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -108,6 +111,7 @@ public class EffectsFragment extends Fragment {
         switchDelay.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDelayEnabled(isChecked);
             updateStatus();
+            if (getView() != null) updateBypassIndicators(getView());
         });
         
         seekDelayTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -160,6 +164,7 @@ public class EffectsFragment extends Fragment {
         switchReverb.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setReverbEnabled(isChecked);
             updateStatus();
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekReverb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -234,6 +239,7 @@ public class EffectsFragment extends Fragment {
         SeekBar seekChorusMix = view.findViewById(R.id.seekChorusMix);
         switchChorus.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setChorusEnabled(isChecked);
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekChorusDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -273,6 +279,7 @@ public class EffectsFragment extends Fragment {
         SeekBar seekFlangerMix = view.findViewById(R.id.seekFlangerMix);
         switchFlanger.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setFlangerEnabled(isChecked);
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekFlangerDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -321,6 +328,7 @@ public class EffectsFragment extends Fragment {
         SeekBar seekPhaserMix = view.findViewById(R.id.seekPhaserMix);
         switchPhaser.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setPhaserEnabled(isChecked);
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekPhaserDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -369,6 +377,7 @@ public class EffectsFragment extends Fragment {
         SeekBar seekEQMix = view.findViewById(R.id.seekEQMix);
         switchEQ.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setEQEnabled(isChecked);
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekEQLow.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -419,6 +428,7 @@ public class EffectsFragment extends Fragment {
         SeekBar seekCompressorMix = view.findViewById(R.id.seekCompressorMix);
         switchCompressor.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setCompressorEnabled(isChecked);
+            if (getView() != null) updateBypassIndicators(getView());
         });
         seekCompressorThreshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -562,6 +572,8 @@ public class EffectsFragment extends Fragment {
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
+
+        updateBypassIndicators(view);
 
         return view;
     }
@@ -743,5 +755,96 @@ public class EffectsFragment extends Fragment {
             for (int i = 0; i < arr.length(); i++) list.add(arr.getString(i));
             return list;
         } catch (Exception e) { return null; }
+    }
+
+    private void updateBypassIndicators(View view) {
+        // Ganho
+        updateEffectIndicator(
+            view.findViewById(R.id.gainContainer),
+            view.findViewById(R.id.gainIndicator),
+            ((Switch)view.findViewById(R.id.switchGain)).isChecked()
+        );
+        
+        // Distorção
+        updateEffectIndicator(
+            view.findViewById(R.id.distortionContainer),
+            view.findViewById(R.id.distortionIndicator),
+            ((Switch)view.findViewById(R.id.switchDistortion)).isChecked()
+        );
+        
+        // Delay
+        updateEffectIndicator(
+            view.findViewById(R.id.delayContainer),
+            view.findViewById(R.id.delayIndicator),
+            ((Switch)view.findViewById(R.id.switchDelay)).isChecked()
+        );
+        
+        // Reverb
+        updateEffectIndicator(
+            view.findViewById(R.id.reverbContainer),
+            view.findViewById(R.id.reverbIndicator),
+            ((Switch)view.findViewById(R.id.switchReverb)).isChecked()
+        );
+        
+        // Chorus
+        updateEffectIndicator(
+            view.findViewById(R.id.chorusContainer),
+            view.findViewById(R.id.chorusIndicator),
+            ((Switch)view.findViewById(R.id.switchChorus)).isChecked()
+        );
+        
+        // Flanger
+        updateEffectIndicator(
+            view.findViewById(R.id.flangerContainer),
+            view.findViewById(R.id.flangerIndicator),
+            ((Switch)view.findViewById(R.id.switchFlanger)).isChecked()
+        );
+        
+        // Phaser
+        updateEffectIndicator(
+            view.findViewById(R.id.phaserContainer),
+            view.findViewById(R.id.phaserIndicator),
+            ((Switch)view.findViewById(R.id.switchPhaser)).isChecked()
+        );
+        
+        // EQ
+        updateEffectIndicator(
+            view.findViewById(R.id.eqContainer),
+            view.findViewById(R.id.eqIndicator),
+            ((Switch)view.findViewById(R.id.switchEQ)).isChecked()
+        );
+        
+        // Compressor
+        updateEffectIndicator(
+            view.findViewById(R.id.compressorContainer),
+            view.findViewById(R.id.compressorIndicator),
+            ((Switch)view.findViewById(R.id.switchCompressor)).isChecked()
+        );
+    }
+    
+    private void updateEffectIndicator(View container, ImageView indicator, boolean enabled) {
+        if (enabled) {
+            container.setBackgroundResource(R.color.effect_enabled_bg);
+            indicator.setImageResource(R.drawable.effect_indicator_enabled);
+            // Encontrar o TextView dentro do container
+            for (int i = 0; i < ((ViewGroup) container).getChildCount(); i++) {
+                View child = ((ViewGroup) container).getChildAt(i);
+                if (child instanceof TextView) {
+                    ((TextView) child).setTextColor(getResources().getColor(R.color.effect_enabled));
+                    break;
+                }
+            }
+        } else {
+            container.setBackgroundResource(R.color.effect_disabled_bg);
+            indicator.setImageResource(R.drawable.effect_indicator_disabled);
+            // Encontrar o TextView dentro do container
+            for (int i = 0; i < ((ViewGroup) container).getChildCount(); i++) {
+                View child = ((ViewGroup) container).getChildAt(i);
+                if (child instanceof TextView) {
+                    ((TextView) child).setTextColor(getResources().getColor(R.color.effect_disabled));
+                    break;
+                }
+            }
+        }
     }
 } 

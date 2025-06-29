@@ -98,18 +98,28 @@
 
         <!-- Ganho -->
         <LinearLayout
+            android:id="@+id/gainContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_enabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/gainIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_enabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Ganho"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:textColor="@color/effect_enabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchGain"
                 android:layout_width="wrap_content"
@@ -127,18 +137,28 @@
 
         <!-- Distorção -->
         <LinearLayout
+            android:id="@+id/distortionContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_enabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/distortionIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_enabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Distorção"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:textColor="@color/effect_enabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchDistortion"
                 android:layout_width="wrap_content"
@@ -201,18 +221,28 @@
 
         <!-- Delay -->
         <LinearLayout
+            android:id="@+id/delayContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_enabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/delayIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_enabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Delay"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:textColor="@color/effect_enabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchDelay"
                 android:layout_width="wrap_content"
@@ -336,18 +366,28 @@
 
         <!-- Reverb -->
         <LinearLayout
+            android:id="@+id/reverbContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_enabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/reverbIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_enabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Reverb"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:textColor="@color/effect_enabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchReverb"
                 android:layout_width="wrap_content"
@@ -453,18 +493,28 @@
 
         <!-- Chorus -->
         <LinearLayout
+            android:id="@+id/chorusContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_disabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/chorusIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_disabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Chorus"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:textColor="@color/effect_disabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchChorus"
                 android:layout_width="wrap_content"
@@ -538,18 +588,28 @@
 
         <!-- Flanger -->
         <LinearLayout
+            android:id="@+id/flangerContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_disabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/flangerIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_disabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Flanger"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:textColor="@color/effect_disabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchFlanger"
                 android:layout_width="wrap_content"
@@ -644,18 +704,28 @@
 
         <!-- Phaser -->
         <LinearLayout
+            android:id="@+id/phaserContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_disabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/phaserIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_disabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/phaser"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:text="Phaser"
+                android:textColor="@color/effect_disabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchPhaser"
                 android:layout_width="wrap_content"
@@ -750,18 +820,28 @@
 
         <!-- Equalizer (EQ) -->
         <LinearLayout
+            android:id="@+id/eqContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_disabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/eqIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_disabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/eq"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:text="Equalizador"
+                android:textColor="@color/effect_disabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchEQ"
                 android:layout_width="wrap_content"
@@ -856,18 +936,28 @@
 
         <!-- Compressor -->
         <LinearLayout
+            android:id="@+id/compressorContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@color/effect_disabled_bg"
+            android:padding="8dp"
             android:layout_marginBottom="16dp">
+            <ImageView
+                android:id="@+id/compressorIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/effect_indicator_disabled"
+                android:layout_marginEnd="8dp"/>
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/compressor"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
+                android:text="Compressor"
+                android:textColor="@color/effect_disabled"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
             <Switch
                 android:id="@+id/switchCompressor"
                 android:layout_width="wrap_content"
