@@ -20,12 +20,13 @@ public class EffectsFragment extends Fragment {
         Switch switchGain = view.findViewById(R.id.switchGain);
         SeekBar seekGain = view.findViewById(R.id.seekGain);
         switchGain.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // TODO: Ativar/desativar efeito de ganho via JNI
+            AudioEngine.setGainEnabled(isChecked);
         });
         seekGain.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                // TODO: Atualizar parâmetro de ganho via JNI
+                float value = progress / 100.0f;
+                AudioEngine.setGainLevel(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -35,12 +36,13 @@ public class EffectsFragment extends Fragment {
         Switch switchDistortion = view.findViewById(R.id.switchDistortion);
         SeekBar seekDistortion = view.findViewById(R.id.seekDistortion);
         switchDistortion.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // TODO: Ativar/desativar distorção via JNI
+            AudioEngine.setDistortionEnabled(isChecked);
         });
         seekDistortion.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                // TODO: Atualizar parâmetro de distorção via JNI
+                float value = progress / 100.0f;
+                AudioEngine.setDistortionLevel(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -50,12 +52,13 @@ public class EffectsFragment extends Fragment {
         Switch switchDelay = view.findViewById(R.id.switchDelay);
         SeekBar seekDelay = view.findViewById(R.id.seekDelay);
         switchDelay.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // TODO: Ativar/desativar delay via JNI
+            AudioEngine.setDelayEnabled(isChecked);
         });
         seekDelay.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                // TODO: Atualizar parâmetro de delay via JNI
+                float value = progress / 100.0f;
+                AudioEngine.setDelayLevel(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -65,12 +68,13 @@ public class EffectsFragment extends Fragment {
         Switch switchReverb = view.findViewById(R.id.switchReverb);
         SeekBar seekReverb = view.findViewById(R.id.seekReverb);
         switchReverb.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // TODO: Ativar/desativar reverb via JNI
+            AudioEngine.setReverbEnabled(isChecked);
         });
         seekReverb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                // TODO: Atualizar parâmetro de reverb via JNI
+                float value = progress / 100.0f;
+                AudioEngine.setReverbLevel(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}

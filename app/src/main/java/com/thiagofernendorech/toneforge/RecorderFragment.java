@@ -28,12 +28,12 @@ public class RecorderFragment extends Fragment {
         recordButton.setOnClickListener(v -> {
             isRecording = !isRecording;
             if (isRecording) {
-                // TODO: Iniciar gravação de áudio via JNI
+                AudioEngine.startRecording();
                 recordButton.setBackgroundTintList(getResources().getColorStateList(R.color.green));
                 timerText.setText("00:00");
                 // Atualizar UI, timer, etc
             } else {
-                // TODO: Parar gravação de áudio via JNI
+                AudioEngine.stopRecording();
                 recordButton.setBackgroundTintList(getResources().getColorStateList(R.color.red));
                 // Atualizar UI, timer, etc
                 // TODO: Atualizar lista de gravações
@@ -43,11 +43,11 @@ public class RecorderFragment extends Fragment {
         playButton.setOnClickListener(v -> {
             isPlaying = !isPlaying;
             if (isPlaying) {
-                // TODO: Reproduzir última gravação via JNI
+                AudioEngine.playLastRecording();
                 playButton.setBackgroundTintList(getResources().getColorStateList(R.color.accent_blue));
                 // Atualizar UI, timer, etc
             } else {
-                // TODO: Parar reprodução via JNI
+                AudioEngine.stopPlayback();
                 playButton.setBackgroundTintList(getResources().getColorStateList(R.color.green));
                 // Atualizar UI, timer, etc
             }

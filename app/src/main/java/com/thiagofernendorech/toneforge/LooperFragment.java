@@ -28,11 +28,11 @@ public class LooperFragment extends Fragment {
         recordButton.setOnClickListener(v -> {
             isRecording = !isRecording;
             if (isRecording) {
-                // TODO: Iniciar gravação do loop via JNI
+                AudioEngine.startLooperRecording();
                 recordButton.setBackgroundTintList(getResources().getColorStateList(R.color.green));
                 // Atualizar UI, timer, etc
             } else {
-                // TODO: Parar gravação do loop via JNI
+                AudioEngine.stopLooperRecording();
                 recordButton.setBackgroundTintList(getResources().getColorStateList(R.color.red));
                 // Atualizar UI, timer, etc
             }
@@ -41,18 +41,18 @@ public class LooperFragment extends Fragment {
         playButton.setOnClickListener(v -> {
             isPlaying = !isPlaying;
             if (isPlaying) {
-                // TODO: Iniciar reprodução do loop via JNI
+                AudioEngine.startLooperPlayback();
                 playButton.setBackgroundTintList(getResources().getColorStateList(R.color.accent_blue));
                 // Atualizar UI, timer, etc
             } else {
-                // TODO: Pausar reprodução do loop via JNI
+                AudioEngine.stopLooperPlayback();
                 playButton.setBackgroundTintList(getResources().getColorStateList(R.color.green));
                 // Atualizar UI, timer, etc
             }
         });
 
         clearButton.setOnClickListener(v -> {
-            // TODO: Limpar loop via JNI
+            AudioEngine.clearLooper();
             isRecording = false;
             isPlaying = false;
             recordButton.setBackgroundTintList(getResources().getColorStateList(R.color.red));

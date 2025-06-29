@@ -15,6 +15,28 @@ extern "C" {
     // Inicialização e limpeza
     void initAudioEngine();
     void cleanupAudioEngine();
+
+    // Metrônomo
+    void startMetronome(int bpm);
+    void stopMetronome();
+    bool isMetronomeActive();
+    void setSampleRate(int rate);
+
+    // Looper
+    void startLooperRecording();
+    void stopLooperRecording();
+    void startLooperPlayback();
+    void stopLooperPlayback();
+    void clearLooper();
+    bool isLooperRecording();
+    bool isLooperPlaying();
+
+    // Afinador
+    void startTuner();
+    void stopTuner();
+    bool isTunerActive();
+    float getDetectedFrequency();
+    void processTunerBuffer(const float* input, int numSamples);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

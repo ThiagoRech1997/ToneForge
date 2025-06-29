@@ -34,7 +34,9 @@ public class MetronomeFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 bpm = Math.max(30, progress); // Limite mínimo de 30 BPM
                 bpmValue.setText(String.valueOf(bpm));
-                // TODO: Atualizar BPM do metrônomo via JNI
+                if (isPlaying) {
+                    AudioEngine.startMetronome(bpm); // Atualiza BPM em tempo real
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -43,11 +45,11 @@ public class MetronomeFragment extends Fragment {
         playButton.setOnClickListener(v -> {
             isPlaying = !isPlaying;
             if (isPlaying) {
-                // TODO: Iniciar metrônomo via JNI
+                AudioEngine.startMetronome(bpm);
                 playButton.setBackgroundTintList(getResources().getColorStateList(R.color.accent_blue));
                 // TODO: Iniciar animação do indicador de batida
             } else {
-                // TODO: Parar metrônomo via JNI
+                AudioEngine.stopMetronome();
                 playButton.setBackgroundTintList(getResources().getColorStateList(R.color.green));
                 // TODO: Parar animação do indicador de batida
             }

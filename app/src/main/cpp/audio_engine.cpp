@@ -1,6 +1,11 @@
 #include "audio_engine.h"
 #include <cmath>
 #include <cstring>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <vector>
+#include <mutex>
 
 // Parâmetros dos efeitos
 static float currentGain = 1.0f;
@@ -23,6 +28,30 @@ static int reverbIndex = 0;
 
 // Taxa de amostragem (será configurada)
 static int sampleRate = 48000;
+
+// --- Metrônomo ---
+static std::atomic<bool> metronomeActive{false};
+static int metronomeBpm = 120;
+static int metronomeSampleRate = 48000;
+static int metronomeSamplesPerBeat = 24000; // 120 BPM default
+static int metronomeSampleCounter = 0;
+static bool metronomeClick = false;
+
+// --- Looper ---
+static const int LOOPER_MAX_SAMPLES = 48000 * 30; // até 30 segundos a 48kHz
+static float looperBuffer[LOOPER_MAX_SAMPLES];
+static int looperLength = 0;
+static int looperWriteIndex = 0;
+static int looperReadIndex = 0;
+static bool looperRecording = false;
+static bool looperPlaying = false;
+
+// --- Afinador (Tuner) ---
+static bool tunerActive = false;
+static float detectedFrequency = 0.0f;
+static std::vector<float> tunerBuffer;
+static int tunerSampleRate = 48000;
+static std::mutex tunerMutex;
 
 void initAudioEngine() {
     // Limpar buffers
@@ -68,6 +97,87 @@ void setReverb(float roomSize, float damping) {
     reverbDamping = damping;
 }
 
+void setSampleRate(int rate) {
+    metronomeSampleRate = rate;
+    metronomeSamplesPerBeat = (int)((60.0 / metronomeBpm) * metronomeSampleRate);
+}
+
+void startMetronome(int bpm) {
+    metronomeBpm = bpm;
+    metronomeSamplesPerBeat = (int)((60.0 / metronomeBpm) * metronomeSampleRate);
+    metronomeSampleCounter = 0;
+    metronomeActive = true;
+}
+
+void stopMetronome() {
+    metronomeActive = false;
+    metronomeSampleCounter = 0;
+}
+
+bool isMetronomeActive() {
+    return metronomeActive;
+}
+
+// Gera um click de curta duração (ex: 100 samples) no início de cada batida
+static float getMetronomeSample() {
+    if (!metronomeActive) return 0.0f;
+    if (metronomeSampleCounter == 0) {
+        metronomeClick = true;
+    }
+    float click = 0.0f;
+    if (metronomeClick && metronomeSampleCounter < 100) {
+        // Pulso simples
+        click = 0.8f * sinf(2.0f * 3.14159f * 1000.0f * metronomeSampleCounter / metronomeSampleRate);
+    }
+    if (metronomeSampleCounter >= 100) {
+        metronomeClick = false;
+    }
+    metronomeSampleCounter++;
+    if (metronomeSampleCounter >= metronomeSamplesPerBeat) {
+        metronomeSampleCounter = 0;
+    }
+    return click;
+}
+
+void startLooperRecording() {
+    looperRecording = true;
+    looperPlaying = false;
+    looperWriteIndex = 0;
+    looperLength = 0;
+    memset(looperBuffer, 0, sizeof(looperBuffer));
+}
+
+void stopLooperRecording() {
+    looperRecording = false;
+    if (looperWriteIndex > 0) {
+        looperLength = looperWriteIndex;
+    }
+    looperReadIndex = 0;
+}
+
+void startLooperPlayback() {
+    if (looperLength > 0) {
+        looperPlaying = true;
+        looperReadIndex = 0;
+    }
+}
+
+void stopLooperPlayback() {
+    looperPlaying = false;
+}
+
+void clearLooper() {
+    looperRecording = false;
+    looperPlaying = false;
+    looperLength = 0;
+    looperWriteIndex = 0;
+    looperReadIndex = 0;
+    memset(looperBuffer, 0, sizeof(looperBuffer));
+}
+
+bool isLooperRecording() { return looperRecording; }
+bool isLooperPlaying() { return looperPlaying; }
+
 float processSample(float input) {
     float output = input;
     
@@ -97,6 +207,19 @@ float processSample(float input) {
     
     // Aplicar ganho final
     output *= currentGain;
+
+    // Somar metrônomo
+    output += getMetronomeSample();
+
+    // Looper: gravação
+    if (looperRecording && looperWriteIndex < LOOPER_MAX_SAMPLES) {
+        looperBuffer[looperWriteIndex++] = output;
+    }
+    // Looper: reprodução
+    if (looperPlaying && looperLength > 0) {
+        output += looperBuffer[looperReadIndex++];
+        if (looperReadIndex >= looperLength) looperReadIndex = 0;
+    }
     
     // Limitar para evitar clipping
     if (output > 1.0f) output = 1.0f;
@@ -108,6 +231,56 @@ float processSample(float input) {
 void processBuffer(float* input, float* output, int numSamples) {
     for (int i = 0; i < numSamples; i++) {
         output[i] = processSample(input[i]);
+    }
+}
+
+void startTuner() {
+    std::lock_guard<std::mutex> lock(tunerMutex);
+    tunerActive = true;
+    tunerBuffer.clear();
+}
+
+void stopTuner() {
+    std::lock_guard<std::mutex> lock(tunerMutex);
+    tunerActive = false;
+    tunerBuffer.clear();
+    detectedFrequency = 0.0f;
+}
+
+bool isTunerActive() { return tunerActive; }
+float getDetectedFrequency() { return detectedFrequency; }
+
+// Função auxiliar: autocorrelação para pitch detection
+static float detectPitch(const float* buffer, int numSamples, int sampleRate) {
+    int minLag = sampleRate / 1000; // 1000 Hz
+    int maxLag = sampleRate / 50;   // 50 Hz
+    float maxCorr = 0.0f;
+    int bestLag = 0;
+    for (int lag = minLag; lag < maxLag; ++lag) {
+        float corr = 0.0f;
+        for (int i = 0; i < numSamples - lag; ++i) {
+            corr += buffer[i] * buffer[i + lag];
+        }
+        if (corr > maxCorr) {
+            maxCorr = corr;
+            bestLag = lag;
+        }
+    }
+    if (bestLag > 0) {
+        return (float)sampleRate / bestLag;
+    } else {
+        return 0.0f;
+    }
+}
+
+void processTunerBuffer(const float* input, int numSamples) {
+    if (!tunerActive || numSamples <= 0 || input == nullptr) return;
+    std::lock_guard<std::mutex> lock(tunerMutex);
+    tunerBuffer.insert(tunerBuffer.end(), input, input + numSamples);
+    int windowSize = tunerSampleRate / 10; // 100ms
+    if ((int)tunerBuffer.size() >= windowSize) {
+        detectedFrequency = detectPitch(tunerBuffer.data(), windowSize, tunerSampleRate);
+        tunerBuffer.erase(tunerBuffer.begin(), tunerBuffer.begin() + windowSize/2); // overlap
     }
 }
 

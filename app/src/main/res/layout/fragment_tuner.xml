@@ -41,6 +41,31 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="24dp"/>
 
+    <TextView
+        android:id="@+id/tunerFreq"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="440.0 Hz"
+        android:textSize="18sp"
+        android:textColor="@color/light_gray"
+        app:layout_constraintTop_toBottomOf="@id/tunerNote"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <TextView
+        android:id="@+id/tunerCents"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+0 cents"
+        android:textSize="16sp"
+        android:textColor="@color/light_gray"
+        app:layout_constraintTop_toBottomOf="@id/tunerFreq"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="24dp"/>
+
     <ProgressBar
         android:id="@+id/tunerBar"
         style="@android:style/Widget.ProgressBar.Horizontal"
@@ -50,10 +75,10 @@
         android:max="100"
         android:progressTint="@color/green"
         android:backgroundTint="@color/red"
-        app:layout_constraintTop_toBottomOf="@id/tunerNote"
+        app:layout_constraintTop_toBottomOf="@id/tunerCents"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="0dp"
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"/>
 
