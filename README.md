@@ -10,6 +10,8 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - **Ordem customizável**: Reordenar efeitos via drag-and-drop
 - **Interface moderna**: Design escuro com controles intuitivos
 - **Afinador em tempo real**: Pitch detection robusto, visual moderno, feedback instantâneo
+- **Metrônomo**: Controle de BPM com integração ao motor de áudio
+- **Looper**: Gravação e reprodução de loops (funcionalidade básica)
 - **Compatibilidade**: Android 8.1+ (API 27) para suporte futuro ao AAudio
 
 ## 🎛️ Efeitos Disponíveis
@@ -62,6 +64,23 @@ Uma pedaleira digital de efeitos sonoros para Android com processamento de áudi
 - Feedback visual instantâneo para facilitar a afinação precisa
 - Robusto contra rotação de tela e uso intenso (thread-safe, mutex, checagens de null)
 - Baixa latência e processamento eficiente
+
+### ⏰ Metrônomo
+- Controle de BPM de 30 a 200
+- Integração com motor de áudio C++
+- Interface visual com indicador de batida
+- Funcionalidade básica implementada
+
+### 🔄 Looper
+- Gravação de loops de áudio
+- Reprodução e limpeza de loops
+- Integração com motor de áudio C++
+- Funcionalidade básica implementada
+
+### 🎙️ Gravador
+- Interface para gravação de áudio
+- Reprodução da última gravação
+- Funcionalidade básica implementada (UI pronta)
 
 ## 🎚️ Sistema de Presets
 
@@ -204,8 +223,17 @@ O projeto usa:
 - [x] Ordem customizável de efeitos
 - [x] Efeitos de modulação (Chorus, Flanger, Phaser)
 - [x] Controles avançados (mix dry/wet, tipos de distorção)
+- [x] Interface multi-tela com navegação
 
-### 🚧 Em Desenvolvimento
+### 🚧 Parcialmente Implementado
+- [x] Metrônomo (UI + integração básica com C++)
+- [x] Looper (UI + integração básica com C++)
+- [x] Gravador (UI pronta, funcionalidade básica)
+
+### 🔄 Em Desenvolvimento
+- [ ] Melhorias no metrônomo (animações, visualização)
+- [ ] Melhorias no looper (timer, visualização de duração)
+- [ ] Funcionalidade completa do gravador
 - [ ] Equalizador (EQ) com controles de graves, médios e agudos
 - [ ] Compressor para nivelamento de volume
 - [ ] Melhorias de interface (tooltips, reset rápido)
