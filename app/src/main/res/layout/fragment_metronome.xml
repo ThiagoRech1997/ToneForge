@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <TextView
+        android:id="@+id/metronomeTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Metrônomo"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <TextView
+        android:id="@+id/metronomeBpmLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BPM"
+        android:textSize="18sp"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/metronomeTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <TextView
+        android:id="@+id/metronomeBpmValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="120"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:textColor="@color/green"
+        app:layout_constraintTop_toBottomOf="@id/metronomeBpmLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <SeekBar
+        android:id="@+id/metronomeSeekBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:max="240"
+        android:progress="120"
+        app:layout_constraintTop_toBottomOf="@id/metronomeBpmValue"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"/>
+
+    <Button
+        android:id="@+id/metronomePlayButton"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:backgroundTint="@color/green"
+        android:text=""
+        app:icon="@android:drawable/ic_media_play"
+        app:iconTint="@color/white"
+        app:iconGravity="textStart"
+        app:layout_constraintTop_toBottomOf="@id/metronomeSeekBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <View
+        android:id="@+id/metronomeBeatIndicator"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@color/accent_blue"
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toBottomOf="@id/metronomePlayButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:backgroundTint="@color/accent_blue"
+        android:alpha="0.3"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

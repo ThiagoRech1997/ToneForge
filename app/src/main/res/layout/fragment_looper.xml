@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <TextView
+        android:id="@+id/looperTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Looper"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <TextView
+        android:id="@+id/looperTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textSize="32sp"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/looperTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp"/>
+
+    <Button
+        android:id="@+id/looperRecordButton"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:backgroundTint="@color/red"
+        android:text=""
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toBottomOf="@id/looperTimer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:icon="@drawable/ic_mic"
+        app:iconTint="@color/white"
+        app:iconGravity="textStart"/>
+
+    <Button
+        android:id="@+id/looperPlayButton"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:backgroundTint="@color/green"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/looperRecordButton"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="32dp"
+        android:layout_marginStart="48dp"
+        app:icon="@android:drawable/ic_media_play"
+        app:iconTint="@color/white"
+        app:iconGravity="textStart"/>
+
+    <Button
+        android:id="@+id/looperClearButton"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:backgroundTint="@color/accent_red"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/looperRecordButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="48dp"
+        app:icon="@android:drawable/ic_menu_delete"
+        app:iconTint="@color/white"
+        app:iconGravity="textStart"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

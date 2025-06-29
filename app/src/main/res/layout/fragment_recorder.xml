@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <TextView
+        android:id="@+id/recorderTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Gravador"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <TextView
+        android:id="@+id/recorderTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textSize="32sp"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/recorderTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp"/>
+
+    <Button
+        android:id="@+id/recorderRecordButton"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:backgroundTint="@color/red"
+        android:text=""
+        app:icon="@drawable/ic_mic"
+        app:iconTint="@color/white"
+        app:iconGravity="textStart"
+        app:layout_constraintTop_toBottomOf="@id/recorderTimer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <Button
+        android:id="@+id/recorderPlayButton"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:backgroundTint="@color/green"
+        android:text=""
+        app:icon="@android:drawable/ic_media_play"
+        app:iconTint="@color/white"
+        app:iconGravity="textStart"
+        app:layout_constraintTop_toBottomOf="@id/recorderRecordButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp"/>
+
+    <TextView
+        android:id="@+id/recorderListLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Gravações recentes"
+        android:textColor="@color/light_gray"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/recorderPlayButton"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="40dp"
+        android:layout_marginStart="32dp"/>
+
+    <TextView
+        android:id="@+id/recorderListPlaceholder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="(Nenhuma gravação ainda)"
+        android:textColor="@color/dark_gray"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/recorderListLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="32dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.thiagofernendorech.toneforge.HomeFragment"
+        android:label="Home" />
+    <fragment
+        android:id="@+id/tunerFragment"
+        android:name="com.thiagofernendorech.toneforge.TunerFragment"
+        android:label="Afinador">
+        <action
+            android:id="@+id/action_tunerFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/effectsFragment"
+        android:name="com.thiagofernendorech.toneforge.EffectsFragment"
+        android:label="Efeitos">
+        <action
+            android:id="@+id/action_effectsFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/looperFragment"
+        android:name="com.thiagofernendorech.toneforge.LooperFragment"
+        android:label="Looper">
+        <action
+            android:id="@+id/action_looperFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/metronomeFragment"
+        android:name="com.thiagofernendorech.toneforge.MetronomeFragment"
+        android:label="Metrônomo">
+        <action
+            android:id="@+id/action_metronomeFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/learningFragment"
+        android:name="com.thiagofernendorech.toneforge.LearningFragment"
+        android:label="Aprendizado">
+        <action
+            android:id="@+id/action_learningFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/recorderFragment"
+        android:name="com.thiagofernendorech.toneforge.RecorderFragment"
+        android:label="Gravador">
+        <action
+            android:id="@+id/action_recorderFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.thiagofernendorech.toneforge.SettingsFragment"
+        android:label="Configurações">
+        <action
+            android:id="@+id/action_settingsFragment_self"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+</navigation> 
