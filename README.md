@@ -107,20 +107,50 @@ app/src/main/
 │   └── CMakeLists.txt      # Configuração do build
 ├── java/
 │   └── com/thiagofernendorech/toneforge/
-│       ├── MainActivity.java      # Interface principal
-│       ├── AudioEngine.java       # Pipeline de áudio
-│       ├── EffectsFragment.java   # Interface de efeitos
-│       └── EffectOrderAdapter.java # Adapter para ordem de efeitos
-└── res/
-    ├── layout/
-    │   ├── activity_main.xml      # Interface principal
-    │   └── fragment_effects.xml   # Interface de efeitos
-    ├── drawable/
-    │   └── button_background.xml
-    └── values/
-        ├── colors.xml
-        ├── strings.xml
-        └── arrays.xml
+│       ├── MainActivity.java      # Interface principal e navegação
+│       ├── AudioEngine.java       # Pipeline de áudio em tempo real
+│       ├── EffectsFragment.java   # Interface de efeitos e presets
+│       ├── EffectOrderAdapter.java # Adapter para ordem de efeitos
+│       ├── HomeFragment.java      # Tela inicial
+│       ├── TunerFragment.java     # Afinador em tempo real
+│       ├── MetronomeFragment.java # Metrônomo
+│       ├── LooperFragment.java    # Looper de gravação
+│       ├── RecorderFragment.java  # Gravador
+│       ├── LearningFragment.java  # Tela de aprendizado
+│       └── SettingsFragment.java  # Configurações
+├── res/
+│   ├── layout/
+│   │   ├── activity_main.xml      # Layout principal
+│   │   ├── fragment_effects.xml   # Interface de efeitos
+│   │   ├── fragment_home.xml      # Tela inicial
+│   │   ├── fragment_tuner.xml     # Afinador
+│   │   ├── fragment_metronome.xml # Metrônomo
+│   │   ├── fragment_looper.xml    # Looper
+│   │   ├── fragment_recorder.xml  # Gravador
+│   │   ├── fragment_learning.xml  # Aprendizado
+│   │   └── fragment_settings.xml  # Configurações
+│   ├── drawable/
+│   │   ├── ic_*.xml               # Ícones da interface
+│   │   ├── bg_gradient.xml        # Gradiente de fundo
+│   │   ├── button_background.xml  # Estilo de botões
+│   │   └── round_button.xml       # Botões arredondados
+│   ├── navigation/
+│   │   └── nav_graph.xml          # Navegação entre telas
+│   ├── anim/
+│   │   ├── slide_in_*.xml         # Animações de entrada
+│   │   └── slide_out_*.xml        # Animações de saída
+│   ├── values/
+│   │   ├── colors.xml             # Cores do tema
+│   │   ├── strings.xml            # Strings localizadas
+│   │   ├── arrays.xml             # Arrays (tipos de distorção)
+│   │   └── themes.xml             # Temas da aplicação
+│   ├── values-night/
+│   │   └── themes.xml             # Tema escuro
+│   ├── mipmap-*/                  # Ícones do app (diferentes densidades)
+│   └── xml/
+│       ├── backup_rules.xml       # Regras de backup
+│       └── data_extraction_rules.xml # Regras de extração
+└── AndroidManifest.xml            # Configuração do app
 ```
 
 ## 🚀 Como Usar
