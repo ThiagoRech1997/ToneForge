@@ -31,8 +31,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import android.widget.AdapterView;
 import android.widget.ImageView;
+import android.content.Intent;
+import android.net.Uri;
+import android.app.AlertDialog;
 
 public class EffectsFragment extends Fragment {
+    private static final int EXPORT_PRESET_REQUEST = 1001;
+    private static final int IMPORT_PRESET_REQUEST = 1002;
+    
     private TextView statusText;
     private ArrayAdapter<String> presetAdapter;
     private ArrayList<EffectPreset> presetList;
@@ -683,6 +689,13 @@ public class EffectsFragment extends Fragment {
         
         Button btnResetCompressor = view.findViewById(R.id.btnResetCompressor);
         btnResetCompressor.setOnClickListener(v -> resetCompressor());
+
+        // Botões de Exportar/Importar Presets
+        Button btnExportPreset = view.findViewById(R.id.btnExportPreset);
+        Button btnImportPreset = view.findViewById(R.id.btnImportPreset);
+        
+        btnExportPreset.setOnClickListener(v -> showExportPresetDialog());
+        btnImportPreset.setOnClickListener(v -> selectPresetFile());
 
         // Tooltips para todos os controles restantes
         setupTooltips(view);
@@ -1472,5 +1485,102 @@ public class EffectsFragment extends Fragment {
             TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_reset));
             return true;
         });
+        
+        // Tooltips para Exportar/Importar
+        Button btnExportPreset = view.findViewById(R.id.btnExportPreset);
+        Button btnImportPreset = view.findViewById(R.id.btnImportPreset);
+        
+        btnExportPreset.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_export_preset));
+            return true;
+        });
+        
+        btnImportPreset.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_import_preset));
+            return true;
+        });
+    }
+    
+    private void showExportPresetDialog() {
+        ArrayList<String> presetNames = PresetManager.getPresetNames(getContext());
+        
+        if (presetNames.isEmpty()) {
+            Toast.makeText(getContext(), "Nenhum preset salvo para exportar", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String[] names = presetNames.toArray(new String[0]);
+        
+        new AlertDialog.Builder(getContext())
+            .setTitle("Exportar Preset")
+            .setItems(names, (dialog, which) -> {
+                String selectedPreset = names[which];
+                exportPreset(selectedPreset);
+            })
+            .setNegativeButton("Cancelar", null)
+            .show();
+    }
+    
+    private void exportPreset(String presetName) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, presetName + ".json");
+        
+        // Salvar nome do preset temporariamente
+        SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        prefs.edit().putString("temp_export_preset", presetName).apply();
+        
+        startActivityForResult(intent, EXPORT_PRESET_REQUEST);
+    }
+    
+    private void selectPresetFile() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent, IMPORT_PRESET_REQUEST);
+    }
+    
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (resultCode == android.app.Activity.RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            
+            if (requestCode == EXPORT_PRESET_REQUEST) {
+                // Exportar preset
+                SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+                String presetName = prefs.getString("temp_export_preset", "");
+                
+                if (!presetName.isEmpty()) {
+                    boolean success = PresetManager.savePresetToFile(getContext(), presetName, uri);
+                    if (success) {
+                        Toast.makeText(getContext(), getString(R.string.preset_exported), Toast.LENGTH_SHORT).show();
+                        
+                        // Compartilhar arquivo
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        shareIntent.setType("application/json");
+                        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                        shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Preset ToneForge: " + presetName);
+                        shareIntent.putExtra(Intent.EXTRA_TEXT, "Compartilhando preset do ToneForge: " + presetName);
+                        startActivity(Intent.createChooser(shareIntent, getString(R.string.share_preset)));
+                    } else {
+                        Toast.makeText(getContext(), getString(R.string.preset_export_failed), Toast.LENGTH_SHORT).show();
+                    }
+                }
+                
+            } else if (requestCode == IMPORT_PRESET_REQUEST) {
+                // Importar preset
+                boolean success = PresetManager.importPreset(getContext(), uri);
+                if (success) {
+                    Toast.makeText(getContext(), getString(R.string.preset_imported), Toast.LENGTH_SHORT).show();
+                    // Atualizar lista de presets
+                    atualizarListaPresets();
+                } else {
+                    Toast.makeText(getContext(), getString(R.string.preset_import_failed), Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 } 

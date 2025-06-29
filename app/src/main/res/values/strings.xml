@@ -100,4 +100,27 @@
     <!-- Tooltips gerais -->
     <string name="tooltip_reset">Restaura os parâmetros para valores padrão</string>
     <string name="tooltip_reset_all">Restaura todos os efeitos para valores padrão</string>
+    
+    <!-- Presets Export/Import -->
+    <string name="export_preset">Exportar Preset</string>
+    <string name="import_preset">Importar Preset</string>
+    <string name="share_preset">Compartilhar Preset</string>
+    <string name="preset_exported">Preset exportado com sucesso!</string>
+    <string name="preset_imported">Preset importado com sucesso!</string>
+    <string name="preset_export_failed">Erro ao exportar preset</string>
+    <string name="preset_import_failed">Erro ao importar preset</string>
+    <string name="preset_invalid_format">Formato de preset inválido</string>
+    <string name="preset_already_exists">Preset já existe. Deseja substituir?</string>
+    <string name="select_preset_file">Selecionar arquivo de preset</string>
+    <string name="preset_file_description">Arquivo de preset ToneForge (.json)</string>
+    <string name="preset_export_title">Exportar Preset</string>
+    <string name="preset_import_title">Importar Preset</string>
+    <string name="preset_name_required">Nome do preset é obrigatório</string>
+    <string name="preset_created_by">Criado por: %s</string>
+    <string name="preset_created_date">Data: %s</string>
+    <string name="preset_version">Versão: %s</string>
+    
+    <!-- Tooltips para Exportar/Importar -->
+    <string name="tooltip_export_preset">Exportar preset salvo para arquivo JSON</string>
+    <string name="tooltip_import_preset">Importar preset de arquivo JSON</string>
 </resources>

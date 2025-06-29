@@ -32,6 +32,36 @@
             android:textColor="@color/white"
             android:layout_marginBottom="16dp"/>
 
+        <!-- Botões de Exportar/Importar Presets -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+            
+            <Button
+                android:id="@+id/btnExportPreset"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="@string/export_preset"
+                android:textSize="14sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
+                
+            <Button
+                android:id="@+id/btnImportPreset"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="@string/import_preset"
+                android:textSize="14sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
         <!-- Presets de Efeitos -->
         <LinearLayout
             android:layout_width="match_parent"
