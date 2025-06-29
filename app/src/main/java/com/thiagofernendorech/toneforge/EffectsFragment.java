@@ -99,16 +99,56 @@ public class EffectsFragment extends Fragment {
 
         // Delay
         Switch switchDelay = view.findViewById(R.id.switchDelay);
-        SeekBar seekDelay = view.findViewById(R.id.seekDelay);
+        SeekBar seekDelayTime = view.findViewById(R.id.seekDelayTime);
+        Switch switchDelaySyncBPM = view.findViewById(R.id.switchDelaySyncBPM);
+        SeekBar seekDelayBPM = view.findViewById(R.id.seekDelayBPM);
+        SeekBar seekDelayFeedback = view.findViewById(R.id.seekDelayFeedback);
+        SeekBar seekDelayMix = view.findViewById(R.id.seekDelayMix);
+        
         switchDelay.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDelayEnabled(isChecked);
             updateStatus();
         });
-        seekDelay.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        
+        seekDelayTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress; // 0-1000 ms
+                AudioEngine.setDelayTime(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        
+        switchDelaySyncBPM.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setDelaySyncBPM(isChecked);
+        });
+        
+        seekDelayBPM.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int value = 60 + progress; // 60-260 BPM
+                AudioEngine.setDelayBPM(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        
+        seekDelayFeedback.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
-                AudioEngine.setDelayLevel(value);
+                AudioEngine.setDelayFeedback(value);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        
+        seekDelayMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float value = progress / 100.0f;
+                AudioEngine.setDelayMix(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -126,18 +166,6 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setReverbLevel(value);
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        // Feedback do Delay
-        SeekBar seekDelayFeedback = view.findViewById(R.id.seekDelayFeedback);
-        seekDelayFeedback.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float value = progress / 100.0f;
-                AudioEngine.setDelayFeedback(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -183,17 +211,6 @@ public class EffectsFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float value = progress / 100.0f;
                 AudioEngine.setDistortionMix(value);
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-        // Mix Delay
-        SeekBar seekDelayMix = view.findViewById(R.id.seekDelayMix);
-        seekDelayMix.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float value = progress / 100.0f;
-                AudioEngine.setDelayMix(value);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -654,7 +671,7 @@ public class EffectsFragment extends Fragment {
         boolean gainEnabled = ((Switch)view.findViewById(R.id.switchGain)).isChecked();
         float distortion = ((SeekBar)view.findViewById(R.id.seekDistortion)).getProgress() / 100.0f;
         boolean distortionEnabled = ((Switch)view.findViewById(R.id.switchDistortion)).isChecked();
-        float delay = ((SeekBar)view.findViewById(R.id.seekDelay)).getProgress() / 100.0f;
+        float delay = ((SeekBar)view.findViewById(R.id.seekDelayTime)).getProgress(); // 0-1000 ms
         float delayFeedback = ((SeekBar)view.findViewById(R.id.seekDelayFeedback)).getProgress() / 100.0f;
         boolean delayEnabled = ((Switch)view.findViewById(R.id.switchDelay)).isChecked();
         float reverb = ((SeekBar)view.findViewById(R.id.seekReverb)).getProgress() / 100.0f;
@@ -671,7 +688,7 @@ public class EffectsFragment extends Fragment {
         ((Switch)view.findViewById(R.id.switchGain)).setChecked(preset.gainEnabled);
         ((SeekBar)view.findViewById(R.id.seekDistortion)).setProgress((int)(preset.distortion * 100));
         ((Switch)view.findViewById(R.id.switchDistortion)).setChecked(preset.distortionEnabled);
-        ((SeekBar)view.findViewById(R.id.seekDelay)).setProgress((int)(preset.delay * 100));
+        ((SeekBar)view.findViewById(R.id.seekDelayTime)).setProgress((int)preset.delay);
         ((SeekBar)view.findViewById(R.id.seekDelayFeedback)).setProgress((int)(preset.delayFeedback * 100));
         ((Switch)view.findViewById(R.id.switchDelay)).setChecked(preset.delayEnabled);
         ((SeekBar)view.findViewById(R.id.seekReverb)).setProgress((int)(preset.reverb * 100));

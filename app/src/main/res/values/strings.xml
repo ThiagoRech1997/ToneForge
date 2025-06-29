@@ -23,4 +23,7 @@
     <string name="compressor_attack">Attack</string>
     <string name="compressor_release">Release</string>
     <string name="compressor_mix">Mix</string>
+    <string name="delay_time">Tempo (ms)</string>
+    <string name="delay_sync_bpm">Sincronizar BPM</string>
+    <string name="delay_bpm">BPM</string>
 </resources>

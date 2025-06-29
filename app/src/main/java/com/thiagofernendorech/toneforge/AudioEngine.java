@@ -104,6 +104,11 @@ public class AudioEngine {
     public static native void setCompressorRelease(float release);
     public static native void setCompressorMix(float mix);
 
+    // Novos métodos JNI para Delay
+    public static native void setDelayTime(float timeMs);
+    public static native void setDelaySyncBPM(boolean sync);
+    public static native void setDelayBPM(int bpm);
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;

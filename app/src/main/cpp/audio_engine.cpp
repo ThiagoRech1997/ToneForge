@@ -13,6 +13,9 @@ static float currentGain = 1.0f;
 static float distortionAmount = 0.0f;
 static float delayTime = 0.0f;
 static float delayFeedback = 0.0f;
+static float delayTimeMs = 200.0f;  // Tempo em milissegundos
+static bool delaySyncBPM = false;   // Sincronizar com BPM
+static int delayBPM = 120;          // BPM para sincronização
 static float reverbRoomSize = 0.0f;
 static float reverbDamping = 0.0f;
 
@@ -170,6 +173,47 @@ void setDelay(float time, float feedback) {
     delayBufferSize = (int)(time * sampleRate);
     if (delayBufferSize > MAX_DELAY_SAMPLES) {
         delayBufferSize = MAX_DELAY_SAMPLES;
+    }
+}
+
+void setDelayTime(float timeMs) {
+    delayTimeMs = timeMs;
+    if (!delaySyncBPM) {
+        // Converter ms para segundos e calcular samples
+        delayTime = timeMs / 1000.0f;
+        delayBufferSize = (int)(delayTime * sampleRate);
+        if (delayBufferSize > MAX_DELAY_SAMPLES) {
+            delayBufferSize = MAX_DELAY_SAMPLES;
+        }
+    }
+}
+
+void setDelaySyncBPM(bool sync) {
+    delaySyncBPM = sync;
+    if (sync) {
+        // Calcular tempo baseado no BPM
+        float beatTime = 60.0f / delayBPM; // segundos por batida
+        delayTime = beatTime; // 1/4 nota
+        delayBufferSize = (int)(delayTime * sampleRate);
+        if (delayBufferSize > MAX_DELAY_SAMPLES) {
+            delayBufferSize = MAX_DELAY_SAMPLES;
+        }
+    } else {
+        // Usar tempo em ms
+        setDelayTime(delayTimeMs);
+    }
+}
+
+void setDelayBPM(int bpm) {
+    delayBPM = bpm;
+    if (delaySyncBPM) {
+        // Recalcular tempo baseado no novo BPM
+        float beatTime = 60.0f / delayBPM; // segundos por batida
+        delayTime = beatTime; // 1/4 nota
+        delayBufferSize = (int)(delayTime * sampleRate);
+        if (delayBufferSize > MAX_DELAY_SAMPLES) {
+            delayBufferSize = MAX_DELAY_SAMPLES;
+        }
     }
 }
 

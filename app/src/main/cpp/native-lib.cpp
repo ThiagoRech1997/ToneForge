@@ -283,6 +283,21 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_setDelayMix(JNIEnv* env, jclas
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDelayTime(JNIEnv* env, jclass clazz, jfloat timeMs) {
+    setDelayTime(timeMs);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDelaySyncBPM(JNIEnv* env, jclass clazz, jboolean sync) {
+    setDelaySyncBPM(sync);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDelayBPM(JNIEnv* env, jclass clazz, jint bpm) {
+    setDelayBPM(bpm);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbMix(JNIEnv* env, jclass clazz, jfloat mix) {
     setReverbMix(mix);
 }

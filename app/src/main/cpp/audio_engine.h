@@ -85,6 +85,10 @@ extern "C" {
     void setCompressorAttack(float attack);
     void setCompressorRelease(float release);
     void setCompressorMix(float mix);
+
+    void setDelayTime(float timeMs);
+    void setDelaySyncBPM(bool sync);
+    void setDelayBPM(int bpm);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H
