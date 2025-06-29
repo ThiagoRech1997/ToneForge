@@ -51,6 +51,12 @@ extern "C" {
 
     void setEffectOrder(const char** order, int count);
 
+    // Funções para Oversampling
+    void setOversamplingEnabled(bool enabled);
+    void setOversamplingFactor(int factor);
+    bool isOversamplingEnabled();
+    int getOversamplingFactor();
+
     void setDistortionType(int type);
     void setDistortionMix(float mix);
     void setDelayMix(float mix);

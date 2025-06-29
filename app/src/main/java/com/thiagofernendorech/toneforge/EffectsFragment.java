@@ -655,6 +655,53 @@ public class EffectsFragment extends Fragment {
         });
         itemTouchHelper.attachToRecyclerView(effectsOrderRecycler);
 
+        // --- Oversampling ---
+        Switch switchOversampling = view.findViewById(R.id.switchOversampling);
+        Spinner spinnerOversamplingFactor = view.findViewById(R.id.spinnerOversamplingFactor);
+        TextView oversamplingQualityText = view.findViewById(R.id.oversamplingQualityText);
+        
+        // Configurar spinner de fator de oversampling
+        String[] oversamplingFactors = {
+            getString(R.string.oversampling_1x),
+            getString(R.string.oversampling_2x),
+            getString(R.string.oversampling_4x),
+            getString(R.string.oversampling_8x)
+        };
+        ArrayAdapter<String> oversamplingAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, oversamplingFactors);
+        oversamplingAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerOversamplingFactor.setAdapter(oversamplingAdapter);
+        
+        // Carregar configurações salvas
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        boolean oversamplingEnabled = prefs.getBoolean("oversampling_enabled", true);
+        int oversamplingFactor = prefs.getInt("oversampling_factor", 2);
+        
+        switchOversampling.setChecked(oversamplingEnabled);
+        spinnerOversamplingFactor.setSelection(oversamplingFactor - 1); // 1x = posição 0
+        
+        // Aplicar configurações
+        AudioEngine.setOversamplingEnabled(oversamplingEnabled);
+        AudioEngine.setOversamplingFactor(oversamplingFactor);
+        updateOversamplingQualityText(oversamplingQualityText, oversamplingEnabled, oversamplingFactor);
+        
+        // Listeners
+        switchOversampling.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setOversamplingEnabled(isChecked);
+            prefs.edit().putBoolean("oversampling_enabled", isChecked).apply();
+            updateOversamplingQualityText(oversamplingQualityText, isChecked, oversamplingFactor);
+        });
+        
+        spinnerOversamplingFactor.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
+                int factor = position + 1; // 1x, 2x, 4x, 8x
+                AudioEngine.setOversamplingFactor(factor);
+                prefs.edit().putInt("oversampling_factor", factor).apply();
+                updateOversamplingQualityText(oversamplingQualityText, oversamplingEnabled, factor);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
         // Tipo de Reverb
         Spinner spinnerReverbType = view.findViewById(R.id.spinnerReverbType);
         spinnerReverbType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -1552,6 +1599,20 @@ public class EffectsFragment extends Fragment {
             TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_favorite_button));
             return true;
         });
+        
+        // Tooltips para Oversampling
+        Switch switchOversampling = view.findViewById(R.id.switchOversampling);
+        Spinner spinnerOversamplingFactor = view.findViewById(R.id.spinnerOversamplingFactor);
+        
+        switchOversampling.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_oversampling_enabled));
+            return true;
+        });
+        
+        spinnerOversamplingFactor.setOnLongClickListener(v -> {
+            TooltipManager.showTooltip(getContext(), v, getString(R.string.tooltip_oversampling_factor));
+            return true;
+        });
     }
     
     private void showExportPresetDialog() {
@@ -1784,6 +1845,39 @@ public class EffectsFragment extends Fragment {
                 return ((Switch)view.findViewById(R.id.switchReverb)).isChecked();
             default:
                 return false;
+        }
+    }
+
+    private void updateOversamplingQualityText(TextView textView, boolean enabled, int factor) {
+        if (!enabled) {
+            textView.setText("Desativado - Performance Máxima");
+            textView.setTextColor(getResources().getColor(R.color.red));
+        } else {
+            String quality;
+            int color;
+            switch (factor) {
+                case 1:
+                    quality = "Sem Oversampling - Performance";
+                    color = R.color.yellow;
+                    break;
+                case 2:
+                    quality = "Qualidade Boa - Performance Média";
+                    color = R.color.green;
+                    break;
+                case 4:
+                    quality = "Qualidade Alta - Performance Baixa";
+                    color = R.color.green;
+                    break;
+                case 8:
+                    quality = "Qualidade Máxima - Performance Mínima";
+                    color = R.color.green;
+                    break;
+                default:
+                    quality = "Qualidade Padrão";
+                    color = R.color.white;
+            }
+            textView.setText(quality);
+            textView.setTextColor(getResources().getColor(color));
         }
     }
 } 

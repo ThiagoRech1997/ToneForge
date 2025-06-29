@@ -8,6 +8,13 @@
 #include <mutex>
 #include <string>
 
+// Configurações de Oversampling
+static int oversamplingFactor = 2; // 2x, 4x, 8x
+static bool oversamplingEnabled = true;
+static std::vector<float> oversampleBuffer;
+static std::vector<float> downsampleBuffer;
+static int oversampleBufferSize = 0;
+
 // Parâmetros dos efeitos
 static float currentGain = 1.0f;
 static float distortionAmount = 0.0f;
@@ -21,13 +28,15 @@ static float reverbDamping = 0.0f;
 
 // Buffer de delay (máximo 1 segundo a 48kHz)
 static const int MAX_DELAY_SAMPLES = 48000;
-static float delayBuffer[MAX_DELAY_SAMPLES];
+static const float MAX_DELAY_TIME = 1.0f; // 1 segundo
+static const int SAMPLE_RATE = 48000;
+static std::vector<float> delayBuffer;
 static int delayBufferIndex = 0;
 static int delayBufferSize = 0;
 
 // Buffer de reverb simples
 static const int REVERB_BUFFER_SIZE = 4096;
-static float reverbBuffer[REVERB_BUFFER_SIZE];
+static std::vector<float> reverbBuffer;
 static int reverbIndex = 0;
 
 // Taxa de amostragem (será configurada)
@@ -140,11 +149,29 @@ static float compressorGain = 1.0f;         // Gain reduction
 static int reverbType = 0; // 0=Hall, 1=Plate, 2=Spring
 
 void initAudioEngine() {
-    // Limpar buffers
-    memset(delayBuffer, 0, sizeof(delayBuffer));
-    memset(reverbBuffer, 0, sizeof(reverbBuffer));
+    // Inicializar buffers de oversampling
+    oversampleBufferSize = 4096 * oversamplingFactor;
+    oversampleBuffer.resize(oversampleBufferSize);
+    downsampleBuffer.resize(oversampleBufferSize);
+    
+    // Inicializar outros buffers
+    delayBufferSize = (int)(MAX_DELAY_TIME * SAMPLE_RATE);
+    delayBuffer.resize(delayBufferSize, 0.0f);
     delayBufferIndex = 0;
+    
+    reverbBuffer.resize(REVERB_BUFFER_SIZE, 0.0f);
     reverbIndex = 0;
+    
+    // Inicializar buffers de modulação
+    chorusBuffer.resize(chorusBufferSize, 0.0f);
+    flangerBuffer.resize(flangerBufferSize, 0.0f);
+    phaserBuffer.resize(phaserBufferSize, 0.0f);
+    
+    // Resetar fases
+    chorusPhase = 0.0f;
+    flangerPhase = 0.0f;
+    phaserPhase = 0.0f;
+    phaserLfo = 0.0f;
     
     // Resetar parâmetros
     currentGain = 1.0f;
@@ -157,8 +184,10 @@ void initAudioEngine() {
 
 void cleanupAudioEngine() {
     // Limpar buffers
-    memset(delayBuffer, 0, sizeof(delayBuffer));
-    memset(reverbBuffer, 0, sizeof(reverbBuffer));
+    delayBuffer.clear();
+    reverbBuffer.clear();
+    oversampleBuffer.clear();
+    downsampleBuffer.clear();
 }
 
 void setGain(float gain) {
@@ -176,6 +205,7 @@ void setDelay(float time, float feedback) {
     if (delayBufferSize > MAX_DELAY_SAMPLES) {
         delayBufferSize = MAX_DELAY_SAMPLES;
     }
+    delayBuffer.resize(delayBufferSize, 0.0f);
 }
 
 void setDelayTime(float timeMs) {
@@ -614,9 +644,54 @@ float processSample(float input) {
     return output;
 }
 
+void upsample(const float* input, float* output, int numSamples) {
+    for (int i = 0; i < numSamples; ++i) {
+        output[i * oversamplingFactor] = input[i];
+        // Interpolação linear para amostras intermediárias
+        for (int j = 1; j < oversamplingFactor; ++j) {
+            float alpha = (float)j / oversamplingFactor;
+            if (i < numSamples - 1) {
+                output[i * oversamplingFactor + j] = 
+                    (1.0f - alpha) * input[i] + alpha * input[i + 1];
+            } else {
+                output[i * oversamplingFactor + j] = input[i];
+            }
+        }
+    }
+}
+
+void downsample(const float* input, float* output, int numSamples) {
+    for (int i = 0; i < numSamples; ++i) {
+        output[i] = input[i * oversamplingFactor];
+    }
+}
+
 void processBuffer(float* input, float* output, int numSamples) {
-    for (int i = 0; i < numSamples; i++) {
-        output[i] = processSample(input[i]);
+    if (!oversamplingEnabled || oversamplingFactor <= 1) {
+        // Processamento normal sem oversampling
+        for (int i = 0; i < numSamples; ++i) {
+            output[i] = processSample(input[i]);
+        }
+    } else {
+        // Processamento com oversampling
+        int oversampledSize = numSamples * oversamplingFactor;
+        
+        // Garantir que os buffers tenham tamanho suficiente
+        if (oversampleBuffer.size() < oversampledSize) {
+            oversampleBuffer.resize(oversampledSize);
+            downsampleBuffer.resize(oversampledSize);
+        }
+        
+        // Upsampling
+        upsample(input, oversampleBuffer.data(), numSamples);
+        
+        // Processar na taxa alta
+        for (int i = 0; i < oversampledSize; ++i) {
+            downsampleBuffer[i] = processSample(oversampleBuffer[i]);
+        }
+        
+        // Downsampling
+        downsample(downsampleBuffer.data(), output, numSamples);
     }
 }
 
@@ -695,5 +770,47 @@ void setEffectOrder(const char** order, int count) {
     for (int i = 0; i < count; ++i) {
         effectOrder.push_back(order[i]);
     }
+}
+
+float processSampleWithOversampling(float input) {
+    if (!oversamplingEnabled || oversamplingFactor <= 1) {
+        return processSample(input);
+    }
+    
+    // Upsampling
+    float upsampledInput = input * oversamplingFactor; // Normalizar amplitude
+    
+    // Processar na taxa alta
+    float upsampledOutput = processSample(upsampledInput);
+    
+    // Downsampling com filtro anti-aliasing simples
+    float output = upsampledOutput / oversamplingFactor; // Normalizar amplitude
+    
+    return output;
+}
+
+// Funções para controlar Oversampling
+void setOversamplingEnabled(bool enabled) {
+    oversamplingEnabled = enabled;
+}
+
+void setOversamplingFactor(int factor) {
+    if (factor == 1 || factor == 2 || factor == 4 || factor == 8) {
+        oversamplingFactor = factor;
+        // Reinicializar buffers se necessário
+        if (oversampleBufferSize > 0) {
+            oversampleBufferSize = 4096 * oversamplingFactor;
+            oversampleBuffer.resize(oversampleBufferSize);
+            downsampleBuffer.resize(oversampleBufferSize);
+        }
+    }
+}
+
+bool isOversamplingEnabled() {
+    return oversamplingEnabled;
+}
+
+int getOversamplingFactor() {
+    return oversamplingFactor;
 }
 

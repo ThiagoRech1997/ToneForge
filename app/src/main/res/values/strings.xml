@@ -139,6 +139,22 @@
     <string name="tooltip_favorite_button">Marcar/desmarcar como favorito</string>
     <string name="tooltip_favorites_filter">Alternar entre todos os presets e apenas favoritos</string>
     
+    <!-- Oversampling -->
+    <string name="oversampling">Oversampling</string>
+    <string name="oversampling_enabled">Oversampling Ativado</string>
+    <string name="oversampling_factor">Fator de Oversampling</string>
+    <string name="oversampling_1x">1x (Sem Oversampling)</string>
+    <string name="oversampling_2x">2x</string>
+    <string name="oversampling_4x">4x</string>
+    <string name="oversampling_8x">8x</string>
+    <string name="oversampling_description">Reduz aliasing em distorção e delay</string>
+    <string name="oversampling_quality">Qualidade de Processamento</string>
+    <string name="oversampling_performance">Performance vs Qualidade</string>
+    
+    <!-- Tooltips para Oversampling -->
+    <string name="tooltip_oversampling_enabled">Ativar/desativar oversampling para melhor qualidade</string>
+    <string name="tooltip_oversampling_factor">Fator de oversampling (maior = melhor qualidade, mais CPU)</string>
+    
     <!-- Nova string para label da visualização gráfica da cadeia -->
     <string name="chain_view_label">Cadeia de Efeitos</string>
 </resources>

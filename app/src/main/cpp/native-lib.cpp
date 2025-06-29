@@ -431,3 +431,24 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbType(JNIEnv* env, jclass clazz, jint type) {
     setReverbType(type);
 }
+
+// Funções JNI para Oversampling
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setOversamplingEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setOversamplingEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setOversamplingFactor(JNIEnv* env, jclass clazz, jint factor) {
+    setOversamplingFactor(factor);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isOversamplingEnabled(JNIEnv* env, jclass clazz) {
+    return isOversamplingEnabled();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getOversamplingFactor(JNIEnv* env, jclass clazz) {
+    return getOversamplingFactor();
+}

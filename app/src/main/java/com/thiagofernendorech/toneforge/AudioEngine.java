@@ -112,6 +112,12 @@ public class AudioEngine {
     // Novos métodos JNI para setReverbType
     public static native void setReverbType(int type); // 0=Hall, 1=Plate, 2=Spring
 
+    // Novos métodos JNI para Oversampling
+    public static native void setOversamplingEnabled(boolean enabled);
+    public static native void setOversamplingFactor(int factor);
+    public static native boolean isOversamplingEnabled();
+    public static native int getOversamplingFactor();
+
     // Pipeline de áudio em tempo real
     public static void startAudioPipeline() {
         if (isAudioPipelineRunning) return;
