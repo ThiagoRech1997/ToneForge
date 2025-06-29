@@ -35,6 +35,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.app.AlertDialog;
 import android.widget.LinearLayout;
+import android.media.midi.MidiManager;
 
 public class EffectsFragment extends Fragment {
     private static final int EXPORT_PRESET_REQUEST = 1001;
@@ -50,6 +51,8 @@ public class EffectsFragment extends Fragment {
     private RecyclerView effectsOrderRecycler;
     private ArrayList<String> effectOrder;
     private boolean showFavoritesOnly = false;
+    private TooltipManager tooltipManager;
+    private ToneForgeMidiManager midiManager;
 
     @Nullable
     @Override
@@ -785,6 +788,39 @@ public class EffectsFragment extends Fragment {
         // Botão de Favorito
         Button favoritePresetButton = view.findViewById(R.id.favoritePresetButton);
         favoritePresetButton.setOnClickListener(v -> toggleFavoritePreset());
+
+        // Configurar tooltips
+        setupTooltips(view);
+        
+        // Inicializar MidiManager
+        midiManager = ToneForgeMidiManager.getInstance(requireContext());
+        
+        // Configurar listener MIDI
+        midiManager.setControlListener(new ToneForgeMidiManager.MidiControlListener() {
+            @Override
+            public void onParameterChanged(String parameter, float value) {
+                applyMidiParameter(parameter, value);
+            }
+        });
+        
+        // Configurar MIDI Learn para parâmetros principais
+        setupMidiLearnForParameter(seekGain, "gain_level");
+        setupMidiLearnForParameter(seekDistortion, "distortion_amount");
+        setupMidiLearnForParameter(seekDelayTime, "delay_time");
+        setupMidiLearnForParameter(seekDelayFeedback, "delay_feedback");
+        setupMidiLearnForParameter(seekDelayMix, "delay_mix");
+        setupMidiLearnForParameter(seekReverbMix, "reverb_mix");
+        setupMidiLearnForParameter(seekChorusDepth, "chorus_depth");
+        setupMidiLearnForParameter(seekChorusRate, "chorus_rate");
+        setupMidiLearnForParameter(seekFlangerDepth, "flanger_depth");
+        setupMidiLearnForParameter(seekFlangerRate, "flanger_rate");
+        setupMidiLearnForParameter(seekPhaserDepth, "phaser_depth");
+        setupMidiLearnForParameter(seekPhaserRate, "phaser_rate");
+        setupMidiLearnForParameter(seekEQLow, "eq_low");
+        setupMidiLearnForParameter(seekEQMid, "eq_mid");
+        setupMidiLearnForParameter(seekEQHigh, "eq_high");
+        setupMidiLearnForParameter(seekCompressorThreshold, "compressor_threshold");
+        setupMidiLearnForParameter(seekCompressorRatio, "compressor_ratio");
 
         return view;
     }
@@ -1900,6 +1936,111 @@ public class EffectsFragment extends Fragment {
             }
             textView.setText(quality);
             textView.setTextColor(getResources().getColor(color));
+        }
+    }
+
+    private void applyMidiParameter(String parameter, float value) {
+        // Aplicar valor MIDI ao parâmetro correspondente
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                View view = getView();
+                if (view == null) return;
+                
+                switch (parameter) {
+                    case "gain_level":
+                        SeekBar seekGain = view.findViewById(R.id.seekGain);
+                        seekGain.setProgress((int) (value * 100));
+                        break;
+                    case "distortion_amount":
+                        SeekBar seekDistortion = view.findViewById(R.id.seekDistortion);
+                        seekDistortion.setProgress((int) (value * 100));
+                        break;
+                    case "delay_time":
+                        SeekBar seekDelayTime = view.findViewById(R.id.seekDelayTime);
+                        seekDelayTime.setProgress((int) (value * 2000)); // 0-2000ms
+                        break;
+                    case "delay_feedback":
+                        SeekBar seekDelayFeedback = view.findViewById(R.id.seekDelayFeedback);
+                        seekDelayFeedback.setProgress((int) (value * 100));
+                        break;
+                    case "delay_mix":
+                        SeekBar seekDelayMix = view.findViewById(R.id.seekDelayMix);
+                        seekDelayMix.setProgress((int) (value * 100));
+                        break;
+                    case "reverb_mix":
+                        SeekBar seekReverbMix = view.findViewById(R.id.seekReverbMix);
+                        seekReverbMix.setProgress((int) (value * 100));
+                        break;
+                    case "chorus_depth":
+                        SeekBar seekChorusDepth = view.findViewById(R.id.seekChorusDepth);
+                        seekChorusDepth.setProgress((int) (value * 100));
+                        break;
+                    case "chorus_rate":
+                        SeekBar seekChorusRate = view.findViewById(R.id.seekChorusRate);
+                        seekChorusRate.setProgress((int) (value * 10)); // 0-10 Hz
+                        break;
+                    case "flanger_depth":
+                        SeekBar seekFlangerDepth = view.findViewById(R.id.seekFlangerDepth);
+                        seekFlangerDepth.setProgress((int) (value * 100));
+                        break;
+                    case "flanger_rate":
+                        SeekBar seekFlangerRate = view.findViewById(R.id.seekFlangerRate);
+                        seekFlangerRate.setProgress((int) (value * 10)); // 0-10 Hz
+                        break;
+                    case "phaser_depth":
+                        SeekBar seekPhaserDepth = view.findViewById(R.id.seekPhaserDepth);
+                        seekPhaserDepth.setProgress((int) (value * 100));
+                        break;
+                    case "phaser_rate":
+                        SeekBar seekPhaserRate = view.findViewById(R.id.seekPhaserRate);
+                        seekPhaserRate.setProgress((int) (value * 10)); // 0-10 Hz
+                        break;
+                    case "eq_low":
+                        SeekBar seekEQLow = view.findViewById(R.id.seekEQLow);
+                        seekEQLow.setProgress((int) ((value + 12) * 100 / 24)); // -12 to +12 dB
+                        break;
+                    case "eq_mid":
+                        SeekBar seekEQMid = view.findViewById(R.id.seekEQMid);
+                        seekEQMid.setProgress((int) ((value + 12) * 100 / 24)); // -12 to +12 dB
+                        break;
+                    case "eq_high":
+                        SeekBar seekEQHigh = view.findViewById(R.id.seekEQHigh);
+                        seekEQHigh.setProgress((int) ((value + 12) * 100 / 24)); // -12 to +12 dB
+                        break;
+                    case "compressor_threshold":
+                        SeekBar seekCompressorThreshold = view.findViewById(R.id.seekCompressorThreshold);
+                        seekCompressorThreshold.setProgress((int) ((value + 60) * 100 / 60)); // -60 to 0 dB
+                        break;
+                    case "compressor_ratio":
+                        SeekBar seekCompressorRatio = view.findViewById(R.id.seekCompressorRatio);
+                        seekCompressorRatio.setProgress((int) (value * 20)); // 1:1 to 20:1
+                        break;
+                }
+            });
+        }
+    }
+    
+    private void setupMidiLearnForParameter(SeekBar seekBar, String parameterName) {
+        seekBar.setOnLongClickListener(v -> {
+            if (midiManager.isMidiEnabled()) {
+                midiManager.startLearnMode(parameterName);
+                Toast.makeText(requireContext(), 
+                    "Toque e mova um controle MIDI para mapear: " + parameterName, 
+                    Toast.LENGTH_LONG).show();
+                return true;
+            } else {
+                Toast.makeText(requireContext(), 
+                    "Ative o MIDI nas configurações primeiro", 
+                    Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        });
+        
+        // Adicionar indicador visual se há mapeamento
+        ToneForgeMidiManager.MidiMapping mapping = midiManager.getMapping(parameterName);
+        if (mapping != null) {
+            seekBar.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                getResources().getColor(R.color.green)));
         }
     }
 } 

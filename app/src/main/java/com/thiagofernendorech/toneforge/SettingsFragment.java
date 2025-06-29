@@ -21,6 +21,10 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.ArrayAdapter;
 import android.widget.SpinnerAdapter;
+import java.util.List;
+import java.util.Map;
+import android.media.midi.MidiManager;
+import android.media.midi.MidiDeviceInfo;
 
 public class SettingsFragment extends Fragment {
     private static final String PREFS_NAME = "toneforge_prefs";
@@ -33,6 +37,12 @@ public class SettingsFragment extends Fragment {
     private Button buttonLatencyInfo;
     private Switch switchOversampling;
     private Spinner spinnerOversamplingFactor;
+    
+    // Componentes MIDI
+    private Switch switchMidiEnabled;
+    private TextView textMidiStatus, textMidiDevice;
+    private Button buttonMidiScan, buttonMidiMappings;
+    private ToneForgeMidiManager midiManager;
 
     @Nullable
     @Override
@@ -42,12 +52,14 @@ public class SettingsFragment extends Fragment {
         Switch switchDarkTheme = view.findViewById(R.id.switchDarkTheme);
         Switch switchVibration = view.findViewById(R.id.switchVibration);
         Switch switchAutoSave = view.findViewById(R.id.switchAutoSave);
-        switchAudioBackground = view.findViewById(R.id.switchAudioBackground);
         Button aboutButton = view.findViewById(R.id.settingsAboutButton);
 
         // Inicializar componentes de oversampling
         switchOversampling = view.findViewById(R.id.switchOversampling);
         spinnerOversamplingFactor = view.findViewById(R.id.spinnerOversamplingFactor);
+        
+        // Inicializar componentes de áudio em background
+        switchAudioBackground = view.findViewById(R.id.switchAudioBackground);
         
         // Inicializar componentes de latência
         latencyManager = LatencyManager.getInstance(requireContext());
@@ -58,7 +70,15 @@ public class SettingsFragment extends Fragment {
         textLatencyInfo = view.findViewById(R.id.textLatencyInfo);
         textLatencyDetails = view.findViewById(R.id.textLatencyDetails);
         buttonLatencyInfo = view.findViewById(R.id.buttonLatencyInfo);
-
+        
+        // Inicializar componentes MIDI
+        midiManager = ToneForgeMidiManager.getInstance(requireContext());
+        switchMidiEnabled = view.findViewById(R.id.switchMidiEnabled);
+        textMidiStatus = view.findViewById(R.id.textMidiStatus);
+        textMidiDevice = view.findViewById(R.id.textMidiDevice);
+        buttonMidiScan = view.findViewById(R.id.buttonMidiScan);
+        buttonMidiMappings = view.findViewById(R.id.buttonMidiMappings);
+        
         // Carregar preferência salva
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         boolean audioBackgroundEnabled = prefs.getBoolean(KEY_AUDIO_BACKGROUND, false);
@@ -103,6 +123,7 @@ public class SettingsFragment extends Fragment {
 
         setupLatencyControls();
         setupOversamplingControls();
+        setupMidiControls();
 
         return view;
     }
@@ -298,5 +319,221 @@ public class SettingsFragment extends Fragment {
 
     private void setupOversamplingControls() {
         // Implemente a lógica para configurar os controles de oversampling
+    }
+
+    private void setupMidiControls() {
+        // Configurar estado inicial
+        updateMidiUI();
+        
+        // Configurar switch MIDI
+        switchMidiEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            midiManager.setMidiEnabled(isChecked);
+            updateMidiUI();
+            
+            String message = isChecked ? getString(R.string.midi_enabled) : getString(R.string.midi_disabled);
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+        });
+        
+        // Configurar botão de scan
+        buttonMidiScan.setOnClickListener(v -> {
+            midiManager.scanMidiDevices();
+            updateMidiUI();
+            Toast.makeText(requireContext(), "Dispositivos MIDI escaneados", Toast.LENGTH_SHORT).show();
+        });
+        
+        // Configurar botão de mapeamentos
+        buttonMidiMappings.setOnClickListener(v -> showMidiMappingsDialog());
+        
+        // Configurar listener MIDI
+        midiManager.setLearnListener(new ToneForgeMidiManager.MidiLearnListener() {
+            @Override
+            public void onLearnModeChanged(int mode) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        updateMidiUI();
+                        String statusText;
+                        switch (mode) {
+                            case ToneForgeMidiManager.LEARN_MODE_WAITING:
+                                statusText = getString(R.string.midi_learn_waiting);
+                                break;
+                            case ToneForgeMidiManager.LEARN_MODE_ACTIVE:
+                                statusText = getString(R.string.midi_learn_active);
+                                break;
+                            default:
+                                statusText = getString(R.string.midi_learn_off);
+                                break;
+                        }
+                        textMidiStatus.setText(statusText);
+                    });
+                }
+            }
+            
+            @Override
+            public void onMidiMessageReceived(int type, int channel, int data1, int data2) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        String message = getString(R.string.midi_message_received, type, data1, data2);
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                    });
+                }
+            }
+            
+            @Override
+            public void onMappingCreated(String parameter, ToneForgeMidiManager.MidiMapping mapping) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        String message = getString(R.string.midi_mapping_created, parameter);
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                        updateMidiUI();
+                    });
+                }
+            }
+            
+            @Override
+            public void onMappingRemoved(String parameter) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        String message = getString(R.string.midi_mapping_removed, parameter);
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                        updateMidiUI();
+                    });
+                }
+            }
+        });
+    }
+    
+    private void updateMidiUI() {
+        // Atualizar switch
+        switchMidiEnabled.setChecked(midiManager.isMidiEnabled());
+        
+        // Atualizar status
+        if (midiManager.isMidiEnabled()) {
+            textMidiStatus.setText(getString(R.string.midi_enabled));
+        } else {
+            textMidiStatus.setText(getString(R.string.midi_disabled));
+        }
+        
+        // Atualizar informações do dispositivo
+        List<MidiDeviceInfo> devices = midiManager.getAvailableDevices();
+        if (devices.isEmpty()) {
+            textMidiDevice.setText(getString(R.string.midi_no_devices));
+        } else {
+            String deviceName = devices.get(0).getProperties().getString(MidiDeviceInfo.PROPERTY_NAME);
+            textMidiDevice.setText(getString(R.string.midi_device_connected) + ": " + deviceName);
+        }
+    }
+    
+    private void showMidiMappingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle(getString(R.string.midi_mappings));
+        
+        // Criar layout para o diálogo
+        LinearLayout layout = new LinearLayout(requireContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(32, 32, 32, 32);
+        
+        Map<String, ToneForgeMidiManager.MidiMapping> mappings = midiManager.getAllMappings();
+        
+        if (mappings.isEmpty()) {
+            TextView noMappings = new TextView(requireContext());
+            noMappings.setText(getString(R.string.midi_no_mappings));
+            noMappings.setTextColor(getResources().getColor(R.color.white));
+            noMappings.setTextSize(16);
+            noMappings.setGravity(android.view.Gravity.CENTER);
+            noMappings.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+            layout.addView(noMappings);
+        } else {
+            // Listar mapeamentos
+            for (Map.Entry<String, ToneForgeMidiManager.MidiMapping> entry : mappings.entrySet()) {
+                LinearLayout mappingRow = new LinearLayout(requireContext());
+                mappingRow.setOrientation(LinearLayout.HORIZONTAL);
+                mappingRow.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                mappingRow.setPadding(0, 8, 0, 8);
+                
+                TextView parameterName = new TextView(requireContext());
+                parameterName.setText(entry.getKey());
+                parameterName.setTextColor(getResources().getColor(R.color.white));
+                parameterName.setTextSize(14);
+                parameterName.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                mappingRow.addView(parameterName);
+                
+                ToneForgeMidiManager.MidiMapping mapping = entry.getValue();
+                TextView mappingInfo = new TextView(requireContext());
+                mappingInfo.setText("CC" + mapping.controller + " Ch" + (mapping.channel + 1));
+                mappingInfo.setTextColor(getResources().getColor(R.color.green));
+                mappingInfo.setTextSize(12);
+                mappingInfo.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                mappingRow.addView(mappingInfo);
+                
+                Button removeButton = new Button(requireContext());
+                removeButton.setText("×");
+                removeButton.setTextColor(getResources().getColor(R.color.white));
+                removeButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    getResources().getColor(R.color.dark_gray)));
+                removeButton.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                removeButton.setOnClickListener(v -> {
+                    midiManager.removeMapping(entry.getKey());
+                    ((AlertDialog) v.getTag()).dismiss();
+                    showMidiMappingsDialog(); // Recarregar diálogo
+                });
+                removeButton.setTag(builder.create());
+                mappingRow.addView(removeButton);
+                
+                layout.addView(mappingRow);
+            }
+        }
+        
+        // Botões de ação
+        LinearLayout buttonLayout = new LinearLayout(requireContext());
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonLayout.setGravity(android.view.Gravity.CENTER);
+        buttonLayout.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 
+            LinearLayout.LayoutParams.WRAP_CONTENT));
+        buttonLayout.setPadding(0, 16, 0, 0);
+        
+        Button clearAllButton = new Button(requireContext());
+        clearAllButton.setText(getString(R.string.midi_learn_clear_all));
+        clearAllButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+            getResources().getColor(R.color.dark_gray)));
+        clearAllButton.setTextColor(getResources().getColor(R.color.white));
+        clearAllButton.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, 
+            LinearLayout.LayoutParams.WRAP_CONTENT));
+        clearAllButton.setOnClickListener(v -> showClearMappingsConfirmDialog());
+        buttonLayout.addView(clearAllButton);
+        
+        layout.addView(buttonLayout);
+        
+        builder.setView(layout);
+        builder.setPositiveButton("OK", null);
+        
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+    
+    private void showClearMappingsConfirmDialog() {
+        new AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.midi_learn_clear_confirm_title))
+            .setMessage(getString(R.string.midi_learn_clear_confirm_message))
+            .setPositiveButton(getString(R.string.midi_learn_clear_confirm_yes), (dialog, which) -> {
+                // Limpar todos os mapeamentos
+                Map<String, ToneForgeMidiManager.MidiMapping> mappings = midiManager.getAllMappings();
+                for (String parameter : mappings.keySet()) {
+                    midiManager.removeMapping(parameter);
+                }
+                Toast.makeText(requireContext(), "Todos os mapeamentos MIDI foram removidos", Toast.LENGTH_SHORT).show();
+            })
+            .setNegativeButton(getString(R.string.midi_learn_clear_confirm_no), null)
+            .show();
     }
 } 

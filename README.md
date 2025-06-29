@@ -272,6 +272,22 @@ app/src/main/
 └── AndroidManifest.xml            # Configuração do app
 ```
 
+## 🎹 MIDI Learn
+
+ToneForge now supports **MIDI Learn** for real-time control of effect parameters using external MIDI controllers.
+
+### How to use
+
+1. Go to **Settings > MIDI Learn** and enable MIDI support.
+2. Connect your MIDI controller (USB OTG or Bluetooth, if supported).
+3. Long-press any effect parameter (slider/knob) to enter MIDI Learn mode.
+4. Move a control on your MIDI device to map it to the selected parameter.
+5. The mapping is saved and will persist for future sessions.
+
+You can manage and clear mappings in the MIDI section of the settings.
+
+> **Note:** Requires a compatible MIDI device.
+
 ## 🚀 Como Usar
 
 1. **Instalar**: Compile e instale o APK no dispositivo Android
@@ -285,6 +301,7 @@ app/src/main/
 9. **Tooltips**: Toque longo nos controles para ver explicações
 10. **Reset**: Use os botões de reset para restaurar valores padrão
 11. **Testar**: Fale ou toque um instrumento no microfone
+12. **MIDI Learn**: Ative o MIDI nas configurações e mapeie controles externos para parâmetros dos efeitos
 
 ### 🎛️ Configurações Avançadas
 
@@ -349,6 +366,7 @@ O projeto usa:
 - [x] Recuperação automática de estado
 - [x] Sistema de pipeline com recuperação automática
 - [x] Ajuste de latência: Permitir escolha entre menor latência ou maior estabilidade
+- [x] MIDI Learn para controle externo
 
 ### 🚧 Parcialmente Implementado
 - [x] Metrônomo (UI + integração básica com C++)
@@ -361,7 +379,6 @@ O projeto usa:
 - [ ] Funcionalidade completa do gravador
 
 ### 📋 Próximas Funcionalidades
-- [ ] MIDI Learn para controle externo
 - [ ] Automação de parâmetros
 - [ ] Sincronização com metrônomo
 - [ ] Curvas de resposta customizáveis

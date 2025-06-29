@@ -259,4 +259,52 @@
     <string name="permission_storage_required">Permissão de armazenamento necessária para exportar/importar presets</string>
     <string name="permission_battery_optimization">Desabilite a otimização de bateria para melhor funcionamento em background</string>
     <string name="permission_overlay">Permissão de overlay necessária para tooltips</string>
+    
+    <!-- MIDI Learn -->
+    <string name="midi_settings">Configurações MIDI</string>
+    <string name="midi_enabled">MIDI Ativado</string>
+    <string name="midi_disabled">MIDI Desativado</string>
+    <string name="midi_learn">MIDI Learn</string>
+    <string name="midi_learn_mode">Modo de Aprendizado</string>
+    <string name="midi_learn_active">Aprendizado Ativo</string>
+    <string name="midi_learn_waiting">Aguardando Controle MIDI...</string>
+    <string name="midi_learn_off">Aprendizado Desativado</string>
+    <string name="midi_mappings">Mapeamentos MIDI</string>
+    <string name="midi_no_mappings">Nenhum mapeamento configurado</string>
+    <string name="midi_device_connected">Dispositivo MIDI Conectado</string>
+    <string name="midi_device_disconnected">Dispositivo MIDI Desconectado</string>
+    <string name="midi_no_devices">Nenhum dispositivo MIDI encontrado</string>
+    <string name="midi_scan_devices">Escanear Dispositivos</string>
+    <string name="midi_connect_device">Conectar Dispositivo</string>
+    <string name="midi_disconnect_device">Desconectar Dispositivo</string>
+    <string name="midi_mapping_created">Mapeamento criado: %s</string>
+    <string name="midi_mapping_removed">Mapeamento removido: %s</string>
+    <string name="midi_message_received" formatted="false">Mensagem MIDI: %02X %02X %02X</string>
+    <string name="midi_parameter_changed" formatted="false">Parâmetro %s alterado para %.2f</string>
+    <string name="midi_learn_instructions">Toque em um parâmetro e mova um controle MIDI para mapear</string>
+    <string name="midi_learn_cancel">Cancelar Aprendizado</string>
+    <string name="midi_learn_clear">Limpar Mapeamento</string>
+    <string name="midi_learn_clear_all">Limpar Todos os Mapeamentos</string>
+    <string name="midi_learn_export">Exportar Mapeamentos</string>
+    <string name="midi_learn_import">Importar Mapeamentos</string>
+    <string name="midi_learn_export_success">Mapeamentos exportados com sucesso</string>
+    <string name="midi_learn_import_success">Mapeamentos importados com sucesso</string>
+    <string name="midi_learn_export_failed">Erro ao exportar mapeamentos</string>
+    <string name="midi_learn_import_failed">Erro ao importar mapeamentos</string>
+    <string name="midi_learn_clear_confirm">Deseja limpar todos os mapeamentos MIDI?</string>
+    <string name="midi_learn_clear_confirm_title">Limpar Mapeamentos</string>
+    <string name="midi_learn_clear_confirm_message">Isso removerá todos os mapeamentos MIDI configurados. Esta ação não pode ser desfeita.</string>
+    <string name="midi_learn_clear_confirm_yes">Limpar</string>
+    <string name="midi_learn_clear_confirm_no">Cancelar</string>
+    
+    <!-- Tooltips para MIDI -->
+    <string name="tooltip_midi_enabled">Ativar/desativar suporte a MIDI</string>
+    <string name="tooltip_midi_learn">Ativar modo de aprendizado MIDI</string>
+    <string name="tooltip_midi_mappings">Visualizar mapeamentos MIDI configurados</string>
+    <string name="tooltip_midi_scan">Escanear dispositivos MIDI disponíveis</string>
+    <string name="tooltip_midi_connect">Conectar ao dispositivo MIDI selecionado</string>
+    <string name="tooltip_midi_disconnect">Desconectar do dispositivo MIDI atual</string>
+    <string name="tooltip_midi_export">Exportar mapeamentos MIDI para arquivo</string>
+    <string name="tooltip_midi_import">Importar mapeamentos MIDI de arquivo</string>
+    <string name="tooltip_midi_clear">Limpar todos os mapeamentos MIDI</string>
 </resources>

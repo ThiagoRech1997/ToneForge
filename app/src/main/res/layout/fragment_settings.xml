@@ -10,217 +10,318 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Configurações"
+        android:textColor="@color/white"
         android:textSize="28sp"
         android:textStyle="bold"
-        android:textColor="@color/white"
+        android:layout_marginTop="40dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <LinearLayout
-        android:id="@+id/settingsOptions"
+    <ScrollView
+        android:id="@+id/settingsScrollView"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@color/dark_gray"
-        android:padding="24dp"
-        android:layout_marginTop="40dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
         app:layout_constraintTop_toBottomOf="@id/settingsTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Tema escuro"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
-            <Switch
-                android:id="@+id/switchDarkTheme"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text=""/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Vibração"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
-            <Switch
-                android:id="@+id/switchVibration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="false"
-                android:text=""/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Salvar gravações automaticamente"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
-            <Switch
-                android:id="@+id/switchAutoSave"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text=""/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/audio_background_service"
-                android:textColor="@color/white"
-                android:textSize="18sp"/>
-            <Switch
-                android:id="@+id/switchAudioBackground"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="false"
-                android:text=""/>
-        </LinearLayout>
-
-        <!-- Seção de Latência -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/latency_settings"
-            android:textColor="@color/green"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="16dp"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp">
-            
-            <TextView
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp">
+
+            <LinearLayout
+                android:id="@+id/settingsOptions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/latency_mode"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp"/>
-            
-            <RadioGroup
-                android:id="@+id/radioGroupLatency"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-                
-                <RadioButton
-                    android:id="@+id/radioLowLatency"
+                android:orientation="vertical"
+                android:background="@color/dark_gray"
+                android:padding="24dp"
+                android:layout_marginTop="40dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                app:layout_constraintTop_toBottomOf="@id/settingsTitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/latency_low"
-                    android:textColor="@color/white"
-                    android:buttonTint="@color/green"/>
-                
-                <RadioButton
-                    android:id="@+id/radioBalanced"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Tema escuro"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchDarkTheme"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text=""/>
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/latency_balanced"
-                    android:textColor="@color/white"
-                    android:buttonTint="@color/green"
-                    android:checked="true"/>
-                
-                <RadioButton
-                    android:id="@+id/radioStability"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Vibração"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchVibration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false"
+                        android:text=""/>
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/latency_stability"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Salvar gravações automaticamente"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchAutoSave"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text=""/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/audio_background_service"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchAudioBackground"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false"
+                        android:text=""/>
+                </LinearLayout>
+
+                <!-- Seção de Latência -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_settings"
+                    android:textColor="@color/green"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
+                    
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/latency_mode"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:layout_marginBottom="8dp"/>
+                    
+                    <RadioGroup
+                        android:id="@+id/radioGroupLatency"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        
+                        <RadioButton
+                            android:id="@+id/radioLowLatency"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/latency_low"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"/>
+                        
+                        <RadioButton
+                            android:id="@+id/radioBalanced"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/latency_balanced"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"
+                            android:checked="true"/>
+                        
+                        <RadioButton
+                            android:id="@+id/radioStability"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/latency_stability"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"/>
+                    </RadioGroup>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
+                    
+                    <TextView
+                        android:id="@+id/textLatencyInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Modo Atual: Equilibrado"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp"/>
+                    
+                    <TextView
+                        android:id="@+id/textLatencyDetails"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Latência Estimada: 21.3 ms"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:alpha="0.8"/>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/buttonLatencyInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ℹ️ Informações"
+                    android:backgroundTint="@color/dark_gray"
                     android:textColor="@color/white"
-                    android:buttonTint="@color/green"/>
-            </RadioGroup>
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Seção MIDI -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/midi_settings"
+                    android:textColor="@color/green"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/midi_learn"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchMidiEnabled"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false"
+                        android:text=""/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
+                    
+                    <TextView
+                        android:id="@+id/textMidiStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/midi_disabled"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp"/>
+                    
+                    <TextView
+                        android:id="@+id/textMidiDevice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/midi_no_devices"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:alpha="0.8"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp">
+                    
+                    <Button
+                        android:id="@+id/buttonMidiScan"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/midi_scan_devices"
+                        android:backgroundTint="@color/dark_gray"
+                        android:textColor="@color/white"
+                        android:layout_marginEnd="8dp"/>
+                    
+                    <Button
+                        android:id="@+id/buttonMidiMappings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/midi_mappings"
+                        android:backgroundTint="@color/dark_gray"
+                        android:textColor="@color/white"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+
+            </LinearLayout>
+
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp">
-            
-            <TextView
-                android:id="@+id/textLatencyInfo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Modo Atual: Equilibrado"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:layout_marginBottom="4dp"/>
-            
-            <TextView
-                android:id="@+id/textLatencyDetails"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Latência Estimada: 21.3 ms"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:alpha="0.8"/>
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/buttonLatencyInfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ℹ️ Informações"
-            android:backgroundTint="@color/dark_gray"
-            android:textColor="@color/white"
-            android:layout_gravity="center"
-            android:layout_marginBottom="16dp"/>
-
-    </LinearLayout>
+    </ScrollView>
 
     <Button
         android:id="@+id/settingsAboutButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sobre / Versão"
-        android:backgroundTint="@color/green"
-        android:textColor="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/settingsOptions"
-        app:layout_constraintStart_toStartOf="parent"
+        android:text="Sobre"
+        android:layout_marginBottom="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="40dp"/>
+        app:layout_constraintStart_toStartOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
