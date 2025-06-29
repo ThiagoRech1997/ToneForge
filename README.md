@@ -348,6 +348,7 @@ O projeto usa:
 - [x] Gerenciamento robusto de permissões
 - [x] Recuperação automática de estado
 - [x] Sistema de pipeline com recuperação automática
+- [x] Ajuste de latência: Permitir escolha entre menor latência ou maior estabilidade
 
 ### 🚧 Parcialmente Implementado
 - [x] Metrônomo (UI + integração básica com C++)
@@ -360,7 +361,6 @@ O projeto usa:
 - [ ] Funcionalidade completa do gravador
 
 ### 📋 Próximas Funcionalidades
-- [ ] Ajuste de latência (escolha entre menor latência ou maior estabilidade)
 - [ ] MIDI Learn para controle externo
 - [ ] Automação de parâmetros
 - [ ] Sincronização com metrônomo
@@ -406,3 +406,23 @@ Thiago Fernando Rech - Desenvolvedor Android e entusiasta de áudio
 ---
 
 **ToneForge** - Transformando seu Android em uma pedaleira profissional! 🎸 
+
+## Ajuste de Latência
+
+O ToneForge agora permite ao usuário escolher entre diferentes modos de latência, adaptando o processamento de áudio para melhor desempenho ou maior estabilidade, conforme a necessidade:
+
+- **Baixa Latência:** Prioriza resposta rápida, ideal para tocar ao vivo.
+- **Equilibrado:** Compromisso entre latência e estabilidade, recomendado para uso geral.
+- **Estabilidade:** Prioriza qualidade e robustez, ideal para gravação.
+
+A seleção pode ser feita nas configurações do app, com informações detalhadas, estimativa de latência e recomendações exibidas na interface.
+
+O modo selecionado ajusta automaticamente o tamanho do buffer, taxa de amostragem e oversampling, otimizando o áudio para o perfil escolhido. A escolha é salva e restaurada automaticamente ao abrir o app, inclusive após uso em background.
+
+> Observação: O modo de baixa latência depende do suporte do dispositivo Android. Em aparelhos antigos, pode não estar disponível ou apresentar limitações.
+
+---
+
+## Roadmap (trecho relevante)
+
+- [x] Ajuste de latência: Permitir escolha entre menor latência ou maior estabilidade. 

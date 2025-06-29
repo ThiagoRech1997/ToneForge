@@ -14,14 +14,16 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements PermissionManager.PermissionCallback {
     
     private StateRecoveryManager stateRecoveryManager;
+    private LatencyManager latencyManager;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Inicializar StateRecoveryManager
+        // Inicializar gerenciadores
         stateRecoveryManager = StateRecoveryManager.getInstance(this);
+        latencyManager = LatencyManager.getInstance(this);
         
         // Setup Navigation Component
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
@@ -33,6 +35,17 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         
         // Log do status das permissões para debug
         PermissionManager.logPermissionStatus(this);
+        
+        // Inicializar pipeline com configurações de latência
+        PipelineManager pipelineManager = PipelineManager.getInstance();
+        pipelineManager.initialize(this);
+        
+        // Inicializar AudioEngine com configurações de latência
+        AudioEngine audioEngine = AudioEngine.getInstance();
+        audioEngine.initialize(this);
+        
+        // Recuperar estado salvo
+        stateRecoveryManager.restoreState();
     }
     
     private void checkAndRequestPermissions() {
@@ -93,18 +106,13 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
     protected void onResume() {
         super.onResume();
         
-        // Verificar se permissões foram concedidas quando o usuário retorna das configurações
-        if (PermissionManager.hasAllRequiredPermissions(this)) {
-            // Verificar se o usuário concedeu permissões opcionais
-            if (PermissionManager.hasOptionalPermissions(this)) {
-                // Todas as permissões concedidas
-            }
+        // Atualizar configurações de latência se necessário
+        if (latencyManager != null) {
+            // As configurações são aplicadas automaticamente pelo LatencyManager
         }
         
-        // Verificar se precisa restaurar estado
-        if (stateRecoveryManager != null && stateRecoveryManager.needsStateRecovery()) {
-            stateRecoveryManager.restoreState();
-        }
+        // Recuperar estado se necessário
+        stateRecoveryManager.restoreState();
     }
     
     @Override

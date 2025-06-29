@@ -1,8 +1,67 @@
 package com.thiagofernendorech.toneforge;
 
+import android.content.Context;
+import android.util.Log;
+
 public class AudioEngine {
     static {
         System.loadLibrary("toneforge");
+    }
+
+    private static AudioEngine instance;
+    private boolean isInitialized = false;
+    private boolean isOversamplingEnabled = false;
+    private int oversamplingFactor = 1;
+    private LatencyManager latencyManager;
+
+    private AudioEngine() {
+        // Construtor privado para singleton
+    }
+
+    public static synchronized AudioEngine getInstance() {
+        if (instance == null) {
+            instance = new AudioEngine();
+        }
+        return instance;
+    }
+
+    public void initialize(Context context) {
+        if (isInitialized) {
+            return;
+        }
+        
+        // Inicializar LatencyManager
+        latencyManager = LatencyManager.getInstance(context);
+        
+        // Aplicar configurações de latência
+        applyLatencySettings();
+        
+        // Inicializar motor de áudio nativo
+        initAudioEngine();
+        isInitialized = true;
+        Log.d("AudioEngine", "AudioEngine inicializado com configurações de latência");
+    }
+    
+    private void applyLatencySettings() {
+        if (latencyManager != null) {
+            // Aplicar oversampling baseado no modo de latência
+            if (latencyManager.isAutoOversamplingEnabled()) {
+                setOversamplingEnabled(true);
+                setOversamplingFactor(latencyManager.getOversamplingFactor());
+            } else {
+                setOversamplingEnabled(false);
+            }
+            
+            Log.d("AudioEngine", "Configurações de latência aplicadas - " +
+                  "Modo: " + latencyManager.getModeName(latencyManager.getCurrentMode()) + 
+                  ", Oversampling: " + (isOversamplingEnabled ? "Sim (" + oversamplingFactor + "x)" : "Não"));
+        }
+    }
+    
+    public void updateLatencySettings() {
+        if (latencyManager != null) {
+            applyLatencySettings();
+        }
     }
 
     // Pipeline de áudio em tempo real

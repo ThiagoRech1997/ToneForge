@@ -261,4 +261,75 @@ public class AudioStateManager {
             Log.e(TAG, "Erro ao restaurar estado dos efeitos: " + e.getMessage());
         }
     }
+    
+    /**
+     * Serializa o estado completo do áudio para JSON
+     */
+    public JSONObject serializeState() {
+        try {
+            JSONObject state = new JSONObject();
+            
+            // Estado dos efeitos
+            state.put("effects", getEffectsStateAsJson());
+            
+            // Estado do preset
+            state.put("current_preset", getCurrentPreset());
+            
+            // Estado do áudio
+            state.put("audio_level", getAudioLevel());
+            
+            // Estado do oversampling
+            state.put("oversampling_enabled", isOversamplingEnabled());
+            state.put("oversampling_factor", getOversamplingFactor());
+            
+            return state;
+            
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao serializar estado: " + e.getMessage());
+            return new JSONObject();
+        }
+    }
+    
+    /**
+     * Deserializa o estado completo do áudio de JSON
+     */
+    public void deserializeState(JSONObject state) {
+        try {
+            // Restaurar estado dos efeitos
+            if (state.has("effects")) {
+                JSONObject effects = state.getJSONObject("effects");
+                restoreEffectsStateFromJson(effects.toString());
+            }
+            
+            // Restaurar preset
+            if (state.has("current_preset")) {
+                String preset = state.getString("current_preset");
+                if (preset != null && !preset.isEmpty()) {
+                    setCurrentPreset(preset);
+                }
+            }
+            
+            // Restaurar nível de áudio
+            if (state.has("audio_level")) {
+                int level = state.getInt("audio_level");
+                setAudioLevel(level);
+            }
+            
+            // Restaurar oversampling
+            if (state.has("oversampling_enabled")) {
+                boolean enabled = state.getBoolean("oversampling_enabled");
+                setOversamplingEnabled(enabled);
+            }
+            
+            if (state.has("oversampling_factor")) {
+                int factor = state.getInt("oversampling_factor");
+                setOversamplingFactor(factor);
+            }
+            
+            Log.d(TAG, "Estado deserializado com sucesso");
+            
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao deserializar estado: " + e.getMessage());
+        }
+    }
 } 

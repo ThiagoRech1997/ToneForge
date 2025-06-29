@@ -218,6 +218,38 @@
     <string name="state_restored">Estado restaurado</string>
     <string name="state_no_saved_data">Nenhum estado salvo encontrado</string>
     
+    <!-- Ajuste de Latência -->
+    <string name="latency_settings">Configurações de Latência</string>
+    <string name="latency_mode">Modo de Latência</string>
+    <string name="latency_low">Baixa Latência</string>
+    <string name="latency_balanced">Equilibrado</string>
+    <string name="latency_stability">Estabilidade</string>
+    <string name="latency_current_mode">Modo Atual: %s</string>
+    <string name="latency_estimated">Latência Estimada: %.1f ms</string>
+    <string name="latency_buffer_size">Tamanho do Buffer: %d samples</string>
+    <string name="latency_sample_rate">Taxa de Amostragem: %d Hz</string>
+    <string name="latency_oversampling">Oversampling: %s</string>
+    <string name="latency_oversampling_enabled">Sim (%dx)</string>
+    <string name="latency_oversampling_disabled">Não</string>
+    <string name="latency_mode_changed">Modo de latência alterado para: %s</string>
+    <string name="latency_pipeline_restarting">Reiniciando pipeline com novas configurações...</string>
+    <string name="latency_low_description">Prioriza resposta rápida. Ideal para performance ao vivo.</string>
+    <string name="latency_balanced_description">Equilibra latência e estabilidade. Modo recomendado.</string>
+    <string name="latency_stability_description">Prioriza estabilidade e qualidade. Ideal para gravação.</string>
+    <string name="latency_recommendations">Recomendações de Uso</string>
+    <string name="latency_low_recommendation">🎸 Baixa Latência: Performance ao vivo, prática</string>
+    <string name="latency_balanced_recommendation">⚖️ Equilibrado: Uso geral, recomendado</string>
+    <string name="latency_stability_recommendation">🎧 Estabilidade: Gravação, qualidade máxima</string>
+    <string name="latency_device_info">Informações do Dispositivo</string>
+    <string name="latency_minimum_possible">Latência mínima possível: %.1f ms</string>
+    <string name="latency_low_supported">Baixa latência suportada</string>
+    <string name="latency_low_not_supported">Baixa latência não suportada</string>
+    
+    <!-- Tooltips para Latência -->
+    <string name="tooltip_latency_mode">Escolha entre baixa latência (rápido) ou estabilidade (qualidade)</string>
+    <string name="tooltip_latency_info">Informações detalhadas sobre o modo atual</string>
+    <string name="tooltip_latency_recommendations">Recomendações de uso para cada modo</string>
+    
     <!-- Mensagens de Permissão -->
     <string name="permission_all_granted">Todas as permissões necessárias concedidas!</string>
     <string name="permission_some_denied">Algumas permissões foram negadas. O app pode não funcionar corretamente.</string>

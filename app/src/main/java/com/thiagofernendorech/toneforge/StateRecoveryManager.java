@@ -8,6 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import java.util.HashMap;
 import java.util.Map;
+import android.widget.Toast;
 
 public class StateRecoveryManager {
     private static final String TAG = "StateRecoveryManager";
@@ -21,15 +22,19 @@ public class StateRecoveryManager {
     private static final String KEY_AUDIO_BACKGROUND_ENABLED = "audio_background_enabled";
     private static final String KEY_EFFECTS_STATE = "effects_state";
     private static final String KEY_LAST_ACTIVE_TIME = "last_active_time";
+    private static final String KEY_AUDIO_STATE = "audio_state";
+    private static final String KEY_LATENCY_STATE = "latency_state";
     
     private static StateRecoveryManager instance;
     private Context context;
     private SharedPreferences prefs;
     private boolean isRecovering = false;
+    private LatencyManager latencyManager;
     
     private StateRecoveryManager(Context context) {
         this.context = context.getApplicationContext();
         this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        this.latencyManager = LatencyManager.getInstance(context);
     }
     
     public static synchronized StateRecoveryManager getInstance(Context context) {
@@ -48,31 +53,44 @@ public class StateRecoveryManager {
             
             // Salvar estado do pipeline
             PipelineManager pipelineManager = PipelineManager.getInstance();
-            editor.putInt(KEY_PIPELINE_STATE, pipelineManager.getState());
+            JSONObject pipelineState = new JSONObject();
+            pipelineState.put("isRunning", pipelineManager.isRunning());
+            pipelineState.put("isPaused", pipelineManager.isPaused());
+            editor.putString(KEY_PIPELINE_STATE, pipelineState.toString());
             
             // Salvar preset atual (usar AudioStateManager)
             AudioStateManager stateManager = AudioStateManager.getInstance(context);
             String currentPreset = stateManager.getCurrentPreset();
-            if (currentPreset != null) {
-                editor.putString(KEY_CURRENT_PRESET, currentPreset);
-            }
+            editor.putString(KEY_CURRENT_PRESET, currentPreset);
             
             // Salvar configurações de oversampling
-            editor.putBoolean(KEY_OVERSAMPLING_ENABLED, AudioEngine.isOversamplingEnabled());
-            editor.putInt(KEY_OVERSAMPLING_FACTOR, AudioEngine.getOversamplingFactor());
-            
-            // Salvar estado do serviço de background
-            editor.putBoolean(KEY_AUDIO_BACKGROUND_ENABLED, AudioBackgroundService.isServiceRunning(context));
+            boolean oversamplingEnabled = AudioEngine.isOversamplingEnabled();
+            int oversamplingFactor = AudioEngine.getOversamplingFactor();
+            editor.putBoolean(KEY_OVERSAMPLING_ENABLED, oversamplingEnabled);
+            editor.putInt(KEY_OVERSAMPLING_FACTOR, oversamplingFactor);
             
             // Salvar estado dos efeitos
             JSONObject effectsState = stateManager.getEffectsStateAsJson();
             editor.putString(KEY_EFFECTS_STATE, effectsState.toString());
+            
+            // Salvar estado do áudio
+            JSONObject audioState = stateManager.serializeState();
+            editor.putString(KEY_AUDIO_STATE, audioState.toString());
+            
+            // Salvar estado de latência
+            JSONObject latencyState = new JSONObject();
+            latencyState.put("mode", latencyManager.getCurrentMode());
+            editor.putString(KEY_LATENCY_STATE, latencyState.toString());
+            
+            // Salvar estado do serviço de background
+            editor.putBoolean(KEY_AUDIO_BACKGROUND_ENABLED, AudioBackgroundService.isServiceRunning(context));
             
             // Salvar timestamp da última atividade
             editor.putLong(KEY_LAST_ACTIVE_TIME, System.currentTimeMillis());
             
             editor.apply();
             Log.d(TAG, "Estado salvo com sucesso");
+            Toast.makeText(context, context.getString(R.string.state_saved), Toast.LENGTH_SHORT).show();
             
         } catch (Exception e) {
             Log.e(TAG, "Erro ao salvar estado: " + e.getMessage());
@@ -102,12 +120,20 @@ public class StateRecoveryManager {
             }
             
             // Restaurar estado do pipeline
-            int pipelineState = prefs.getInt(KEY_PIPELINE_STATE, 0); // 0 = STATE_STOPPED
-            PipelineManager pipelineManager = PipelineManager.getInstance();
-            
-            if (pipelineState == 2 && !pipelineManager.isRunning()) { // 2 = STATE_RUNNING
-                Log.d(TAG, "Restaurando pipeline para estado ativo");
-                pipelineManager.startPipeline();
+            String pipelineStateStr = prefs.getString(KEY_PIPELINE_STATE, null);
+            if (pipelineStateStr != null) {
+                JSONObject pipelineState = new JSONObject(pipelineStateStr);
+                PipelineManager pipelineManager = PipelineManager.getInstance();
+                
+                boolean wasRunning = pipelineState.optBoolean("isRunning", false);
+                boolean wasPaused = pipelineState.optBoolean("isPaused", false);
+                
+                if (wasRunning && !pipelineManager.isRunning()) {
+                    pipelineManager.startPipeline();
+                    if (wasPaused) {
+                        pipelineManager.pausePipeline();
+                    }
+                }
             }
             
             // Restaurar preset atual (usar AudioStateManager)
@@ -137,6 +163,22 @@ public class StateRecoveryManager {
                 Log.d(TAG, "Estado dos efeitos restaurado");
             }
             
+            // Restaurar estado do áudio
+            String audioStateStr = prefs.getString(KEY_AUDIO_STATE, null);
+            if (audioStateStr != null) {
+                JSONObject audioState = new JSONObject(audioStateStr);
+                AudioStateManager audioStateManager = AudioStateManager.getInstance(context);
+                audioStateManager.deserializeState(audioState);
+            }
+            
+            // Restaurar estado de latência
+            String latencyStateStr = prefs.getString(KEY_LATENCY_STATE, null);
+            if (latencyStateStr != null) {
+                JSONObject latencyState = new JSONObject(latencyStateStr);
+                int savedMode = latencyState.optInt("mode", LatencyManager.MODE_BALANCED);
+                latencyManager.setLatencyMode(savedMode);
+            }
+            
             // Restaurar serviço de background se necessário
             boolean audioBackgroundEnabled = prefs.getBoolean(KEY_AUDIO_BACKGROUND_ENABLED, false);
             if (audioBackgroundEnabled && !AudioBackgroundService.isServiceRunning(context)) {
@@ -150,9 +192,11 @@ public class StateRecoveryManager {
             }
             
             Log.d(TAG, "Recuperação de estado concluída com sucesso");
+            Toast.makeText(context, context.getString(R.string.state_restored), Toast.LENGTH_SHORT).show();
             
         } catch (Exception e) {
             Log.e(TAG, "Erro ao restaurar estado: " + e.getMessage());
+            Toast.makeText(context, context.getString(R.string.state_recovery_failed), Toast.LENGTH_SHORT).show();
         } finally {
             isRecovering = false;
         }
@@ -197,7 +241,7 @@ public class StateRecoveryManager {
         try {
             StringBuilder info = new StringBuilder();
             info.append("Estado salvo:\n");
-            info.append("- Pipeline: ").append(prefs.getInt(KEY_PIPELINE_STATE, -1)).append("\n");
+            info.append("- Pipeline: ").append(prefs.getString(KEY_PIPELINE_STATE, "null")).append("\n");
             info.append("- Preset: ").append(prefs.getString(KEY_CURRENT_PRESET, "null")).append("\n");
             info.append("- Oversampling: ").append(prefs.getBoolean(KEY_OVERSAMPLING_ENABLED, false)).append("\n");
             info.append("- Fator: ").append(prefs.getInt(KEY_OVERSAMPLING_FACTOR, 1)).append("\n");

@@ -1,5 +1,6 @@
 package com.thiagofernendorech.toneforge;
 
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
@@ -54,6 +55,10 @@ public class PipelineManager {
     // Singleton
     private static PipelineManager instance;
     
+    private boolean isRunning = false;
+    private boolean isPaused = false;
+    private LatencyManager latencyManager;
+    
     public interface PipelineCallback {
         void onPipelineStarted();
         void onPipelineStopped();
@@ -68,11 +73,36 @@ public class PipelineManager {
         outputBuffer = new float[BUFFER_SIZE];
     }
     
-    public static PipelineManager getInstance() {
+    public static synchronized PipelineManager getInstance() {
         if (instance == null) {
             instance = new PipelineManager();
         }
         return instance;
+    }
+    
+    public void initialize(Context context) {
+        latencyManager = LatencyManager.getInstance(context);
+        
+        // Configurar listener para mudanças de latência
+        latencyManager.setLatencyChangeListener(new LatencyManager.LatencyChangeListener() {
+            @Override
+            public void onLatencyModeChanged(int newMode) {
+                if (isRunning) {
+                    Log.d("PipelineManager", "Reiniciando pipeline devido a mudança de latência");
+                    restartPipeline();
+                }
+            }
+            
+            @Override
+            public void onBufferSizeChanged(int newBufferSize) {
+                // Buffer size é aplicado automaticamente pelo AudioEngine
+            }
+            
+            @Override
+            public void onSampleRateChanged(int newSampleRate) {
+                // Sample rate é aplicado automaticamente pelo AudioEngine
+            }
+        });
     }
     
     public void setCallback(PipelineCallback callback) {
@@ -102,6 +132,7 @@ public class PipelineManager {
             startAudioThread();
             
             setState(STATE_RUNNING);
+            isRunning = true;
             startTime = System.currentTimeMillis();
             totalSamplesProcessed = 0;
             errorCount = 0;
@@ -127,6 +158,8 @@ public class PipelineManager {
         
         shouldRun.set(false);
         setState(STATE_STOPPED);
+        isRunning = false;
+        isPaused = false;
         
         // Parar thread
         if (audioThread != null) {
@@ -152,18 +185,41 @@ public class PipelineManager {
         Log.d(TAG, "Pipeline parado");
     }
     
-    public synchronized boolean restartPipeline() {
-        Log.d(TAG, "Reiniciando pipeline");
-        stopPipeline();
-        
-        // Aguardar um pouco antes de reiniciar
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+    public void restartPipeline() {
+        if (isRunning) {
+            Log.d("PipelineManager", "Reiniciando pipeline com novas configurações de latência");
+            
+            // Parar pipeline atual
+            stopPipeline();
+            
+            // Aguardar um pouco para garantir que parou completamente
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
+            // Reiniciar com novas configurações
+            startPipeline();
         }
-        
-        return startPipeline();
+    }
+    
+    public void pausePipeline() {
+        if (isRunning && !isPaused) {
+            isPaused = true;
+            Log.d(TAG, "Pipeline pausado");
+        }
+    }
+    
+    public void resumePipeline() {
+        if (isRunning && isPaused) {
+            isPaused = false;
+            Log.d(TAG, "Pipeline resumido");
+        }
+    }
+    
+    public boolean isPaused() {
+        return isPaused;
     }
     
     private void setupAudioRecord() throws Exception {
@@ -283,14 +339,15 @@ public class PipelineManager {
             Log.d(TAG, "Tentando recuperação automática do pipeline");
             setState(STATE_RECOVERING);
             
-            if (restartPipeline()) {
+            try {
+                restartPipeline();
                 Log.d(TAG, "Recuperação bem-sucedida");
                 setState(STATE_RUNNING);
                 if (callback != null) {
                     callback.onPipelineRecovered();
                 }
-            } else {
-                Log.e(TAG, "Falha na recuperação");
+            } catch (Exception e) {
+                Log.e(TAG, "Falha na recuperação: " + e.getMessage());
                 setState(STATE_ERROR);
             }
             

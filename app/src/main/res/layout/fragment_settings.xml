@@ -116,6 +116,99 @@
                 android:text=""/>
         </LinearLayout>
 
+        <!-- Seção de Latência -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/latency_settings"
+            android:textColor="@color/green"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/latency_mode"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp"/>
+            
+            <RadioGroup
+                android:id="@+id/radioGroupLatency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                
+                <RadioButton
+                    android:id="@+id/radioLowLatency"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_low"
+                    android:textColor="@color/white"
+                    android:buttonTint="@color/green"/>
+                
+                <RadioButton
+                    android:id="@+id/radioBalanced"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_balanced"
+                    android:textColor="@color/white"
+                    android:buttonTint="@color/green"
+                    android:checked="true"/>
+                
+                <RadioButton
+                    android:id="@+id/radioStability"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_stability"
+                    android:textColor="@color/white"
+                    android:buttonTint="@color/green"/>
+            </RadioGroup>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+            
+            <TextView
+                android:id="@+id/textLatencyInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Modo Atual: Equilibrado"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp"/>
+            
+            <TextView
+                android:id="@+id/textLatencyDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Latência Estimada: 21.3 ms"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:alpha="0.8"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/buttonLatencyInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ℹ️ Informações"
+            android:backgroundTint="@color/dark_gray"
+            android:textColor="@color/white"
+            android:layout_gravity="center"
+            android:layout_marginBottom="16dp"/>
+
     </LinearLayout>
 
     <Button
