@@ -123,24 +123,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float delayTime = progress / 1000.0f; // Converter para segundos
-                setDelay(delayTime, binding.seekbarDelayFeedback.getProgress() / 100.0f);
+                setDelay(delayTime, 0.5f);
                 binding.textDelayTimeValue.setText(String.format(Locale.getDefault(), "Tempo: %dms", progress));
-            }
-            
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        // Delay - Feedback
-        binding.seekbarDelayFeedback.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float feedback = progress / 100.0f;
-                setDelay(binding.seekbarDelayTime.getProgress() / 1000.0f, feedback);
-                binding.textDelayFeedbackValue.setText(String.format(Locale.getDefault(), "Feedback: %d%%", progress));
             }
             
             @Override
@@ -155,24 +139,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float roomSize = progress / 100.0f;
-                setReverb(roomSize, binding.seekbarReverbDamping.getProgress() / 100.0f);
+                setReverb(roomSize, 0.5f);
                 binding.textReverbRoomValue.setText(String.format(Locale.getDefault(), "Tamanho: %d%%", progress));
-            }
-            
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        // Reverb - Amortecimento
-        binding.seekbarReverbDamping.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float damping = progress / 100.0f;
-                setReverb(binding.seekbarReverbRoom.getProgress() / 100.0f, damping);
-                binding.textReverbDampingValue.setText(String.format(Locale.getDefault(), "Amortecimento: %d%%", progress));
             }
             
             @Override

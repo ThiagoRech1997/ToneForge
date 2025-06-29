@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">ToneForge</string>
+    <string name="desc_gain">Controle de ganho</string>
+    <string name="desc_distortion">Controle de distorção</string>
+    <string name="desc_delay">Controle de delay</string>
+    <string name="desc_reverb">Controle de reverb</string>
 </resources>
