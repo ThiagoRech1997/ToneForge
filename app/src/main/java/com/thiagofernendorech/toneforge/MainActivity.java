@@ -21,6 +21,8 @@ import android.widget.TextView;
 
 import com.thiagofernendorech.toneforge.databinding.ActivityMainBinding;
 
+import java.util.Locale;
+
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "ToneForge";
     
@@ -90,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float gain = progress / 100.0f;
                 setGain(gain);
-                binding.textGainValue.setText(String.format("Ganho: %.1fx", gain));
+                binding.textGainValue.setText(String.format(Locale.getDefault(), "Ganho: %.1fx", gain));
             }
             
             @Override
@@ -106,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float distortion = progress / 100.0f;
                 setDistortion(distortion);
-                binding.textDistortionValue.setText(String.format("Distorção: %d%%", progress));
+                binding.textDistortionValue.setText(String.format(Locale.getDefault(), "Distorção: %d%%", progress));
             }
             
             @Override
@@ -122,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float delayTime = progress / 1000.0f; // Converter para segundos
                 setDelay(delayTime, binding.seekbarDelayFeedback.getProgress() / 100.0f);
-                binding.textDelayTimeValue.setText(String.format("Tempo: %dms", progress));
+                binding.textDelayTimeValue.setText(String.format(Locale.getDefault(), "Tempo: %dms", progress));
             }
             
             @Override
@@ -138,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float feedback = progress / 100.0f;
                 setDelay(binding.seekbarDelayTime.getProgress() / 1000.0f, feedback);
-                binding.textDelayFeedbackValue.setText(String.format("Feedback: %d%%", progress));
+                binding.textDelayFeedbackValue.setText(String.format(Locale.getDefault(), "Feedback: %d%%", progress));
             }
             
             @Override
@@ -154,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float roomSize = progress / 100.0f;
                 setReverb(roomSize, binding.seekbarReverbDamping.getProgress() / 100.0f);
-                binding.textReverbRoomValue.setText(String.format("Tamanho: %d%%", progress));
+                binding.textReverbRoomValue.setText(String.format(Locale.getDefault(), "Tamanho: %d%%", progress));
             }
             
             @Override
@@ -170,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float damping = progress / 100.0f;
                 setReverb(binding.seekbarReverbRoom.getProgress() / 100.0f, damping);
-                binding.textReverbDampingValue.setText(String.format("Amortecimento: %d%%", progress));
+                binding.textReverbDampingValue.setText(String.format(Locale.getDefault(), "Amortecimento: %d%%", progress));
             }
             
             @Override
@@ -184,8 +186,10 @@ public class MainActivity extends AppCompatActivity {
     private void checkPermissions() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(REQUIRED_PERMISSIONS, PERMISSION_REQUEST_CODE);
+            binding.btnStartAudio.setEnabled(false);
         } else {
             updateStatus("Pronto para iniciar");
+            binding.btnStartAudio.setEnabled(true);
         }
     }
 
@@ -195,14 +199,21 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 updateStatus("Permissão concedida - Pronto para iniciar");
+                binding.btnStartAudio.setEnabled(true);
             } else {
                 updateStatus("Permissão de áudio necessária!");
+                binding.btnStartAudio.setEnabled(false);
             }
         }
     }
 
     private void startAudio() {
         if (isRecording) {
+            return;
+        }
+
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            updateStatus("Permissão de áudio não concedida!");
             return;
         }
 
