@@ -32,4 +32,7 @@
     <string name="reverb_plate">Plate</string>
     <string name="reverb_spring">Spring</string>
     <string name="reverb_mix">Mix</string>
+    <string name="reset">Reset</string>
+    <string name="reset_all">Reset All</string>
+    <string name="reset_effect">Reset Effect</string>
 </resources>

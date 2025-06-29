@@ -12,14 +12,24 @@
         android:padding="24dp">
 
         <TextView
-            android:id="@+id/effectsTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Efeitos"
-            android:textSize="28sp"
-            android:textStyle="bold"
             android:textColor="@color/white"
-            android:layout_gravity="center_horizontal"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"/>
+            
+        <!-- Botão Reset All -->
+        <Button
+            android:id="@+id/btnResetAll"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="@string/reset_all"
+            android:textSize="16sp"
+            android:background="@drawable/reset_button_background"
+            android:textColor="@color/white"
             android:layout_marginBottom="16dp"/>
 
         <!-- Presets de Efeitos -->
@@ -120,6 +130,15 @@
                 android:textColor="@color/effect_enabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetGain"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchGain"
                 android:layout_width="wrap_content"
@@ -159,6 +178,15 @@
                 android:textColor="@color/effect_enabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetDistortion"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchDistortion"
                 android:layout_width="wrap_content"
@@ -243,6 +271,15 @@
                 android:textColor="@color/effect_enabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetDelay"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchDelay"
                 android:layout_width="wrap_content"
@@ -388,6 +425,15 @@
                 android:textColor="@color/effect_enabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetReverb"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchReverb"
                 android:layout_width="wrap_content"
@@ -515,6 +561,15 @@
                 android:textColor="@color/effect_disabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetChorus"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchChorus"
                 android:layout_width="wrap_content"
@@ -610,6 +665,15 @@
                 android:textColor="@color/effect_disabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetFlanger"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchFlanger"
                 android:layout_width="wrap_content"
@@ -726,6 +790,15 @@
                 android:textColor="@color/effect_disabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetPhaser"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchPhaser"
                 android:layout_width="wrap_content"
@@ -842,6 +915,15 @@
                 android:textColor="@color/effect_disabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetEQ"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchEQ"
                 android:layout_width="wrap_content"
@@ -958,6 +1040,15 @@
                 android:textColor="@color/effect_disabled"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
+            <Button
+                android:id="@+id/btnResetCompressor"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="@string/reset"
+                android:textSize="12sp"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp"/>
             <Switch
                 android:id="@+id/switchCompressor"
                 android:layout_width="wrap_content"

@@ -573,6 +573,38 @@ public class EffectsFragment extends Fragment {
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
+        // Botão Reset All
+        Button btnResetAll = view.findViewById(R.id.btnResetAll);
+        btnResetAll.setOnClickListener(v -> resetAllEffects());
+        
+        // Botões de reset individuais
+        Button btnResetGain = view.findViewById(R.id.btnResetGain);
+        btnResetGain.setOnClickListener(v -> resetGain());
+        
+        Button btnResetDistortion = view.findViewById(R.id.btnResetDistortion);
+        btnResetDistortion.setOnClickListener(v -> resetDistortion());
+        
+        Button btnResetDelay = view.findViewById(R.id.btnResetDelay);
+        btnResetDelay.setOnClickListener(v -> resetDelay());
+        
+        Button btnResetReverb = view.findViewById(R.id.btnResetReverb);
+        btnResetReverb.setOnClickListener(v -> resetReverb());
+        
+        Button btnResetChorus = view.findViewById(R.id.btnResetChorus);
+        btnResetChorus.setOnClickListener(v -> resetChorus());
+        
+        Button btnResetFlanger = view.findViewById(R.id.btnResetFlanger);
+        btnResetFlanger.setOnClickListener(v -> resetFlanger());
+        
+        Button btnResetPhaser = view.findViewById(R.id.btnResetPhaser);
+        btnResetPhaser.setOnClickListener(v -> resetPhaser());
+        
+        Button btnResetEQ = view.findViewById(R.id.btnResetEQ);
+        btnResetEQ.setOnClickListener(v -> resetEQ());
+        
+        Button btnResetCompressor = view.findViewById(R.id.btnResetCompressor);
+        btnResetCompressor.setOnClickListener(v -> resetCompressor());
+
         updateBypassIndicators(view);
 
         return view;
@@ -846,5 +878,274 @@ public class EffectsFragment extends Fragment {
                 }
             }
         }
+    }
+
+    private void resetAllEffects() {
+        resetGain();
+        resetDistortion();
+        resetDelay();
+        resetReverb();
+        resetChorus();
+        resetFlanger();
+        resetPhaser();
+        resetEQ();
+        resetCompressor();
+        
+        // Reset da ordem dos efeitos
+        effectOrder.clear();
+        effectOrder.add("Ganho");
+        effectOrder.add("Distorção");
+        effectOrder.add("Chorus");
+        effectOrder.add("Flanger");
+        effectOrder.add("Phaser");
+        effectOrder.add("EQ");
+        effectOrder.add("Compressor");
+        effectOrder.add("Delay");
+        effectOrder.add("Reverb");
+        effectOrderAdapter.notifyDataSetChanged();
+        saveEffectOrderToPrefs(effectOrder);
+        AudioEngine.setEffectOrder(effectOrder.toArray(new String[0]));
+        
+        updateBypassIndicators(getView());
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Todos os efeitos foram resetados!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetGain() {
+        View view = getView();
+        if (view == null) return;
+        
+        SeekBar seekGain = view.findViewById(R.id.seekGain);
+        Switch switchGain = view.findViewById(R.id.switchGain);
+        
+        seekGain.setProgress(50); // 50% = 0.5
+        switchGain.setChecked(true);
+        
+        AudioEngine.setGainLevel(0.5f);
+        AudioEngine.setGainEnabled(true);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Ganho resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetDistortion() {
+        View view = getView();
+        if (view == null) return;
+        
+        SeekBar seekDistortion = view.findViewById(R.id.seekDistortion);
+        Switch switchDistortion = view.findViewById(R.id.switchDistortion);
+        Spinner spinnerDistortionType = view.findViewById(R.id.spinnerDistortionType);
+        SeekBar seekDistortionMix = view.findViewById(R.id.seekDistortionMix);
+        
+        seekDistortion.setProgress(30); // 30%
+        switchDistortion.setChecked(true);
+        spinnerDistortionType.setSelection(0); // Soft Clip
+        seekDistortionMix.setProgress(100); // 100%
+        
+        AudioEngine.setDistortionLevel(0.3f);
+        AudioEngine.setDistortionEnabled(true);
+        AudioEngine.setDistortionType(0);
+        AudioEngine.setDistortionMix(1.0f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Distorção resetada!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetDelay() {
+        View view = getView();
+        if (view == null) return;
+        
+        SeekBar seekDelayTime = view.findViewById(R.id.seekDelayTime);
+        Switch switchDelay = view.findViewById(R.id.switchDelay);
+        Switch switchDelaySyncBPM = view.findViewById(R.id.switchDelaySyncBPM);
+        SeekBar seekDelayBPM = view.findViewById(R.id.seekDelayBPM);
+        SeekBar seekDelayFeedback = view.findViewById(R.id.seekDelayFeedback);
+        SeekBar seekDelayMix = view.findViewById(R.id.seekDelayMix);
+        
+        seekDelayTime.setProgress(200); // 200ms
+        switchDelay.setChecked(true);
+        switchDelaySyncBPM.setChecked(false);
+        seekDelayBPM.setProgress(60); // 120 BPM
+        seekDelayFeedback.setProgress(50); // 50%
+        seekDelayMix.setProgress(100); // 100%
+        
+        AudioEngine.setDelayTime(200.0f);
+        AudioEngine.setDelayEnabled(true);
+        AudioEngine.setDelaySyncBPM(false);
+        AudioEngine.setDelayBPM(120);
+        AudioEngine.setDelayFeedback(0.5f);
+        AudioEngine.setDelayMix(1.0f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Delay resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetReverb() {
+        View view = getView();
+        if (view == null) return;
+        
+        SeekBar seekReverb = view.findViewById(R.id.seekReverb);
+        Switch switchReverb = view.findViewById(R.id.switchReverb);
+        SeekBar seekReverbRoomSize = view.findViewById(R.id.seekReverbRoomSize);
+        SeekBar seekReverbDamping = view.findViewById(R.id.seekReverbDamping);
+        SeekBar seekReverbMix = view.findViewById(R.id.seekReverbMix);
+        Spinner spinnerReverbType = view.findViewById(R.id.spinnerReverbType);
+        
+        seekReverb.setProgress(40); // 40%
+        switchReverb.setChecked(true);
+        seekReverbRoomSize.setProgress(50); // 50%
+        seekReverbDamping.setProgress(50); // 50%
+        seekReverbMix.setProgress(100); // 100%
+        spinnerReverbType.setSelection(0); // Hall
+        
+        AudioEngine.setReverbLevel(0.4f);
+        AudioEngine.setReverbEnabled(true);
+        AudioEngine.setReverbRoomSize(0.5f);
+        AudioEngine.setReverbDamping(0.5f);
+        AudioEngine.setReverbMix(1.0f);
+        AudioEngine.setReverbType(0);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Reverb resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetChorus() {
+        View view = getView();
+        if (view == null) return;
+        
+        Switch switchChorus = view.findViewById(R.id.switchChorus);
+        SeekBar seekChorusDepth = view.findViewById(R.id.seekChorusDepth);
+        SeekBar seekChorusRate = view.findViewById(R.id.seekChorusRate);
+        SeekBar seekChorusMix = view.findViewById(R.id.seekChorusMix);
+        
+        switchChorus.setChecked(false);
+        seekChorusDepth.setProgress(20); // 20%
+        seekChorusRate.setProgress(10); // 10%
+        seekChorusMix.setProgress(50); // 50%
+        
+        AudioEngine.setChorusEnabled(false);
+        AudioEngine.setChorusDepth(0.008f);
+        AudioEngine.setChorusRate(0.5f);
+        AudioEngine.setChorusMix(0.5f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Chorus resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetFlanger() {
+        View view = getView();
+        if (view == null) return;
+        
+        Switch switchFlanger = view.findViewById(R.id.switchFlanger);
+        SeekBar seekFlangerDepth = view.findViewById(R.id.seekFlangerDepth);
+        SeekBar seekFlangerRate = view.findViewById(R.id.seekFlangerRate);
+        SeekBar seekFlangerFeedback = view.findViewById(R.id.seekFlangerFeedback);
+        SeekBar seekFlangerMix = view.findViewById(R.id.seekFlangerMix);
+        
+        switchFlanger.setChecked(false);
+        seekFlangerDepth.setProgress(3); // 3%
+        seekFlangerRate.setProgress(3); // 3%
+        seekFlangerFeedback.setProgress(50); // 50%
+        seekFlangerMix.setProgress(50); // 50%
+        
+        AudioEngine.setFlangerEnabled(false);
+        AudioEngine.setFlangerDepth(0.0003f);
+        AudioEngine.setFlangerRate(0.15f);
+        AudioEngine.setFlangerFeedback(0.5f);
+        AudioEngine.setFlangerMix(0.5f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Flanger resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetPhaser() {
+        View view = getView();
+        if (view == null) return;
+        
+        Switch switchPhaser = view.findViewById(R.id.switchPhaser);
+        SeekBar seekPhaserDepth = view.findViewById(R.id.seekPhaserDepth);
+        SeekBar seekPhaserRate = view.findViewById(R.id.seekPhaserRate);
+        SeekBar seekPhaserFeedback = view.findViewById(R.id.seekPhaserFeedback);
+        SeekBar seekPhaserMix = view.findViewById(R.id.seekPhaserMix);
+        
+        switchPhaser.setChecked(false);
+        seekPhaserDepth.setProgress(80); // 80%
+        seekPhaserRate.setProgress(10); // 10%
+        seekPhaserFeedback.setProgress(60); // 60%
+        seekPhaserMix.setProgress(50); // 50%
+        
+        AudioEngine.setPhaserEnabled(false);
+        AudioEngine.setPhaserDepth(0.8f);
+        AudioEngine.setPhaserRate(0.5f);
+        AudioEngine.setPhaserFeedback(0.6f);
+        AudioEngine.setPhaserMix(0.5f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Phaser resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetEQ() {
+        View view = getView();
+        if (view == null) return;
+        
+        Switch switchEQ = view.findViewById(R.id.switchEQ);
+        SeekBar seekEQLow = view.findViewById(R.id.seekEQLow);
+        SeekBar seekEQMid = view.findViewById(R.id.seekEQMid);
+        SeekBar seekEQHigh = view.findViewById(R.id.seekEQHigh);
+        SeekBar seekEQMix = view.findViewById(R.id.seekEQMix);
+        
+        switchEQ.setChecked(false);
+        seekEQLow.setProgress(50); // 0dB
+        seekEQMid.setProgress(50); // 0dB
+        seekEQHigh.setProgress(50); // 0dB
+        seekEQMix.setProgress(100); // 100%
+        
+        AudioEngine.setEQEnabled(false);
+        AudioEngine.setEQLow(0.0f);
+        AudioEngine.setEQMid(0.0f);
+        AudioEngine.setEQHigh(0.0f);
+        AudioEngine.setEQMix(1.0f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "EQ resetado!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetCompressor() {
+        View view = getView();
+        if (view == null) return;
+        
+        Switch switchCompressor = view.findViewById(R.id.switchCompressor);
+        SeekBar seekCompressorThreshold = view.findViewById(R.id.seekCompressorThreshold);
+        SeekBar seekCompressorRatio = view.findViewById(R.id.seekCompressorRatio);
+        SeekBar seekCompressorAttack = view.findViewById(R.id.seekCompressorAttack);
+        SeekBar seekCompressorRelease = view.findViewById(R.id.seekCompressorRelease);
+        SeekBar seekCompressorMix = view.findViewById(R.id.seekCompressorMix);
+        
+        switchCompressor.setChecked(false);
+        seekCompressorThreshold.setProgress(67); // -20dB
+        seekCompressorRatio.setProgress(16); // 4:1
+        seekCompressorAttack.setProgress(10); // 10ms
+        seekCompressorRelease.setProgress(9); // 100ms
+        seekCompressorMix.setProgress(100); // 100%
+        
+        AudioEngine.setCompressorEnabled(false);
+        AudioEngine.setCompressorThreshold(-20.0f);
+        AudioEngine.setCompressorRatio(4.0f);
+        AudioEngine.setCompressorAttack(10.0f);
+        AudioEngine.setCompressorRelease(100.0f);
+        AudioEngine.setCompressorMix(1.0f);
+        updateBypassIndicators(view);
+        
+        // Feedback visual
+        Toast.makeText(getContext(), "Compressor resetado!", Toast.LENGTH_SHORT).show();
     }
 } 
