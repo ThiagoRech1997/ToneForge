@@ -12,7 +12,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,6 +23,9 @@ public class TunerFragment extends Fragment {
     private Thread audioThread;
     private boolean isTuning = false;
     private Handler uiHandler;
+    private TextView noteText;
+    private TextView freqText;
+    private TextView centsText;
 
     private static final int SAMPLE_RATE = 48000;
     private static final int BUFFER_SIZE = 2048;
@@ -32,24 +34,45 @@ public class TunerFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_tuner, container, false);
-        TextView noteText = view.findViewById(R.id.tunerNote);
-        ProgressBar tunerBar = view.findViewById(R.id.tunerBar);
+        
+        noteText = view.findViewById(R.id.tunerNote);
+        freqText = view.findViewById(R.id.tunerFreq);
+        centsText = view.findViewById(R.id.tunerCents);
         Button toggleButton = view.findViewById(R.id.tunerToggleButton);
-        TextView freqText = view.findViewById(R.id.tunerFreq);
-        TextView centsText = view.findViewById(R.id.tunerCents);
+        
         uiHandler = new Handler(Looper.getMainLooper());
+
+        // Configurar botões de notas
+        setupNoteButtons(view);
 
         toggleButton.setOnClickListener(v -> {
             if (!isTuning) {
-                startTuner(noteText, tunerBar, toggleButton);
+                startTuner(toggleButton);
             } else {
                 stopTuner(toggleButton);
             }
         });
+        
         return view;
     }
+    
+    private void setupNoteButtons(View view) {
+        Button btnNoteE = view.findViewById(R.id.btnNoteE);
+        Button btnNoteA = view.findViewById(R.id.btnNoteA);
+        Button btnNoteD = view.findViewById(R.id.btnNoteD);
+        Button btnNoteG = view.findViewById(R.id.btnNoteG);
+        Button btnNoteB = view.findViewById(R.id.btnNoteB);
+        Button btnNoteE2 = view.findViewById(R.id.btnNoteE2);
+        
+        btnNoteE.setOnClickListener(v -> noteText.setText("E"));
+        btnNoteA.setOnClickListener(v -> noteText.setText("A"));
+        btnNoteD.setOnClickListener(v -> noteText.setText("D"));
+        btnNoteG.setOnClickListener(v -> noteText.setText("G"));
+        btnNoteB.setOnClickListener(v -> noteText.setText("B"));
+        btnNoteE2.setOnClickListener(v -> noteText.setText("E"));
+    }
 
-    private void startTuner(TextView noteText, ProgressBar tunerBar, Button toggleButton) {
+    private void startTuner(Button toggleButton) {
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.RECORD_AUDIO}, 1);
             return;
@@ -70,7 +93,7 @@ public class TunerFragment extends Fragment {
                 }
                 AudioEngine.processTunerBuffer(floatBuffer, read);
                 float freq = AudioEngine.getDetectedFrequency();
-                uiHandler.post(() -> updateTunerUI(freq, noteText, tunerBar));
+                uiHandler.post(() -> updateTunerUI(freq));
             }
         });
         audioThread.start();
@@ -91,50 +114,44 @@ public class TunerFragment extends Fragment {
         }
     }
 
-    private void updateTunerUI(float freq, TextView noteText, ProgressBar tunerBar) {
+    private void updateTunerUI(float freq) {
         if (getView() == null || !isAdded()) return;
-        TextView freqText = getView().findViewById(R.id.tunerFreq);
-        TextView centsText = getView().findViewById(R.id.tunerCents);
-        if (freqText == null || centsText == null || noteText == null || tunerBar == null) return;
+        
         if (freq < 40.0f || freq > 2000.0f) {
             noteText.setText("-");
-            tunerBar.setProgress(50);
             freqText.setText("");
             centsText.setText("");
-            noteText.setTextColor(getResources().getColor(R.color.white));
-            tunerBar.setProgressTintList(getResources().getColorStateList(R.color.light_gray));
+            noteText.setTextColor(getResources().getColor(R.color.lava_text_primary));
             return;
         }
+        
         String[] noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
         double A4 = 440.0;
         int noteNumber = (int) Math.round(12 * Math.log(freq / A4) / Math.log(2)) + 57;
         int noteIndex = (noteNumber + 1200) % 12;
         int octave = (noteNumber / 12) - 1;
         String note = noteNames[noteIndex] + octave;
-        freqText.setText(String.format("%.1f Hz", freq));
+        
+        freqText.setText(String.format("Frequência: %.1f Hz", freq));
+        
         // Calcular desvio em cents
         double noteFreq = A4 * Math.pow(2, (noteNumber - 57) / 12.0);
         int cents = (int) (1200 * Math.log(freq / noteFreq) / Math.log(2));
-        String arrow = "";
-        if (cents > 20) arrow = "↑";
-        else if (cents < -20) arrow = "↓";
-        centsText.setText(String.format("%s%s%d cents", arrow, (cents > 0 ? "+" : (cents < 0 ? "" : "")), cents));
-        noteText.setText(note);
-        int progress = 50 + cents / 2; // -50 a +50 cents -> 0 a 100
-        if (progress < 0) progress = 0;
-        if (progress > 100) progress = 100;
-        tunerBar.setProgress(progress);
+        
+        centsText.setText(String.format("%s%d cents", (cents > 0 ? "+" : ""), cents));
+        noteText.setText(noteNames[noteIndex]);
+        
         // Feedback visual por cor
         int absCents = Math.abs(cents);
         if (absCents <= 5) {
-            noteText.setTextColor(getResources().getColor(R.color.green));
-            tunerBar.setProgressTintList(getResources().getColorStateList(R.color.green));
+            noteText.setTextColor(getResources().getColor(R.color.lava_green));
+            centsText.setTextColor(getResources().getColor(R.color.lava_green));
         } else if (absCents <= 15) {
-            noteText.setTextColor(getResources().getColor(R.color.yellow));
-            tunerBar.setProgressTintList(getResources().getColorStateList(R.color.yellow));
+            noteText.setTextColor(getResources().getColor(R.color.lava_yellow));
+            centsText.setTextColor(getResources().getColor(R.color.lava_text_secondary));
         } else {
-            noteText.setTextColor(getResources().getColor(R.color.red));
-            tunerBar.setProgressTintList(getResources().getColorStateList(R.color.red));
+            noteText.setTextColor(getResources().getColor(R.color.lava_red));
+            centsText.setTextColor(getResources().getColor(R.color.lava_text_secondary));
         }
     }
 

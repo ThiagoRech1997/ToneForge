@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Estilo base para a aplicação -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/lava_blue</item>
+        <item name="colorPrimaryVariant">@color/lava_purple</item>
+        <item name="colorSecondary">@color/lava_green</item>
+        <item name="android:colorBackground">@color/lava_dark_bg</item>
+        <item name="android:statusBarColor">@color/lava_status_bg</item>
+        <item name="android:navigationBarColor">@color/lava_dark_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- Estilo para títulos grandes -->
+    <style name="LavaTitleLarge" parent="TextAppearance.MaterialComponents.Headline1">
+        <item name="android:textSize">48sp</item>
+        <item name="android:textColor">@color/lava_text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <!-- Estilo para títulos médios -->
+    <style name="LavaTitleMedium" parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textColor">@color/lava_text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <!-- Estilo para texto de corpo -->
+    <style name="LavaBodyText" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/lava_text_primary</item>
+    </style>
+
+    <!-- Estilo para texto secundário -->
+    <style name="LavaBodyTextSecondary" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/lava_text_secondary</item>
+    </style>
+
+    <!-- Estilo para botões circulares -->
+    <style name="LavaRoundButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/round_button_background</item>
+        <item name="android:minWidth">64dp</item>
+        <item name="android:minHeight">64dp</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:textColor">@color/lava_text_primary</item>
+    </style>
+
+    <!-- Estilo para switches personalizados -->
+    <style name="LavaSwitch" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="trackTint">@drawable/custom_switch_track</item>
+        <item name="thumbTint">@drawable/custom_switch_thumb</item>
+    </style>
+
+    <!-- Estilo para cards -->
+    <style name="LavaCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/lava_card_bg</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="contentPadding">16dp</item>
+    </style>
+</resources> 

@@ -3,32 +3,43 @@ package com.thiagofernendorech.toneforge;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.NavigationUI;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.core.app.ActivityCompat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements PermissionManager.PermissionCallback {
     
     private StateRecoveryManager stateRecoveryManager;
     private LatencyManager latencyManager;
+    private TextView headerTitle;
+    private Timer timeUpdateTimer;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setTitle("");
         setContentView(R.layout.activity_main);
+        
+        // Inicializar views
+        headerTitle = findViewById(R.id.headerTitle);
         
         // Inicializar gerenciadores
         stateRecoveryManager = StateRecoveryManager.getInstance(this);
         latencyManager = LatencyManager.getInstance(this);
         
-        // Setup Navigation Component
-        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.nav_host_fragment);
-        NavController navController = navHostFragment.getNavController();
+        // Setup navegação
+        setupNavigation();
         
         // Verificar e solicitar permissões necessárias
         checkAndRequestPermissions();
@@ -46,6 +57,34 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         
         // Recuperar estado salvo
         stateRecoveryManager.restoreState();
+        
+        // Carregar fragment inicial
+        loadFragment(new HomeFragment());
+    }
+    
+    private void setupNavigation() {
+        // Botão Home
+        findViewById(R.id.btnHome).setOnClickListener(v -> {
+            loadFragment(new HomeFragment());
+            updateHeaderTitle("ToneForge");
+        });
+        
+        // Botão Power
+        findViewById(R.id.btnPower).setOnClickListener(v -> {
+            // Implementar funcionalidade de power
+            Toast.makeText(this, "Power", Toast.LENGTH_SHORT).show();
+        });
+    }
+    
+    public void loadFragment(Fragment fragment) {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.replace(R.id.fragmentContainer, fragment);
+        transaction.commit();
+    }
+    
+    public void updateHeaderTitle(String title) {
+        headerTitle.setText(title);
     }
     
     private void checkAndRequestPermissions() {
@@ -132,6 +171,17 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         // Salvar estado também quando o app para completamente
         if (stateRecoveryManager != null) {
             stateRecoveryManager.saveCurrentState();
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        // Parar timer de atualização do tempo (caso ainda exista)
+        if (timeUpdateTimer != null) {
+            timeUpdateTimer.cancel();
+            timeUpdateTimer = null;
         }
     }
 }

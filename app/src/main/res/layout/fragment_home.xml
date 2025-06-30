@@ -2,23 +2,14 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient">
+    android:background="@color/lava_dark_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="24dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ToneForge"
-            android:textColor="@android:color/white"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="24dp"/>
+        android:padding="16dp">
 
         <GridLayout
             android:id="@+id/gridMenu"
@@ -33,184 +24,245 @@
 
             <!-- Afinador -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnTuner"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnTuner"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_target"
-                    android:tint="@color/accent_blue"/>
+                    android:tint="@color/lava_blue"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Afinador"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <!-- Efeitos -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnEffects"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnEffects"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_graphic_eq"
-                    android:tint="@color/accent_orange"/>
+                    android:tint="@color/lava_purple"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Efeitos"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <!-- Looper -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnLooper"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnLooper"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_rotate_left"
-                    android:tint="@color/accent_green"/>
+                    android:tint="@color/lava_green"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Looper"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <!-- Metrônomo -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnMetronome"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnMetronome"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_av_timer"
-                    android:tint="@color/accent_red"/>
+                    android:tint="@color/lava_red"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Metrônomo"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <!-- Aprendizado -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnLearning"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnLearning"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_book"
-                    android:tint="@color/accent_blue"/>
+                    android:tint="@color/lava_orange"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Aprender"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <!-- Gravador -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnRecorder"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnRecorder"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_mic"
-                    android:tint="@color/accent_orange"/>
+                    android:tint="@color/lava_pink"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Gravar"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
             <!-- Configurações -->
             <LinearLayout
-                android:layout_width="120dp"
-                android:layout_height="140dp"
+                android:id="@+id/btnSettings"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/round_button_background"
                 android:clickable="true"
                 android:focusable="true"
-                android:layout_margin="8dp">
+                android:layout_margin="4dp"
+                android:padding="12dp">
                 <ImageView
-                    android:id="@+id/btnSettings"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_settings"
-                    android:tint="@color/accent_green"/>
+                    android:tint="@color/lava_gray"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Config"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+
+            <!-- Wi-Fi -->
+            <LinearLayout
+                android:id="@+id/btnWifi"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_margin="4dp"
+                android:padding="12dp">
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_wifi"
+                    android:tint="@color/lava_cyan"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Wi-Fi"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+
+            <!-- Volume -->
+            <LinearLayout
+                android:id="@+id/btnVolume"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_margin="4dp"
+                android:padding="12dp">
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_volume_up"
+                    android:tint="@color/lava_yellow"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Volume"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
         </GridLayout>

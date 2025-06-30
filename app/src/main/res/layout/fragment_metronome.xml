@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:orientation="vertical"
+    android:background="@color/lava_dark_bg"
+    android:gravity="center"
+    android:padding="24dp">
 
+    <!-- BPM Principal -->
     <TextView
-        android:id="@+id/metronomeTitle"
+        android:id="@+id/metronomeBpmValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Metrônomo"
-        android:textSize="28sp"
+        android:text="120"
+        android:textSize="72sp"
         android:textStyle="bold"
-        android:textColor="@color/white"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:textColor="@color/lava_red"
+        android:layout_marginBottom="8dp"/>
 
     <TextView
         android:id="@+id/metronomeBpmLabel"
@@ -24,62 +24,113 @@
         android:layout_height="wrap_content"
         android:text="BPM"
         android:textSize="18sp"
-        android:textColor="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/metronomeTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:textColor="@color/lava_text_secondary"
+        android:layout_marginBottom="32dp"/>
 
-    <TextView
-        android:id="@+id/metronomeBpmValue"
+    <!-- Controles de BPM -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="120"
-        android:textSize="48sp"
-        android:textStyle="bold"
-        android:textColor="@color/green"
-        app:layout_constraintTop_toBottomOf="@id/metronomeBpmLabel"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="8dp"/>
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp">
 
-    <SeekBar
-        android:id="@+id/metronomeSeekBar"
-        android:layout_width="0dp"
+        <Button
+            android:id="@+id/btnDecreaseBpm"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="-"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:background="@drawable/round_button_background"
+            android:textColor="@color/lava_text_primary"
+            android:layout_marginEnd="16dp"/>
+
+        <Button
+            android:id="@+id/metronomePlayButton"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/round_button_background"
+            android:text=""
+            android:drawable="@drawable/ic_play"
+            android:drawableTint="@color/lava_text_primary"
+            android:layout_marginHorizontal="16dp"/>
+
+        <Button
+            android:id="@+id/btnIncreaseBpm"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="+"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:background="@drawable/round_button_background"
+            android:textColor="@color/lava_text_primary"
+            android:layout_marginStart="16dp"/>
+    </LinearLayout>
+
+    <!-- Presets de BPM -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:max="240"
-        android:progress="120"
-        app:layout_constraintTop_toBottomOf="@id/metronomeBpmValue"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"/>
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="16dp">
 
-    <Button
-        android:id="@+id/metronomePlayButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:backgroundTint="@color/green"
-        android:text=""
-        app:icon="@android:drawable/ic_media_play"
-        app:iconTint="@color/white"
-        app:iconGravity="textStart"
-        app:layout_constraintTop_toBottomOf="@id/metronomeSeekBar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        <Button
+            android:id="@+id/btnPreset60"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="60"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/round_button_background"
+            android:textColor="@color/lava_text_primary"
+            android:layout_margin="4dp"/>
 
+        <Button
+            android:id="@+id/btnPreset80"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="80"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/round_button_background"
+            android:textColor="@color/lava_text_primary"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnPreset100"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="100"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/round_button_background"
+            android:textColor="@color/lava_text_primary"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnPreset120"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="120"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/round_button_background"
+            android:textColor="@color/lava_text_primary"
+            android:layout_margin="4dp"/>
+    </LinearLayout>
+
+    <!-- Indicador de Beat -->
     <View
         android:id="@+id/metronomeBeatIndicator"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:background="@color/accent_blue"
-        android:layout_marginTop="32dp"
-        app:layout_constraintTop_toBottomOf="@id/metronomePlayButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:backgroundTint="@color/accent_blue"
-        android:alpha="0.3"/>
+        android:background="@drawable/round_button_background"
+        android:layout_marginTop="32dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout> 
+</LinearLayout> 
