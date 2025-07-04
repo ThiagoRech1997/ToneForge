@@ -62,6 +62,23 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private Button looperReverseSlicesButton;
     private TextView looperSlicesInfoText;
     
+    // Controles de Efeitos Avançados (Fase 5)
+    private Switch looperCompressionSwitch;
+    private Switch looperNormalizationSwitch;
+    private SeekBar looperCompressionThresholdSeekBar;
+    private TextView looperCompressionThresholdText;
+    private SeekBar looperCompressionRatioSeekBar;
+    private TextView looperCompressionRatioText;
+    private Switch looperLowPassSwitch;
+    private SeekBar looperLowPassFreqSeekBar;
+    private TextView looperLowPassFreqText;
+    private Switch looperHighPassSwitch;
+    private SeekBar looperHighPassFreqSeekBar;
+    private TextView looperHighPassFreqText;
+    private Switch looperReverbTailSwitch;
+    private SeekBar looperReverbTailDecaySeekBar;
+    private TextView looperReverbTailDecayText;
+    
     // Controles de Edição
     private Switch looperEditModeSwitch;
     private Button looperCutButton;
@@ -178,6 +195,23 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperReverseSlicesButton = view.findViewById(R.id.looperReverseSlicesButton);
         looperSlicesInfoText = view.findViewById(R.id.looperSlicesInfoText);
         
+        // Controles de Efeitos Avançados (Fase 5)
+        looperCompressionSwitch = view.findViewById(R.id.looperCompressionSwitch);
+        looperNormalizationSwitch = view.findViewById(R.id.looperNormalizationSwitch);
+        looperCompressionThresholdSeekBar = view.findViewById(R.id.looperCompressionThresholdSeekBar);
+        looperCompressionThresholdText = view.findViewById(R.id.looperCompressionThresholdText);
+        looperCompressionRatioSeekBar = view.findViewById(R.id.looperCompressionRatioSeekBar);
+        looperCompressionRatioText = view.findViewById(R.id.looperCompressionRatioText);
+        looperLowPassSwitch = view.findViewById(R.id.looperLowPassSwitch);
+        looperLowPassFreqSeekBar = view.findViewById(R.id.looperLowPassFreqSeekBar);
+        looperLowPassFreqText = view.findViewById(R.id.looperLowPassFreqText);
+        looperHighPassSwitch = view.findViewById(R.id.looperHighPassSwitch);
+        looperHighPassFreqSeekBar = view.findViewById(R.id.looperHighPassFreqSeekBar);
+        looperHighPassFreqText = view.findViewById(R.id.looperHighPassFreqText);
+        looperReverbTailSwitch = view.findViewById(R.id.looperReverbTailSwitch);
+        looperReverbTailDecaySeekBar = view.findViewById(R.id.looperReverbTailDecaySeekBar);
+        looperReverbTailDecayText = view.findViewById(R.id.looperReverbTailDecayText);
+        
         // Controles de Edição
         looperEditModeSwitch = view.findViewById(R.id.looperEditModeSwitch);
         looperCutButton = view.findViewById(R.id.looperCutButton);
@@ -275,6 +309,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         
         // Controles de slicing
         setupSlicingControls();
+        
+        // Controles de Efeitos Avançados (Fase 5)
+        setupAdvancedEffectsControls();
     }
     
     private void setupSpecialControls() {
@@ -405,6 +442,128 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             updateSlicesInfo();
             android.util.Log.d("LooperFragment", "Ordem dos slices revertida");
         });
+    }
+    
+    private void setupAdvancedEffectsControls() {
+        // Compressão automática
+        looperCompressionSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperAutoCompression(isChecked);
+            looperCompressionThresholdSeekBar.setEnabled(isChecked);
+            looperCompressionRatioSeekBar.setEnabled(isChecked);
+            android.util.Log.d("LooperFragment", "Compressão automática: " + (isChecked ? "ON" : "OFF"));
+        });
+        
+        // Normalização automática
+        looperNormalizationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperAutoNormalization(isChecked);
+            android.util.Log.d("LooperFragment", "Normalização automática: " + (isChecked ? "ON" : "OFF"));
+        });
+        
+        // Threshold da compressão
+        looperCompressionThresholdSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float threshold = (progress / 100.0f) * 60.0f - 60.0f; // -60 a 0 dB
+                    AudioEngine.setLooperCompressionThreshold(threshold);
+                    looperCompressionThresholdText.setText(String.format("%.0fdB", threshold));
+                }
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+        
+        // Ratio da compressão
+        looperCompressionRatioSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float ratio = 1.0f + (progress / 100.0f) * 19.0f; // 1.0 a 20.0
+                    AudioEngine.setLooperCompressionRatio(ratio);
+                    looperCompressionRatioText.setText(String.format("%.1f:1", ratio));
+                }
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+        
+        // Filtro passa-baixa
+        looperLowPassSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperLowPassFilter(isChecked);
+            looperLowPassFreqSeekBar.setEnabled(isChecked);
+            android.util.Log.d("LooperFragment", "Filtro passa-baixa: " + (isChecked ? "ON" : "OFF"));
+        });
+        
+        // Frequência do filtro passa-baixa
+        looperLowPassFreqSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float frequency = 100.0f + (progress / 100.0f) * 19900.0f; // 100Hz a 20kHz
+                    AudioEngine.setLooperLowPassFrequency(frequency);
+                    if (frequency >= 1000) {
+                        looperLowPassFreqText.setText(String.format("%.0fkHz", frequency / 1000));
+                    } else {
+                        looperLowPassFreqText.setText(String.format("%.0fHz", frequency));
+                    }
+                }
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+        
+        // Filtro passa-alta
+        looperHighPassSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperHighPassFilter(isChecked);
+            looperHighPassFreqSeekBar.setEnabled(isChecked);
+            android.util.Log.d("LooperFragment", "Filtro passa-alta: " + (isChecked ? "ON" : "OFF"));
+        });
+        
+        // Frequência do filtro passa-alta
+        looperHighPassFreqSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float frequency = 20.0f + (progress / 100.0f) * 1980.0f; // 20Hz a 2kHz
+                    AudioEngine.setLooperHighPassFrequency(frequency);
+                    if (frequency >= 1000) {
+                        looperHighPassFreqText.setText(String.format("%.1fkHz", frequency / 1000));
+                    } else {
+                        looperHighPassFreqText.setText(String.format("%.0fHz", frequency));
+                    }
+                }
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+        
+        // Reverb de cauda
+        looperReverbTailSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperReverbTail(isChecked);
+            looperReverbTailDecaySeekBar.setEnabled(isChecked);
+            android.util.Log.d("LooperFragment", "Reverb de cauda: " + (isChecked ? "ON" : "OFF"));
+        });
+        
+        // Decay do reverb de cauda
+        looperReverbTailDecaySeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float decay = 0.1f + (progress / 100.0f) * 9.9f; // 0.1 a 10 segundos
+                    AudioEngine.setLooperReverbTailDecay(decay);
+                    looperReverbTailDecayText.setText(String.format("%.1fs", decay));
+                }
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+        
+        // Configurar estados iniciais
+        looperCompressionThresholdSeekBar.setEnabled(false);
+        looperCompressionRatioSeekBar.setEnabled(false);
+        looperLowPassFreqSeekBar.setEnabled(false);
+        looperHighPassFreqSeekBar.setEnabled(false);
+        looperReverbTailDecaySeekBar.setEnabled(false);
     }
     
     private void setupEditControls() {

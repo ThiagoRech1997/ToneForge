@@ -140,6 +140,44 @@ extern "C" {
     void cutLooperRegion(float start, float end);
     void applyLooperFadeIn(float start, float end);
     void applyLooperFadeOut(float start, float end);
+    
+    // === FASE 5: EFEITOS AVANÇADOS PARA LOOPER ===
+    
+    // Compressão automática para looper
+    void setLooperAutoCompression(bool enabled);
+    void setLooperCompressionThreshold(float threshold); // dB
+    void setLooperCompressionRatio(float ratio);
+    void setLooperCompressionAttack(float attack); // ms
+    void setLooperCompressionRelease(float release); // ms
+    bool isLooperAutoCompressionEnabled();
+    float getLooperCompressionThreshold();
+    float getLooperCompressionRatio();
+    float getLooperCompressionAttack();
+    float getLooperCompressionRelease();
+    
+    // Normalização automática
+    void setLooperAutoNormalization(bool enabled);
+    void setLooperNormalizationTarget(float target); // dB
+    bool isLooperAutoNormalizationEnabled();
+    float getLooperNormalizationTarget();
+    
+    // Filtros para looper
+    void setLooperLowPassFilter(bool enabled);
+    void setLooperLowPassFrequency(float frequency); // Hz
+    void setLooperHighPassFilter(bool enabled);
+    void setLooperHighPassFrequency(float frequency); // Hz
+    bool isLooperLowPassEnabled();
+    bool isLooperHighPassEnabled();
+    float getLooperLowPassFrequency();
+    float getLooperHighPassFrequency();
+    
+    // Reverb de cauda entre loops
+    void setLooperReverbTail(bool enabled);
+    void setLooperReverbTailDecay(float decay); // segundos
+    void setLooperReverbTailMix(float mix);
+    bool isLooperReverbTailEnabled();
+    float getLooperReverbTailDecay();
+    float getLooperReverbTailMix();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

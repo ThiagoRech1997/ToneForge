@@ -236,4 +236,42 @@ public class AudioEngine {
     public static native void cutLooperRegion(float start, float end);
     public static native void applyLooperFadeIn(float start, float end);
     public static native void applyLooperFadeOut(float start, float end);
+    
+    // === FASE 5: EFEITOS AVANÇADOS PARA LOOPER ===
+    
+    // Compressão automática para looper
+    public static native void setLooperAutoCompression(boolean enabled);
+    public static native void setLooperCompressionThreshold(float threshold);
+    public static native void setLooperCompressionRatio(float ratio);
+    public static native void setLooperCompressionAttack(float attack);
+    public static native void setLooperCompressionRelease(float release);
+    public static native boolean isLooperAutoCompressionEnabled();
+    public static native float getLooperCompressionThreshold();
+    public static native float getLooperCompressionRatio();
+    public static native float getLooperCompressionAttack();
+    public static native float getLooperCompressionRelease();
+    
+    // Normalização automática
+    public static native void setLooperAutoNormalization(boolean enabled);
+    public static native void setLooperNormalizationTarget(float target);
+    public static native boolean isLooperAutoNormalizationEnabled();
+    public static native float getLooperNormalizationTarget();
+    
+    // Filtros para looper
+    public static native void setLooperLowPassFilter(boolean enabled);
+    public static native void setLooperLowPassFrequency(float frequency);
+    public static native void setLooperHighPassFilter(boolean enabled);
+    public static native void setLooperHighPassFrequency(float frequency);
+    public static native boolean isLooperLowPassEnabled();
+    public static native boolean isLooperHighPassEnabled();
+    public static native float getLooperLowPassFrequency();
+    public static native float getLooperHighPassFrequency();
+    
+    // Reverb de cauda entre loops
+    public static native void setLooperReverbTail(boolean enabled);
+    public static native void setLooperReverbTailDecay(float decay);
+    public static native void setLooperReverbTailMix(float mix);
+    public static native boolean isLooperReverbTailEnabled();
+    public static native float getLooperReverbTailDecay();
+    public static native float getLooperReverbTailMix();
 } 

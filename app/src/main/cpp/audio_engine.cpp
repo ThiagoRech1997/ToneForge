@@ -95,6 +95,43 @@ static int currentSliceIndex = 0;
 static int slicePlaybackPosition = 0;
 static bool sliceRandomized = false;
 
+// === FASE 5: EFEITOS AVANÇADOS PARA LOOPER ===
+
+// Compressão automática para looper
+static bool looperAutoCompressionEnabled = false;
+static float looperCompressionThreshold = -20.0f; // dB
+static float looperCompressionRatio = 4.0f;
+static float looperCompressionAttack = 10.0f; // ms
+static float looperCompressionRelease = 100.0f; // ms
+static float looperCompressionEnvelope = 0.0f;
+static float looperCompressionGain = 1.0f;
+
+// Normalização automática
+static bool looperAutoNormalizationEnabled = false;
+static float looperNormalizationTarget = -3.0f; // dB
+static float looperNormalizationGain = 1.0f;
+static float looperPeakLevel = 0.0f;
+
+// Filtros para looper
+static bool looperLowPassEnabled = false;
+static float looperLowPassFrequency = 8000.0f; // Hz
+static float looperLowPassX1 = 0.0f, looperLowPassX2 = 0.0f;
+static float looperLowPassY1 = 0.0f, looperLowPassY2 = 0.0f;
+
+static bool looperHighPassEnabled = false;
+static float looperHighPassFrequency = 80.0f; // Hz
+static float looperHighPassX1 = 0.0f, looperHighPassX2 = 0.0f;
+static float looperHighPassY1 = 0.0f, looperHighPassY2 = 0.0f;
+
+// Reverb de cauda entre loops
+static bool looperReverbTailEnabled = false;
+static float looperReverbTailDecay = 2.0f; // segundos
+static float looperReverbTailMix = 0.3f;
+static std::vector<float> looperReverbTailBuffer;
+static int looperReverbTailIndex = 0;
+static int looperReverbTailSize = 0;
+static float looperReverbTailDecayCoeff = 0.0f;
+
 // --- Afinador (Tuner) ---
 static bool tunerActive = false;
 static float detectedFrequency = 0.0f;
@@ -203,6 +240,12 @@ void initAudioEngine() {
     flangerBuffer.resize(flangerBufferSize, 0.0f);
     phaserBuffer.resize(phaserBufferSize, 0.0f);
     
+    // Inicializar reverb de cauda do looper
+    looperReverbTailSize = (int)(looperReverbTailDecay * SAMPLE_RATE);
+    looperReverbTailBuffer.resize(looperReverbTailSize, 0.0f);
+    looperReverbTailIndex = 0;
+    looperReverbTailDecayCoeff = expf(-1.0f / (looperReverbTailDecay * SAMPLE_RATE));
+    
     // Resetar fases
     chorusPhase = 0.0f;
     flangerPhase = 0.0f;
@@ -216,6 +259,14 @@ void initAudioEngine() {
     delayFeedback = 0.0f;
     reverbRoomSize = 0.0f;
     reverbDamping = 0.0f;
+    
+    // Resetar efeitos avançados do looper
+    looperCompressionEnvelope = 0.0f;
+    looperCompressionGain = 1.0f;
+    looperNormalizationGain = 1.0f;
+    looperPeakLevel = 0.0f;
+    looperLowPassX1 = looperLowPassX2 = looperLowPassY1 = looperLowPassY2 = 0.0f;
+    looperHighPassX1 = looperHighPassX2 = looperHighPassY1 = looperHighPassY2 = 0.0f;
 }
 
 void cleanupAudioEngine() {
@@ -811,7 +862,115 @@ float processSample(float input) {
             }
         }
         
-        output += looperOutput;
+        // === APLICAR EFEITOS AVANÇADOS DO LOOPER (FASE 5) ===
+        float processedLooperOutput = looperOutput;
+        
+        // 1. Compressão automática
+        if (looperAutoCompressionEnabled && processedLooperOutput != 0.0f) {
+            float inputLevel = fabs(processedLooperOutput);
+            float thresholdLinear = powf(10.0f, looperCompressionThreshold / 20.0f);
+            
+            // Detector de envelope
+            float attackCoeff = expf(-1.0f / (looperCompressionAttack * 0.001f * looperSampleRate));
+            float releaseCoeff = expf(-1.0f / (looperCompressionRelease * 0.001f * looperSampleRate));
+            
+            if (inputLevel > looperCompressionEnvelope) {
+                looperCompressionEnvelope = attackCoeff * looperCompressionEnvelope + (1.0f - attackCoeff) * inputLevel;
+            } else {
+                looperCompressionEnvelope = releaseCoeff * looperCompressionEnvelope + (1.0f - releaseCoeff) * inputLevel;
+            }
+            
+            // Calcular redução de ganho
+            float gainReduction = 1.0f;
+            if (looperCompressionEnvelope > thresholdLinear) {
+                float overThreshold = looperCompressionEnvelope / thresholdLinear;
+                float dbOver = 20.0f * log10f(overThreshold);
+                float dbReduction = dbOver * (1.0f - 1.0f / looperCompressionRatio);
+                gainReduction = powf(10.0f, -dbReduction / 20.0f);
+            }
+            
+            processedLooperOutput *= gainReduction;
+        }
+        
+        // 2. Normalização automática
+        if (looperAutoNormalizationEnabled) {
+            // Detectar pico durante a reprodução
+            float currentPeak = fabs(processedLooperOutput);
+            if (currentPeak > looperPeakLevel) {
+                looperPeakLevel = currentPeak;
+            }
+            
+            // Aplicar normalização se necessário
+            if (looperPeakLevel > 0.0f) {
+                float targetLinear = powf(10.0f, looperNormalizationTarget / 20.0f);
+                looperNormalizationGain = targetLinear / looperPeakLevel;
+                looperNormalizationGain = std::min(looperNormalizationGain, 1.0f); // Não amplificar
+            }
+            
+            processedLooperOutput *= looperNormalizationGain;
+        }
+        
+        // 3. Filtros
+        if (looperLowPassEnabled) {
+            // Filtro passa-baixa (Butterworth de 2ª ordem)
+            float freq = looperLowPassFrequency;
+            float w0 = 2.0f * 3.14159265f * freq / looperSampleRate;
+            float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
+            
+            float b0 = (1.0f - cosf(w0)) / 2.0f;
+            float b1 = 1.0f - cosf(w0);
+            float b2 = (1.0f - cosf(w0)) / 2.0f;
+            float a0 = 1.0f + alpha;
+            float a1 = -2.0f * cosf(w0);
+            float a2 = 1.0f - alpha;
+            
+            // Normalizar
+            b0 /= a0; b1 /= a0; b2 /= a0;
+            a1 /= a0; a2 /= a0; a0 = 1.0f;
+            
+            float y = b0 * processedLooperOutput + b1 * looperLowPassX1 + b2 * looperLowPassX2 
+                     - a1 * looperLowPassY1 - a2 * looperLowPassY2;
+            looperLowPassX2 = looperLowPassX1; looperLowPassX1 = processedLooperOutput;
+            looperLowPassY2 = looperLowPassY1; looperLowPassY1 = y;
+            processedLooperOutput = y;
+        }
+        
+        if (looperHighPassEnabled) {
+            // Filtro passa-alta (Butterworth de 2ª ordem)
+            float freq = looperHighPassFrequency;
+            float w0 = 2.0f * 3.14159265f * freq / looperSampleRate;
+            float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
+            
+            float b0 = (1.0f + cosf(w0)) / 2.0f;
+            float b1 = -(1.0f + cosf(w0));
+            float b2 = (1.0f + cosf(w0)) / 2.0f;
+            float a0 = 1.0f + alpha;
+            float a1 = -2.0f * cosf(w0);
+            float a2 = 1.0f - alpha;
+            
+            // Normalizar
+            b0 /= a0; b1 /= a0; b2 /= a0;
+            a1 /= a0; a2 /= a0; a0 = 1.0f;
+            
+            float y = b0 * processedLooperOutput + b1 * looperHighPassX1 + b2 * looperHighPassX2 
+                     - a1 * looperHighPassY1 - a2 * looperHighPassY2;
+            looperHighPassX2 = looperHighPassX1; looperHighPassX1 = processedLooperOutput;
+            looperHighPassY2 = looperHighPassY1; looperHighPassY1 = y;
+            processedLooperOutput = y;
+        }
+        
+        // 4. Reverb de cauda
+        if (looperReverbTailEnabled) {
+            float reverbTail = looperReverbTailBuffer[looperReverbTailIndex];
+            processedLooperOutput = (1.0f - looperReverbTailMix) * processedLooperOutput + 
+                                   looperReverbTailMix * reverbTail;
+            
+            // Atualizar buffer de reverb
+            looperReverbTailBuffer[looperReverbTailIndex] = processedLooperOutput * looperReverbTailDecayCoeff;
+            looperReverbTailIndex = (looperReverbTailIndex + 1) % looperReverbTailSize;
+        }
+        
+        output += processedLooperOutput;
         looperReadIndex++;
         
         // Resetar posição de leitura quando chegar ao fim do loop
@@ -1297,6 +1456,147 @@ void reverseLooperSlices() {
     }
 }
 
+// === IMPLEMENTAÇÕES DOS EFEITOS AVANÇADOS DO LOOPER (FASE 5) ===
+
+// Compressão automática
+void setLooperAutoCompression(bool enabled) {
+    looperAutoCompressionEnabled = enabled;
+    if (!enabled) {
+        looperCompressionEnvelope = 0.0f;
+        looperCompressionGain = 1.0f;
+    }
+}
+
+void setLooperCompressionThreshold(float threshold) {
+    looperCompressionThreshold = threshold;
+}
+
+void setLooperCompressionRatio(float ratio) {
+    looperCompressionRatio = ratio;
+}
+
+void setLooperCompressionAttack(float attack) {
+    looperCompressionAttack = attack;
+}
+
+void setLooperCompressionRelease(float release) {
+    looperCompressionRelease = release;
+}
+
+bool isLooperAutoCompressionEnabled() {
+    return looperAutoCompressionEnabled;
+}
+
+float getLooperCompressionThreshold() {
+    return looperCompressionThreshold;
+}
+
+float getLooperCompressionRatio() {
+    return looperCompressionRatio;
+}
+
+float getLooperCompressionAttack() {
+    return looperCompressionAttack;
+}
+
+float getLooperCompressionRelease() {
+    return looperCompressionRelease;
+}
+
+// Normalização automática
+void setLooperAutoNormalization(bool enabled) {
+    looperAutoNormalizationEnabled = enabled;
+    if (!enabled) {
+        looperNormalizationGain = 1.0f;
+        looperPeakLevel = 0.0f;
+    }
+}
+
+void setLooperNormalizationTarget(float target) {
+    looperNormalizationTarget = target;
+}
+
+bool isLooperAutoNormalizationEnabled() {
+    return looperAutoNormalizationEnabled;
+}
+
+float getLooperNormalizationTarget() {
+    return looperNormalizationTarget;
+}
+
+// Filtros
+void setLooperLowPassFilter(bool enabled) {
+    looperLowPassEnabled = enabled;
+    if (!enabled) {
+        looperLowPassX1 = looperLowPassX2 = looperLowPassY1 = looperLowPassY2 = 0.0f;
+    }
+}
+
+void setLooperLowPassFrequency(float frequency) {
+    looperLowPassFrequency = frequency;
+}
+
+void setLooperHighPassFilter(bool enabled) {
+    looperHighPassEnabled = enabled;
+    if (!enabled) {
+        looperHighPassX1 = looperHighPassX2 = looperHighPassY1 = looperHighPassY2 = 0.0f;
+    }
+}
+
+void setLooperHighPassFrequency(float frequency) {
+    looperHighPassFrequency = frequency;
+}
+
+bool isLooperLowPassEnabled() {
+    return looperLowPassEnabled;
+}
+
+bool isLooperHighPassEnabled() {
+    return looperHighPassEnabled;
+}
+
+float getLooperLowPassFrequency() {
+    return looperLowPassFrequency;
+}
+
+float getLooperHighPassFrequency() {
+    return looperHighPassFrequency;
+}
+
+// Reverb de cauda
+void setLooperReverbTail(bool enabled) {
+    looperReverbTailEnabled = enabled;
+    if (!enabled) {
+        // Limpar buffer de reverb
+        std::fill(looperReverbTailBuffer.begin(), looperReverbTailBuffer.end(), 0.0f);
+        looperReverbTailIndex = 0;
+    }
+}
+
+void setLooperReverbTailDecay(float decay) {
+    looperReverbTailDecay = decay;
+    looperReverbTailSize = (int)(decay * looperSampleRate);
+    looperReverbTailBuffer.resize(looperReverbTailSize, 0.0f);
+    looperReverbTailDecayCoeff = expf(-1.0f / (decay * looperSampleRate));
+    looperReverbTailIndex = 0;
+}
+
+void setLooperReverbTailMix(float mix) {
+    looperReverbTailMix = mix;
+}
+
+bool isLooperReverbTailEnabled() {
+    return looperReverbTailEnabled;
+}
+
+float getLooperReverbTailDecay() {
+    return looperReverbTailDecay;
+}
+
+float getLooperReverbTailMix() {
+    return looperReverbTailMix;
+}
+
 void cutLooperRegion(float start, float end) {
     // Encontrar a faixa ativa mais longa
     int maxLength = 0;
@@ -1417,4 +1717,6 @@ void applyLooperFadeOut(float start, float end) {
         buffer[startSample + i] *= fadeFactor;
     }
 }
+
+
 

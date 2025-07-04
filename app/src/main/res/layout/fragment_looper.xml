@@ -704,7 +704,244 @@
                 android:gravity="center"/>
         </LinearLayout>
 
-        <!-- ===== SEÇÃO 10: BPM ===== -->
+        <!-- ===== SEÇÃO 8: EFEITOS AVANÇADOS (FASE 5) ===== -->
+        <LinearLayout
+            android:id="@+id/looperAdvancedEffects"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="@drawable/header_background"
+            app:layout_constraintTop_toBottomOf="@id/looperSpecialControls"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Efeitos Avançados"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Linha 1: Compressão e Normalização -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Compressão:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Switch
+                    android:id="@+id/looperCompressionSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:layout_marginEnd="24dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Normalização:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Switch
+                    android:id="@+id/looperNormalizationSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"/>
+            </LinearLayout>
+
+            <!-- Linha 2: Compressão Threshold e Ratio -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Threshold:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <SeekBar
+                    android:id="@+id/looperCompressionThresholdSeekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="67"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/looperCompressionThresholdText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-20dB"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ratio:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <SeekBar
+                    android:id="@+id/looperCompressionRatioSeekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="16"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/looperCompressionRatioText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="4:1"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+
+            <!-- Linha 3: Filtros -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Low Pass:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Switch
+                    android:id="@+id/looperLowPassSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:layout_marginEnd="16dp"/>
+
+                <SeekBar
+                    android:id="@+id/looperLowPassFreqSeekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="80"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/looperLowPassFreqText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="8kHz"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="High Pass:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Switch
+                    android:id="@+id/looperHighPassSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"/>
+            </LinearLayout>
+
+            <!-- Linha 4: High Pass Frequency e Reverb Tail -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <SeekBar
+                    android:id="@+id/looperHighPassFreqSeekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="10"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/looperHighPassFreqText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="80Hz"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="24dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Reverb Tail:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Switch
+                    android:id="@+id/looperReverbTailSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:layout_marginEnd="8dp"/>
+
+                <SeekBar
+                    android:id="@+id/looperReverbTailDecaySeekBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="20"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/looperReverbTailDecayText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2.0s"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== SEÇÃO 9: BPM ===== -->
         <LinearLayout
             android:id="@+id/looperBPMControls"
             android:layout_width="0dp"
@@ -713,7 +950,7 @@
             android:gravity="center_vertical"
             android:padding="16dp"
             android:background="@drawable/header_background"
-            app:layout_constraintTop_toBottomOf="@id/looperSpecialControls"
+            app:layout_constraintTop_toBottomOf="@id/looperAdvancedEffects"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginTop="8dp"

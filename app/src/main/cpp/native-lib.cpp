@@ -630,6 +630,152 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_reverseLooperSlices(JNIEnv* en
     reverseLooperSlices();
 }
 
+// === JNI PARA EFEITOS AVANÇADOS DO LOOPER (FASE 5) ===
+
+// Compressão automática
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperAutoCompression(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperAutoCompression(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperCompressionThreshold(JNIEnv* env, jclass clazz, jfloat threshold) {
+    setLooperCompressionThreshold(threshold);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperCompressionRatio(JNIEnv* env, jclass clazz, jfloat ratio) {
+    setLooperCompressionRatio(ratio);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperCompressionAttack(JNIEnv* env, jclass clazz, jfloat attack) {
+    setLooperCompressionAttack(attack);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperCompressionRelease(JNIEnv* env, jclass clazz, jfloat release) {
+    setLooperCompressionRelease(release);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperAutoCompressionEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperAutoCompressionEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperCompressionThreshold(JNIEnv* env, jclass clazz) {
+    return getLooperCompressionThreshold();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperCompressionRatio(JNIEnv* env, jclass clazz) {
+    return getLooperCompressionRatio();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperCompressionAttack(JNIEnv* env, jclass clazz) {
+    return getLooperCompressionAttack();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperCompressionRelease(JNIEnv* env, jclass clazz) {
+    return getLooperCompressionRelease();
+}
+
+// Normalização automática
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperAutoNormalization(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperAutoNormalization(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperNormalizationTarget(JNIEnv* env, jclass clazz, jfloat target) {
+    setLooperNormalizationTarget(target);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperAutoNormalizationEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperAutoNormalizationEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperNormalizationTarget(JNIEnv* env, jclass clazz) {
+    return getLooperNormalizationTarget();
+}
+
+// Filtros
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperLowPassFilter(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperLowPassFilter(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperLowPassFrequency(JNIEnv* env, jclass clazz, jfloat frequency) {
+    setLooperLowPassFrequency(frequency);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperHighPassFilter(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperHighPassFilter(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperHighPassFrequency(JNIEnv* env, jclass clazz, jfloat frequency) {
+    setLooperHighPassFrequency(frequency);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperLowPassEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperLowPassEnabled();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperHighPassEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperHighPassEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperLowPassFrequency(JNIEnv* env, jclass clazz) {
+    return getLooperLowPassFrequency();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperHighPassFrequency(JNIEnv* env, jclass clazz) {
+    return getLooperHighPassFrequency();
+}
+
+// Reverb de cauda
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperReverbTail(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperReverbTail(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperReverbTailDecay(JNIEnv* env, jclass clazz, jfloat decay) {
+    setLooperReverbTailDecay(decay);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperReverbTailMix(JNIEnv* env, jclass clazz, jfloat mix) {
+    setLooperReverbTailMix(mix);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperReverbTailEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperReverbTailEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperReverbTailDecay(JNIEnv* env, jclass clazz) {
+    return getLooperReverbTailDecay();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperReverbTailMix(JNIEnv* env, jclass clazz) {
+    return getLooperReverbTailMix();
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_cutLooperRegion(JNIEnv* env, jclass clazz, jfloat start, jfloat end) {
     cutLooperRegion(start, end);
