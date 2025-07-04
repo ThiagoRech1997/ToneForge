@@ -10,6 +10,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
 
 /**
  * Unit tests for ToneForge app components.
@@ -35,7 +36,7 @@ public class ExampleUnitTest {
         when(mockContext.getSharedPreferences("latency_prefs", Context.MODE_PRIVATE)).thenReturn(mockPrefs);
         when(mockPrefs.edit()).thenReturn(mockEditor);
         when(mockEditor.putInt("latency_mode", 1)).thenReturn(mockEditor);
-        when(mockEditor.apply()).thenReturn();
+        doNothing().when(mockEditor).apply();
         when(mockPrefs.getInt("latency_mode", 1)).thenReturn(1);
     }
     
