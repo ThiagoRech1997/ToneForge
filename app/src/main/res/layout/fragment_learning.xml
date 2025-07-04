@@ -1,63 +1,547 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:background="@color/lava_dark_bg">
 
-    <TextView
-        android:id="@+id/learningTitle"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Aprendizado"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/learningTip"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Dica: Use o afinador para garantir o melhor som!"
-        android:textSize="20sp"
-        android:textColor="@color/white"
-        android:background="@color/dark_gray"
-        android:padding="24dp"
-        android:layout_marginTop="40dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        app:layout_constraintTop_toBottomOf="@id/learningTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <!-- Header do Aprendizado -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/header_background"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
 
-    <Button
-        android:id="@+id/learningNextTipButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Próxima dica"
-        android:backgroundTint="@color/green"
-        android:textColor="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/learningTip"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+            <TextView
+                android:id="@+id/learningTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Aprendizado Musical"
+                android:textColor="@color/lava_text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:gravity="center"/>
 
-    <FrameLayout
-        android:id="@+id/learningContentArea"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/dark_gray"
-        android:layout_marginTop="40dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="32dp"
-        app:layout_constraintTop_toBottomOf="@id/learningNextTipButton"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+            <TextView
+                android:id="@+id/learningDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Aprenda teoria musical, pratique exercícios e melhore suas habilidades"
+                android:textColor="@color/lava_text_secondary"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginTop="8dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout> 
+            <!-- Progresso Geral -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp">
+
+                <TextView
+                    android:id="@+id/progressText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Nível 1 - 0 pontos"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+
+                <ProgressBar
+                    android:id="@+id/overallProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:progressTint="@color/lava_blue"
+                    android:backgroundTint="@color/lava_text_secondary"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Botões de Navegação -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnStartExercise"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Exercícios"
+                android:textColor="@color/lava_text_primary"
+                android:background="@drawable/button_background"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnTheory"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Teoria"
+                android:textColor="@color/lava_text_primary"
+                android:background="@drawable/button_background"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"/>
+
+            <Button
+                android:id="@+id/btnPractice"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Prática"
+                android:textColor="@color/lava_text_primary"
+                android:background="@drawable/button_background"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"/>
+
+            <Button
+                android:id="@+id/btnChallenge"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Desafios"
+                android:textColor="@color/lava_text_primary"
+                android:background="@drawable/button_background"
+                android:layout_marginStart="8dp"/>
+
+        </LinearLayout>
+
+        <!-- Container de Exercícios -->
+        <LinearLayout
+            android:id="@+id/exerciseContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/effect_card_background"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <!-- Header do Exercício -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/exerciseTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Exercício Atual"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/exerciseDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Descrição do exercício"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="14sp"
+                        android:layout_marginTop="4dp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="end">
+
+                    <TextView
+                        android:id="@+id/scoreText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pontuação: 0"
+                        android:textColor="@color/lava_green"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/levelText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nível: 1"
+                        android:textColor="@color/lava_blue"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Progresso do Exercício -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/exerciseProgress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tempo: 60s"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="16sp"
+                    android:gravity="center"/>
+
+                <ProgressBar
+                    android:id="@+id/exerciseProgressBar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:progressTint="@color/lava_orange"
+                    android:backgroundTint="@color/lava_text_secondary"/>
+
+            </LinearLayout>
+
+            <!-- Botões do Exercício -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnHint"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Dica"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnNextExercise"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Próximo"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginStart="8dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Container de Teoria -->
+        <LinearLayout
+            android:id="@+id/theoryContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/effect_card_background"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <!-- Header da Teoria -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/theoryTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Teoria Musical"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/theoryProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1 / 8"
+                    android:textColor="@color/lava_text_secondary"
+                    android:textSize="14sp"/>
+
+            </LinearLayout>
+
+            <!-- Conteúdo da Teoria -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/theoryContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Conteúdo da teoria musical..."
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="4dp"/>
+
+            </ScrollView>
+
+            <!-- Botões de Navegação da Teoria -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnPreviousTheory"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Anterior"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnNextTheory"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Próximo"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginStart="8dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Container de Prática -->
+        <LinearLayout
+            android:id="@+id/practiceContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/effect_card_background"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <!-- Header da Prática -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/practiceTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sessão de Prática"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/practiceDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Configure o metrônomo e pratique suas habilidades"
+                    android:textColor="@color/lava_text_secondary"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp"/>
+
+            </LinearLayout>
+
+            <!-- Controles de Tempo -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tempoText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tempo: 120 BPM"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp"/>
+
+                <SeekBar
+                    android:id="@+id/tempoSeekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="120"
+                    android:progress="60"
+                    android:progressTint="@color/lava_blue"
+                    android:thumbTint="@color/lava_blue"
+                    android:backgroundTint="@color/lava_text_secondary"/>
+
+            </LinearLayout>
+
+            <!-- Controles de Prática -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Metrônomo:"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"/>
+
+                    <Switch
+                        android:id="@+id/metronomeSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:checked="true"/>
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/practiceTimer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/lava_green"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+
+            </LinearLayout>
+
+            <!-- Botões de Prática -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStartPractice"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Iniciar"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnStopPractice"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Parar"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginStart="8dp"
+                    android:enabled="false"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Container de Desafios (Placeholder) -->
+        <LinearLayout
+            android:id="@+id/challengeContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/effect_card_background"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/challengeTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Desafios Musicais"
+                android:textColor="@color/lava_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/challengeDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Teste suas habilidades em desafios cronometrados"
+                android:textColor="@color/lava_text_secondary"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/challengeScore"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Melhor Pontuação: 0"
+                android:textColor="@color/lava_green"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="16dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStartChallenge"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Iniciar Desafio"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnViewLeaderboard"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Ranking"
+                    android:textColor="@color/lava_text_primary"
+                    android:background="@drawable/button_background"
+                    android:layout_marginStart="8dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView> 

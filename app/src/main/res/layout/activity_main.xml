@@ -37,6 +37,26 @@
             android:gravity="center"/>
 
         <ImageButton
+            android:id="@+id/btnWifi"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_wifi"
+            android:tint="@color/lava_text_primary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Wi-Fi"
+            android:layout_marginEnd="8dp"/>
+
+        <ImageButton
+            android:id="@+id/btnVolume"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_volume_up"
+            android:tint="@color/lava_text_primary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Volume"
+            android:layout_marginEnd="8dp"/>
+
+        <ImageButton
             android:id="@+id/btnPower"
             android:layout_width="32dp"
             android:layout_height="32dp"

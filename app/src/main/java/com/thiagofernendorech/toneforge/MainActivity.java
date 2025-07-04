@@ -17,6 +17,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
+import android.net.wifi.WifiManager;
+import android.content.Context;
+import android.widget.ImageView;
+import android.app.AlertDialog;
+import android.widget.SeekBar;
 
 public class MainActivity extends AppCompatActivity implements PermissionManager.PermissionCallback {
     
@@ -24,6 +32,9 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
     private LatencyManager latencyManager;
     private TextView headerTitle;
     private Timer timeUpdateTimer;
+    private ImageView btnWifi;
+    private ImageView btnVolume;
+    private ImageView btnPower;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +44,9 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         
         // Inicializar views
         headerTitle = findViewById(R.id.headerTitle);
+        btnWifi = findViewById(R.id.btnWifi);
+        btnVolume = findViewById(R.id.btnVolume);
+        btnPower = findViewById(R.id.btnPower);
         
         // Inicializar gerenciadores
         stateRecoveryManager = StateRecoveryManager.getInstance(this);
@@ -63,6 +77,9 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         
         // Carregar fragment inicial
         loadFragment(new HomeFragment());
+        
+        // Iniciar timer para atualização de status
+        startStatusUpdateTimer();
     }
     
     private void setupNavigation() {
@@ -72,10 +89,19 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
             updateHeaderTitle("ToneForge");
         });
         
-        // Botão Power
-        findViewById(R.id.btnPower).setOnClickListener(v -> {
-            // Implementar funcionalidade de power
-            Toast.makeText(this, "Power", Toast.LENGTH_SHORT).show();
+        // Botão Power - Sistema de Power Management
+        btnPower.setOnClickListener(v -> {
+            showPowerOptionsDialog();
+        });
+        
+        // Botão Wi-Fi - Status de conectividade
+        btnWifi.setOnClickListener(v -> {
+            showWifiStatusDialog();
+        });
+        
+        // Botão Volume - Controle de volume do sistema
+        btnVolume.setOnClickListener(v -> {
+            showVolumeControlDialog();
         });
     }
     
@@ -186,5 +212,208 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
             timeUpdateTimer.cancel();
             timeUpdateTimer = null;
         }
+    }
+    
+    private void showPowerOptionsDialog() {
+        String[] options = {
+            "Modo Performance (Baixa Latência)",
+            "Modo Economia (Baixo Consumo)",
+            "Modo Normal (Equilibrado)",
+            "Configurações de Energia"
+        };
+        
+        new AlertDialog.Builder(this)
+            .setTitle("Gerenciamento de Energia")
+            .setItems(options, (dialog, which) -> {
+                switch (which) {
+                    case 0:
+                        setPowerMode("performance");
+                        break;
+                    case 1:
+                        setPowerMode("economy");
+                        break;
+                    case 2:
+                        setPowerMode("normal");
+                        break;
+                    case 3:
+                        openPowerSettings();
+                        break;
+                }
+            })
+            .show();
+    }
+    
+    private void setPowerMode(String mode) {
+        // Implementar mudança de modo de energia
+        switch (mode) {
+            case "performance":
+                latencyManager.setLatencyMode(LatencyManager.MODE_LOW_LATENCY);
+                AudioEngine.setOversamplingEnabled(true);
+                AudioEngine.setOversamplingFactor(4);
+                Toast.makeText(this, "Modo Performance ativado", Toast.LENGTH_SHORT).show();
+                break;
+            case "economy":
+                latencyManager.setLatencyMode(LatencyManager.MODE_STABILITY);
+                AudioEngine.setOversamplingEnabled(false);
+                Toast.makeText(this, "Modo Economia ativado", Toast.LENGTH_SHORT).show();
+                break;
+            case "normal":
+                latencyManager.setLatencyMode(LatencyManager.MODE_BALANCED);
+                AudioEngine.setOversamplingEnabled(true);
+                AudioEngine.setOversamplingFactor(2);
+                Toast.makeText(this, "Modo Normal ativado", Toast.LENGTH_SHORT).show();
+                break;
+        }
+        updatePowerButtonIcon();
+    }
+    
+    private void showWifiStatusDialog() {
+        try {
+            // Verificar se temos permissão para acessar o Wi-Fi
+            if (checkSelfPermission(android.Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED) {
+                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                boolean isWifiEnabled = wifiManager.isWifiEnabled();
+                
+                String status = isWifiEnabled ? "Wi-Fi Conectado" : "Wi-Fi Desconectado";
+                String action = isWifiEnabled ? "Desconectar" : "Conectar";
+                
+                new AlertDialog.Builder(this)
+                    .setTitle("Status Wi-Fi")
+                    .setMessage(status)
+                    .setPositiveButton(action, (dialog, which) -> {
+                        try {
+                            if (checkSelfPermission(android.Manifest.permission.CHANGE_WIFI_STATE) == PackageManager.PERMISSION_GRANTED) {
+                                if (isWifiEnabled) {
+                                    wifiManager.setWifiEnabled(false);
+                                } else {
+                                    wifiManager.setWifiEnabled(true);
+                                }
+                                updateWifiButtonIcon();
+                            } else {
+                                Toast.makeText(this, "Permissão necessária para alterar Wi-Fi", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (SecurityException e) {
+                            Toast.makeText(this, "Erro ao alterar Wi-Fi", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+            } else {
+                // Se não temos permissão, mostrar mensagem
+                new AlertDialog.Builder(this)
+                    .setTitle("Status Wi-Fi")
+                    .setMessage("Permissão necessária para acessar Wi-Fi")
+                    .setPositiveButton("OK", null)
+                    .show();
+            }
+        } catch (SecurityException e) {
+            // Em caso de erro de segurança, mostrar mensagem
+            new AlertDialog.Builder(this)
+                .setTitle("Status Wi-Fi")
+                .setMessage("Erro ao acessar Wi-Fi")
+                .setPositiveButton("OK", null)
+                .show();
+        }
+    }
+    
+    private void showVolumeControlDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_volume_control, null);
+        SeekBar volumeSeekBar = dialogView.findViewById(R.id.volumeSeekBar);
+        TextView volumeText = dialogView.findViewById(R.id.volumeText);
+        
+        // Configurar SeekBar para volume do sistema
+        volumeSeekBar.setMax(100);
+        volumeSeekBar.setProgress(50); // Valor padrão
+        
+        volumeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                volumeText.setText("Volume: " + progress + "%");
+                // Aqui você implementaria o controle de volume do sistema
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        
+        new AlertDialog.Builder(this)
+            .setTitle("Controle de Volume")
+            .setView(dialogView)
+            .setPositiveButton("OK", null)
+            .show();
+    }
+    
+    private void startStatusUpdateTimer() {
+        timeUpdateTimer = new Timer();
+        timeUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(() -> {
+                    updateStatusIcons();
+                });
+            }
+        }, 0, 5000); // Atualizar a cada 5 segundos
+    }
+    
+    private void updateStatusIcons() {
+        updateBatteryIcon();
+        updateWifiButtonIcon();
+        updatePowerButtonIcon();
+    }
+    
+    private void updateBatteryIcon() {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = registerReceiver(null, ifilter);
+        
+        if (batteryStatus != null) {
+            int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            float batteryPct = level * 100 / (float) scale;
+            
+            // Atualizar ícone de bateria baseado no nível
+            if (batteryPct < 20) {
+                // Ícone de bateria baixa
+            } else if (batteryPct < 50) {
+                // Ícone de bateria média
+            } else {
+                // Ícone de bateria alta
+            }
+        }
+    }
+    
+    private void updateWifiButtonIcon() {
+        try {
+            // Verificar se temos permissão para acessar o Wi-Fi
+            if (checkSelfPermission(android.Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED) {
+                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                boolean isWifiEnabled = wifiManager.isWifiEnabled();
+                
+                if (isWifiEnabled) {
+                    btnWifi.setImageResource(R.drawable.ic_wifi);
+                    btnWifi.setColorFilter(getResources().getColor(R.color.lava_green));
+                } else {
+                    btnWifi.setImageResource(R.drawable.ic_wifi);
+                    btnWifi.setColorFilter(getResources().getColor(R.color.lava_text_secondary));
+                }
+            } else {
+                // Se não temos permissão, mostrar ícone neutro
+                btnWifi.setImageResource(R.drawable.ic_wifi);
+                btnWifi.setColorFilter(getResources().getColor(R.color.lava_text_secondary));
+            }
+        } catch (SecurityException e) {
+            // Em caso de erro de segurança, mostrar ícone neutro
+            btnWifi.setImageResource(R.drawable.ic_wifi);
+            btnWifi.setColorFilter(getResources().getColor(R.color.lava_text_secondary));
+        }
+    }
+    
+    private void updatePowerButtonIcon() {
+        // Atualizar ícone baseado no modo de energia atual
+        btnPower.setImageResource(R.drawable.ic_power);
+        btnPower.setColorFilter(getResources().getColor(R.color.lava_blue));
+    }
+    
+    private void openPowerSettings() {
+        Intent intent = new Intent(android.provider.Settings.ACTION_BATTERY_SAVER_SETTINGS);
+        startActivity(intent);
     }
 }
