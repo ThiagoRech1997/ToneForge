@@ -625,17 +625,17 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_reverseLooperSlices(JNIEnv* en
     reverseLooperSlices();
 }
 
-JNIEXPORT void JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_cutLooperRegion(JNIEnv* env, jclass clazz, jfloat start, jfloat end) {
     cutLooperRegion(start, end);
 }
 
-JNIEXPORT void JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_applyLooperFadeIn(JNIEnv* env, jclass clazz, jfloat start, jfloat end) {
     applyLooperFadeIn(start, end);
 }
 
-JNIEXPORT void JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_applyLooperFadeOut(JNIEnv* env, jclass clazz, jfloat start, jfloat end) {
     applyLooperFadeOut(start, end);
 }
