@@ -36,6 +36,12 @@ public class WaveformView extends View {
     private boolean useRMS = true; // Usar RMS ou forma de onda direta
     private boolean editMode = false; // Modo de edição ativo
     
+    // Zoom functionality
+    private float zoomLevel = 1.0f; // 1.0 = normal, 2.0 = 2x zoom, etc.
+    private float zoomCenter = 0.5f; // Center of zoom (0.0 to 1.0)
+    private static final float MIN_ZOOM = 1.0f;
+    private static final float MAX_ZOOM = 10.0f;
+    
     private OnWaveformClickListener listener;
     private OnWaveformSelectionListener selectionListener;
     
@@ -165,6 +171,31 @@ public class WaveformView extends View {
         return showSelection;
     }
     
+    // Zoom methods
+    public void zoomIn() {
+        if (zoomLevel < MAX_ZOOM) {
+            zoomLevel = Math.min(MAX_ZOOM, zoomLevel * 1.5f);
+            invalidate();
+        }
+    }
+    
+    public void zoomOut() {
+        if (zoomLevel > MIN_ZOOM) {
+            zoomLevel = Math.max(MIN_ZOOM, zoomLevel / 1.5f);
+            invalidate();
+        }
+    }
+    
+    public void resetZoom() {
+        zoomLevel = 1.0f;
+        zoomCenter = 0.5f;
+        invalidate();
+    }
+    
+    public float getZoomLevel() {
+        return zoomLevel;
+    }
+    
     public void setOnWaveformClickListener(OnWaveformClickListener listener) {
         this.listener = listener;
     }
@@ -231,6 +262,21 @@ public class WaveformView extends View {
         float centerY = height / 2f;
         float scaleY = height / 2f * 0.8f; // 80% da altura
         
+        // Apply zoom transformation
+        canvas.save();
+        if (zoomLevel > 1.0f) {
+            // Calculate zoom parameters
+            float zoomWidth = width / zoomLevel;
+            float zoomOffset = (zoomCenter - 0.5f) * (width - zoomWidth);
+            
+            // Apply zoom transformation
+            canvas.translate(zoomOffset, 0);
+            canvas.scale(zoomLevel, 1.0f);
+            
+            // Adjust width for zoomed drawing
+            width = (int) zoomWidth;
+        }
+        
         Path waveformPath = new Path();
         waveformPath.moveTo(0, centerY);
         
@@ -272,12 +318,15 @@ public class WaveformView extends View {
         // Desenhar a forma de onda
         canvas.drawPath(waveformPath, waveformPaint);
         
-        // Desenhar linha central
+        // Restore canvas transformation
+        canvas.restore();
+        
+        // Desenhar linha central (after restore to avoid zoom)
         Paint centerLinePaint = new Paint();
         centerLinePaint.setColor(Color.parseColor("#444444"));
         centerLinePaint.setStyle(Paint.Style.STROKE);
         centerLinePaint.setStrokeWidth(1f);
-        canvas.drawLine(0, centerY, width, centerY, centerLinePaint);
+        canvas.drawLine(0, centerY, getWidth(), centerY, centerLinePaint);
     }
     
     private void drawPlayhead(Canvas canvas, int width, int height) {
@@ -306,6 +355,12 @@ public class WaveformView extends View {
         if (isPlaying) {
             String position = String.format("Pos: %.1f%%", playheadPosition * 100);
             canvas.drawText(position, width - 80, height - 10, textPaint);
+        }
+        
+        // Show zoom level if zoomed
+        if (zoomLevel > 1.0f) {
+            String zoomInfo = String.format("Zoom: %.1fx", zoomLevel);
+            canvas.drawText(zoomInfo, width / 2 - 30, height - 10, textPaint);
         }
     }
     

@@ -64,8 +64,8 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     // Controles de Edição
     private Switch looperEditModeSwitch;
     private Button looperCutButton;
-    private Button looperFadeInButton;
-    private Button looperFadeOutButton;
+    private Button looperZoomInButton;
+    private Button looperZoomOutButton;
     private TextView looperSelectionInfoText;
     
     // Adapter para faixas
@@ -168,8 +168,8 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         // Controles de Edição
         looperEditModeSwitch = view.findViewById(R.id.looperEditModeSwitch);
         looperCutButton = view.findViewById(R.id.looperCutButton);
-        looperFadeInButton = view.findViewById(R.id.looperFadeInButton);
-        looperFadeOutButton = view.findViewById(R.id.looperFadeOutButton);
+        looperZoomInButton = view.findViewById(R.id.looperZoomInButton);
+        looperZoomOutButton = view.findViewById(R.id.looperZoomOutButton);
         looperSelectionInfoText = view.findViewById(R.id.looperSelectionInfoText);
     }
     
@@ -387,18 +387,14 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             }
         });
         
-        // Botão Fade In
-        looperFadeInButton.setOnClickListener(v -> {
-            if (looperWaveformView.hasSelection()) {
-                applyFadeIn();
-            }
+        // Botão Zoom In
+        looperZoomInButton.setOnClickListener(v -> {
+            looperWaveformView.zoomIn();
         });
         
-        // Botão Fade Out
-        looperFadeOutButton.setOnClickListener(v -> {
-            if (looperWaveformView.hasSelection()) {
-                applyFadeOut();
-            }
+        // Botão Zoom Out
+        looperZoomOutButton.setOnClickListener(v -> {
+            looperWaveformView.zoomOut();
         });
         
         // Listener para mudanças na seleção
@@ -413,8 +409,8 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         boolean editMode = looperEditModeSwitch.isChecked();
         
         looperCutButton.setEnabled(editMode && hasSelection);
-        looperFadeInButton.setEnabled(editMode && hasSelection);
-        looperFadeOutButton.setEnabled(editMode && hasSelection);
+        looperZoomInButton.setEnabled(editMode);
+        looperZoomOutButton.setEnabled(editMode);
     }
     
     private void updateSelectionInfo(float start, float end) {
@@ -457,39 +453,7 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         updateWaveformData();
     }
     
-    private void applyFadeIn() {
-        float start = looperWaveformView.getSelectionStart();
-        float end = looperWaveformView.getSelectionEnd();
-        
-        if (start > end) {
-            float temp = start;
-            start = end;
-            end = temp;
-        }
-        
-        // Implementar fade in no código nativo
-        AudioEngine.applyLooperFadeIn(start, end);
-        
-        // Atualizar visualização
-        updateWaveformData();
-    }
-    
-    private void applyFadeOut() {
-        float start = looperWaveformView.getSelectionStart();
-        float end = looperWaveformView.getSelectionEnd();
-        
-        if (start > end) {
-            float temp = start;
-            start = end;
-            end = temp;
-        }
-        
-        // Implementar fade out no código nativo
-        AudioEngine.applyLooperFadeOut(start, end);
-        
-        // Atualizar visualização
-        updateWaveformData();
-    }
+
     
     private void updateSlicesInfo() {
         if (AudioEngine.isLooperSlicingEnabled()) {
