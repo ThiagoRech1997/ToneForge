@@ -77,6 +77,16 @@ public class AudioEngine {
         return PipelineManager.getInstance().isRunning();
     }
 
+    // Garante que o pipeline de áudio está ativo
+    public static void startPipelineIfNeeded() {
+        if (!isAudioPipelineRunning()) {
+            Log.d("AudioEngine", "Pipeline de áudio não estava ativo. Iniciando...");
+            startAudioPipeline();
+        } else {
+            Log.d("AudioEngine", "Pipeline de áudio já está ativo.");
+        }
+    }
+
     // Métodos JNI existentes
     public static native void setGainEnabled(boolean enabled);
     public static native void setGainLevel(float level);
@@ -98,6 +108,18 @@ public class AudioEngine {
     public static native void startLooperPlayback();
     public static native void stopLooperPlayback();
     public static native void clearLooper();
+    
+    // Novos métodos para looper avançado
+    public static native int getLooperLength();
+    public static native int getLooperPosition();
+    public static native void setLooperTrackVolume(int trackIndex, float volume);
+    public static native void setLooperTrackMuted(int trackIndex, boolean muted);
+    public static native void setLooperTrackSoloed(int trackIndex, boolean soloed);
+    public static native void removeLooperTrack(int trackIndex);
+    public static native void setLooperBPM(int bpm);
+    public static native void setLooperSyncEnabled(boolean enabled);
+    public static native boolean isLooperRecording();
+    public static native boolean isLooperPlaying();
 
     // Gravador
     public static native void startRecording();
@@ -178,4 +200,21 @@ public class AudioEngine {
     public static native void setOversamplingFactor(int factor);
     public static native boolean isOversamplingEnabled();
     public static native int getOversamplingFactor();
+
+    // Novos métodos JNI para obter o mix do looper como float[]
+    public static native float[] getLooperMix();
+    
+    // Método JNI para carregar áudio no looper
+    public static native void loadLooperFromAudio(float[] audioData);
+
+    // Funcionalidades especiais do looper
+    public static native void setLooperReverse(boolean enabled);
+    public static native void setLooperSpeed(float speed);
+    public static native void setLooperPitchShift(float semitones);
+    public static native void setLooperStutter(boolean enabled, float rate);
+    public static native boolean isLooperReverseEnabled();
+    public static native float getLooperSpeed();
+    public static native float getLooperPitchShift();
+    public static native boolean isLooperStutterEnabled();
+    public static native float getLooperStutterRate();
 } 

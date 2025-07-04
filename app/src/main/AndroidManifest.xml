@@ -57,6 +57,18 @@
             android:foregroundServiceType="mediaPlayback"
             android:stopWithTask="false"
             android:description="@string/audio_background_service_description" />
+            
+        <!-- FileProvider para compartilhamento de arquivos -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.thiagofernendorech.toneforge.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true"
+            android:requestLegacyExternalStorage="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

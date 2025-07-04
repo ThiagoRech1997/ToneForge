@@ -52,12 +52,37 @@ static bool metronomeClick = false;
 
 // --- Looper ---
 static const int LOOPER_MAX_SAMPLES = 48000 * 30; // até 30 segundos a 48kHz
-static float looperBuffer[LOOPER_MAX_SAMPLES];
+static const int LOOPER_MAX_TRACKS = 8; // máximo 8 faixas
+
+// Estrutura para uma faixa do looper
+struct LooperTrack {
+    float buffer[LOOPER_MAX_SAMPLES];
+    int length = 0;
+    float volume = 1.0f;
+    bool muted = false;
+    bool soloed = false;
+    bool active = false;
+};
+
+static LooperTrack looperTracks[LOOPER_MAX_TRACKS];
+static int currentTrack = 0;
 static int looperLength = 0;
 static int looperWriteIndex = 0;
 static int looperReadIndex = 0;
 static bool looperRecording = false;
 static bool looperPlaying = false;
+static bool looperSyncEnabled = false;
+static int looperBPM = 120;
+static int looperSampleRate = 48000;
+
+// Funcionalidades especiais do looper
+static bool looperReverse = false;
+static float looperSpeed = 1.0f;
+static float looperPitchShift = 0.0f;
+static bool looperStutter = false;
+static float looperStutterRate = 4.0f; // 4 Hz por padrão
+static float looperStutterPhase = 0.0f;
+static int looperStutterCounter = 0;
 
 // --- Afinador (Tuner) ---
 static bool tunerActive = false;
@@ -300,20 +325,49 @@ void startLooperRecording() {
     looperRecording = true;
     looperPlaying = false;
     looperWriteIndex = 0;
-    looperLength = 0;
-    memset(looperBuffer, 0, sizeof(looperBuffer));
+    
+    printf("startLooperRecording: iniciando gravação\n");
+    
+    // Encontrar próxima faixa disponível
+    bool foundTrack = false;
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (!looperTracks[i].active) {
+            currentTrack = i;
+            foundTrack = true;
+            printf("startLooperRecording: usando track %d (disponível)\n", i);
+            break;
+        }
+    }
+    
+    // Se não encontrou faixa disponível, usar a primeira
+    if (!foundTrack) {
+        currentTrack = 0;
+        printf("startLooperRecording: usando track 0 (primeira)\n");
+    }
+    
+    // Limpar buffer da faixa atual
+    memset(looperTracks[currentTrack].buffer, 0, sizeof(looperTracks[currentTrack].buffer));
+    looperTracks[currentTrack].length = 0;
+    looperTracks[currentTrack].volume = 1.0f;
+    looperTracks[currentTrack].muted = false;
+    looperTracks[currentTrack].soloed = false;
+    looperTracks[currentTrack].active = true;
+    
+    printf("startLooperRecording: track %d configurada para gravação\n", currentTrack);
 }
 
 void stopLooperRecording() {
     looperRecording = false;
+    printf("stopLooperRecording: looperWriteIndex=%d, currentTrack=%d\n", looperWriteIndex, currentTrack);
     if (looperWriteIndex > 0) {
-        looperLength = looperWriteIndex;
+        looperTracks[currentTrack].length = looperWriteIndex;
+        printf("stopLooperRecording: definido length=%d para track %d\n", looperWriteIndex, currentTrack);
     }
     looperReadIndex = 0;
 }
 
 void startLooperPlayback() {
-    if (looperLength > 0) {
+    if (looperTracks[currentTrack].length > 0) {
         looperPlaying = true;
         looperReadIndex = 0;
     }
@@ -326,10 +380,19 @@ void stopLooperPlayback() {
 void clearLooper() {
     looperRecording = false;
     looperPlaying = false;
-    looperLength = 0;
     looperWriteIndex = 0;
     looperReadIndex = 0;
-    memset(looperBuffer, 0, sizeof(looperBuffer));
+    currentTrack = 0;
+    
+    // Limpar todas as faixas
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        memset(looperTracks[i].buffer, 0, sizeof(looperTracks[i].buffer));
+        looperTracks[i].length = 0;
+        looperTracks[i].volume = 1.0f;
+        looperTracks[i].muted = false;
+        looperTracks[i].soloed = false;
+        looperTracks[i].active = false;
+    }
 }
 
 bool isLooperRecording() { return looperRecording; }
@@ -631,12 +694,113 @@ float processSample(float input) {
     output += getMetronomeSample();
     // Looper: gravação
     if (looperRecording && looperWriteIndex < LOOPER_MAX_SAMPLES) {
-        looperBuffer[looperWriteIndex++] = output;
+        looperTracks[currentTrack].buffer[looperWriteIndex++] = output;
+        looperTracks[currentTrack].active = true;
+        
+        // Log a cada 10000 samples para debug
+        if (looperWriteIndex % 10000 == 0) {
+            printf("looperRecording: gravados %d samples na track %d\n", looperWriteIndex, currentTrack);
+        }
     }
-    // Looper: reprodução
-    if (looperPlaying && looperLength > 0) {
-        output += looperBuffer[looperReadIndex++];
-        if (looperReadIndex >= looperLength) looperReadIndex = 0;
+    
+    // Looper: reprodução de múltiplas faixas
+    if (looperPlaying) {
+        float looperOutput = 0.0f;
+        bool hasSoloedTrack = false;
+        
+        // Verificar se há alguma faixa em solo
+        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+            if (looperTracks[i].soloed && looperTracks[i].active) {
+                hasSoloedTrack = true;
+                break;
+            }
+        }
+        
+        // Aplicar stutter se ativado
+        bool shouldPlayStutter = true;
+        if (looperStutter) {
+            looperStutterPhase += looperStutterRate / looperSampleRate;
+            if (looperStutterPhase >= 1.0f) {
+                looperStutterPhase -= 1.0f;
+            }
+            shouldPlayStutter = (looperStutterPhase < 0.5f); // 50% duty cycle
+        }
+        
+        if (shouldPlayStutter) {
+            // Calcular posição de leitura com speed e reverse
+            int readPos = looperReadIndex;
+            
+            if (looperReverse) {
+                // Reprodução reversa
+                int maxLength = 0;
+                for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+                    if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+                        maxLength = looperTracks[i].length;
+                    }
+                }
+                if (maxLength > 0) {
+                    readPos = maxLength - 1 - looperReadIndex;
+                }
+            }
+            
+            // Aplicar speed (interpolação linear simples)
+            float speedPos = looperReadIndex * looperSpeed;
+            int pos1 = (int)speedPos;
+            int pos2 = pos1 + 1;
+            float frac = speedPos - pos1;
+            
+            // Reproduzir faixas
+            for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+                if (looperTracks[i].active && looperTracks[i].length > 0) {
+                    // Verificar se deve reproduzir esta faixa
+                    bool shouldPlay = true;
+                    if (hasSoloedTrack) {
+                        shouldPlay = looperTracks[i].soloed;
+                    } else {
+                        shouldPlay = !looperTracks[i].muted;
+                    }
+                    
+                    if (shouldPlay) {
+                        float trackSample = 0.0f;
+                        
+                        // Interpolação linear para speed
+                        if (pos1 < looperTracks[i].length && pos2 < looperTracks[i].length) {
+                            float sample1 = looperTracks[i].buffer[pos1];
+                            float sample2 = looperTracks[i].buffer[pos2];
+                            trackSample = sample1 + frac * (sample2 - sample1);
+                        } else if (pos1 < looperTracks[i].length) {
+                            trackSample = looperTracks[i].buffer[pos1];
+                        }
+                        
+                        // Aplicar pitch shift (simplificado - apenas mudança de velocidade)
+                        if (looperPitchShift != 0.0f) {
+                            // Para uma implementação mais avançada, seria necessário um pitch shifter
+                            // Por enquanto, apenas aplicamos uma pequena modulação
+                            float pitchMod = 1.0f + (looperPitchShift / 12.0f) * 0.1f;
+                            trackSample *= pitchMod;
+                        }
+                        
+                        trackSample *= looperTracks[i].volume;
+                        looperOutput += trackSample;
+                    }
+                }
+            }
+        }
+        
+        output += looperOutput;
+        looperReadIndex++;
+        
+        // Resetar posição de leitura quando chegar ao fim do loop mais longo
+        int maxLength = 0;
+        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+            if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+                maxLength = looperTracks[i].length;
+            }
+        }
+        
+        if (maxLength > 0 && looperReadIndex >= maxLength) {
+            looperReadIndex = 0;
+        }
     }
     // Limitar para evitar clipping
     if (output > 1.0f) output = 1.0f;
@@ -812,5 +976,193 @@ bool isOversamplingEnabled() {
 
 int getOversamplingFactor() {
     return oversamplingFactor;
+}
+
+// Implementações das novas funções do looper avançado
+
+int getLooperLength() {
+    int length = looperTracks[currentTrack].length;
+    printf("getLooperLength: currentTrack=%d, length=%d\n", currentTrack, length);
+    return length;
+}
+
+int getLooperPosition() {
+    if (looperRecording) {
+        return looperWriteIndex;
+    } else {
+        return looperReadIndex;
+    }
+}
+
+void setLooperTrackVolume(int trackIndex, float volume) {
+    if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
+        looperTracks[trackIndex].volume = volume;
+    }
+}
+
+void setLooperTrackMuted(int trackIndex, bool muted) {
+    if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
+        looperTracks[trackIndex].muted = muted;
+    }
+}
+
+void setLooperTrackSoloed(int trackIndex, bool soloed) {
+    if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
+        looperTracks[trackIndex].soloed = soloed;
+    }
+}
+
+void removeLooperTrack(int trackIndex) {
+    if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
+        // Limpar a faixa
+        memset(looperTracks[trackIndex].buffer, 0, sizeof(looperTracks[trackIndex].buffer));
+        looperTracks[trackIndex].length = 0;
+        looperTracks[trackIndex].volume = 1.0f;
+        looperTracks[trackIndex].muted = false;
+        looperTracks[trackIndex].soloed = false;
+        looperTracks[trackIndex].active = false;
+        
+        // Se era a faixa atual, encontrar próxima faixa ativa
+        if (trackIndex == currentTrack) {
+            for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+                if (looperTracks[i].active) {
+                    currentTrack = i;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void setLooperBPM(int bpm) {
+    if (bpm >= 60 && bpm <= 200) {
+        looperBPM = bpm;
+    }
+}
+
+void setLooperSyncEnabled(bool enabled) {
+    looperSyncEnabled = enabled;
+}
+
+float* getLooperMix(int* outLength) {
+    // Encontrar o maior comprimento de faixa
+    int maxLength = 0;
+    int activeTracks = 0;
+    
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (looperTracks[i].active && looperTracks[i].length > 0) {
+            activeTracks++;
+            if (looperTracks[i].length > maxLength) {
+                maxLength = looperTracks[i].length;
+            }
+        }
+    }
+    
+    // Log para debug
+    printf("getLooperMix: activeTracks=%d, maxLength=%d\n", activeTracks, maxLength);
+    
+    if (maxLength == 0) {
+        *outLength = 0;
+        return nullptr;
+    }
+    
+    float* mix = new float[maxLength];
+    for (int i = 0; i < maxLength; i++) {
+        float sum = 0.0f;
+        for (int t = 0; t < LOOPER_MAX_TRACKS; t++) {
+            if (looperTracks[t].active && looperTracks[t].length > i) {
+                sum += looperTracks[t].buffer[i] * looperTracks[t].volume;
+            }
+        }
+        // Limitar para evitar clipping
+        if (sum > 1.0f) sum = 1.0f;
+        if (sum < -1.0f) sum = -1.0f;
+        mix[i] = sum;
+    }
+    
+    *outLength = maxLength;
+    printf("getLooperMix: retornando mix com %d samples\n", maxLength);
+    return mix;
+}
+
+void loadLooperFromAudio(const float* audioData, int length) {
+    if (audioData == nullptr || length <= 0 || length > LOOPER_MAX_SAMPLES) {
+        return;
+    }
+    
+    // Parar gravação e reprodução se estiverem ativas
+    looperRecording = false;
+    looperPlaying = false;
+    
+    // Limpar todas as faixas existentes
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        memset(looperTracks[i].buffer, 0, sizeof(looperTracks[i].buffer));
+        looperTracks[i].length = 0;
+        looperTracks[i].volume = 1.0f;
+        looperTracks[i].muted = false;
+        looperTracks[i].soloed = false;
+        looperTracks[i].active = false;
+    }
+    
+    // Carregar o áudio na primeira faixa
+    memcpy(looperTracks[0].buffer, audioData, length * sizeof(float));
+    looperTracks[0].length = length;
+    looperTracks[0].active = true;
+    looperTracks[0].volume = 1.0f;
+    looperTracks[0].muted = false;
+    looperTracks[0].soloed = false;
+    
+    // Definir como faixa atual
+    currentTrack = 0;
+    
+    // Atualizar comprimento do looper
+    looperLength = length;
+    looperWriteIndex = 0;
+    looperReadIndex = 0;
+}
+
+// Implementações das funcionalidades especiais do looper
+
+void setLooperReverse(bool enabled) {
+    looperReverse = enabled;
+}
+
+void setLooperSpeed(float speed) {
+    if (speed >= 0.25f && speed <= 4.0f) {
+        looperSpeed = speed;
+    }
+}
+
+void setLooperPitchShift(float semitones) {
+    if (semitones >= -12.0f && semitones <= 12.0f) {
+        looperPitchShift = semitones;
+    }
+}
+
+void setLooperStutter(bool enabled, float rate) {
+    looperStutter = enabled;
+    if (rate >= 0.1f && rate <= 20.0f) {
+        looperStutterRate = rate;
+    }
+}
+
+bool isLooperReverseEnabled() {
+    return looperReverse;
+}
+
+float getLooperSpeed() {
+    return looperSpeed;
+}
+
+float getLooperPitchShift() {
+    return looperPitchShift;
+}
+
+bool isLooperStutterEnabled() {
+    return looperStutter;
+}
+
+float getLooperStutterRate() {
+    return looperStutterRate;
 }
 

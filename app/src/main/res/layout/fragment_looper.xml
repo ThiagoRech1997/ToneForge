@@ -16,60 +16,418 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:layout_marginTop="24dp"/>
 
+    <!-- Indicador de Status -->
+    <TextView
+        android:id="@+id/looperStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pronto"
+        android:textSize="16sp"
+        android:textColor="@color/gray"
+        app:layout_constraintTop_toBottomOf="@id/looperTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Timer Principal -->
     <TextView
         android:id="@+id/looperTimer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="00:00"
-        android:textSize="32sp"
+        android:textSize="48sp"
         android:textColor="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/looperTitle"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/looperStatus"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp"/>
+        android:layout_marginTop="16dp"/>
 
-    <Button
-        android:id="@+id/looperRecordButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:backgroundTint="@color/red"
-        android:text=""
-        android:layout_marginTop="32dp"
+    <!-- Barra de Progresso -->
+    <ProgressBar
+        android:id="@+id/looperProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        android:progress="0"
+        android:progressTint="@color/accent_blue"
+        android:progressBackgroundTint="@color/dark_gray"
         app:layout_constraintTop_toBottomOf="@id/looperTimer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:icon="@drawable/ic_mic"
-        app:iconTint="@color/white"
-        app:iconGravity="textStart"/>
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"/>
 
-    <Button
-        android:id="@+id/looperPlayButton"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:backgroundTint="@color/green"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/looperRecordButton"
+    <!-- Contador de Batidas -->
+    <TextView
+        android:id="@+id/looperBeatCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 batidas"
+        android:textSize="14sp"
+        android:textColor="@color/gray"
+        app:layout_constraintTop_toBottomOf="@id/looperProgress"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Controles Principais -->
+    <LinearLayout
+        android:id="@+id/looperMainControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/looperBeatCount"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp">
+
+        <!-- Botão Save -->
+        <Button
+            android:id="@+id/looperSaveButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/accent_blue"
+            android:text=""
+            android:layout_marginEnd="16dp"
+            app:icon="@android:drawable/ic_menu_save"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Load -->
+        <Button
+            android:id="@+id/looperLoadButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/accent_green"
+            android:text=""
+            android:layout_marginEnd="16dp"
+            app:icon="@android:drawable/ic_menu_upload"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Biblioteca -->
+        <Button
+            android:id="@+id/looperLibraryButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/accent_purple"
+            android:text=""
+            android:layout_marginEnd="16dp"
+            app:icon="@drawable/ic_book"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Exportar -->
+        <Button
+            android:id="@+id/looperExportButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/accent_orange"
+            android:text=""
+            android:layout_marginEnd="16dp"
+            app:icon="@android:drawable/ic_menu_share"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Undo -->
+        <Button
+            android:id="@+id/looperUndoButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/dark_gray"
+            android:text=""
+            android:layout_marginEnd="16dp"
+            app:icon="@drawable/ic_rotate_left"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Gravar -->
+        <Button
+            android:id="@+id/looperRecordButton"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:backgroundTint="@color/red"
+            android:text=""
+            app:icon="@drawable/ic_mic"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Play/Stop -->
+        <Button
+            android:id="@+id/looperPlayButton"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:backgroundTint="@color/green"
+            android:text=""
+            android:layout_marginStart="16dp"
+            app:icon="@android:drawable/ic_media_play"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+        <!-- Botão Clear -->
+        <Button
+            android:id="@+id/looperClearButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/accent_red"
+            android:text=""
+            android:layout_marginStart="16dp"
+            app:icon="@android:drawable/ic_menu_delete"
+            app:iconTint="@color/white"
+            app:iconGravity="textStart"/>
+
+    </LinearLayout>
+
+    <!-- Controles de Faixas -->
+    <TextView
+        android:id="@+id/tracksTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Faixas"
+        android:textSize="18sp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/looperMainControls"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="32dp"
-        android:layout_marginStart="48dp"
-        app:icon="@android:drawable/ic_media_play"
-        app:iconTint="@color/white"
-        app:iconGravity="textStart"/>
+        android:layout_marginStart="24dp"/>
 
-    <Button
-        android:id="@+id/looperClearButton"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:backgroundTint="@color/accent_red"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/looperRecordButton"
+    <!-- Lista de Faixas -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/looperTracksList"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/effect_card_background"
+        android:layout_margin="16dp"
+        app:layout_constraintTop_toBottomOf="@id/tracksTitle"
+        app:layout_constraintBottom_toTopOf="@id/looperSpecialControls"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="48dp"
-        app:icon="@android:drawable/ic_menu_delete"
-        app:iconTint="@color/white"
-        app:iconGravity="textStart"/>
+        android:layout_marginTop="8dp"/>
+
+    <!-- Controles de Sincronização -->
+    <LinearLayout
+        android:id="@+id/looperSyncControls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:background="@drawable/header_background"
+        app:layout_constraintBottom_toTopOf="@id/looperBPMControls"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sincronizar:"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:layout_marginEnd="16dp"/>
+
+        <Switch
+            android:id="@+id/looperSyncSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false"/>
+
+    </LinearLayout>
+
+    <!-- Controles Especiais do Looper -->
+    <LinearLayout
+        android:id="@+id/looperSpecialControls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="@drawable/header_background"
+        app:layout_constraintBottom_toTopOf="@id/looperBPMControls"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Efeitos Especiais"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Primeira linha de controles -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reverse:"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginEnd="8dp"/>
+
+            <Switch
+                android:id="@+id/looperReverseSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:layout_marginEnd="16dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Speed:"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginEnd="8dp"/>
+
+            <SeekBar
+                android:id="@+id/looperSpeedSeekBar"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:max="300"
+                android:progress="100"
+                android:layout_marginEnd="16dp"/>
+
+            <TextView
+                android:id="@+id/looperSpeedText"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="1.0x"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+        <!-- Segunda linha de controles -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pitch:"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginEnd="8dp"/>
+
+            <SeekBar
+                android:id="@+id/looperPitchSeekBar"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:max="240"
+                android:progress="120"
+                android:layout_marginEnd="16dp"/>
+
+            <TextView
+                android:id="@+id/looperPitchText"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:gravity="center"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stutter:"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="8dp"/>
+
+            <Switch
+                android:id="@+id/looperStutterSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:layout_marginEnd="8dp"/>
+
+            <SeekBar
+                android:id="@+id/looperStutterRateSeekBar"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:max="190"
+                android:progress="40"
+                android:enabled="false"/>
+
+            <TextView
+                android:id="@+id/looperStutterRateText"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="4Hz"
+                android:textColor="@color/gray"
+                android:textSize="12sp"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Controles de BPM -->
+    <LinearLayout
+        android:id="@+id/looperBPMControls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:background="@drawable/header_background"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BPM:"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:layout_marginEnd="16dp"/>
+
+        <EditText
+            android:id="@+id/looperBPMInput"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:text="120"
+            android:textColor="@color/white"
+            android:background="@drawable/button_background"
+            android:padding="8dp"
+            android:inputType="number"
+            android:gravity="center"/>
+
+        <Button
+            android:id="@+id/looperTapTempoButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap"
+            android:textSize="12sp"
+            android:backgroundTint="@color/accent_blue"
+            android:layout_marginStart="16dp"/>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

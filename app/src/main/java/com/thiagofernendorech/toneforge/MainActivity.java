@@ -55,6 +55,9 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         AudioEngine audioEngine = AudioEngine.getInstance();
         audioEngine.initialize(this);
         
+        // Iniciar pipeline de áudio
+        AudioEngine.startAudioPipeline();
+        
         // Recuperar estado salvo
         stateRecoveryManager.restoreState();
         

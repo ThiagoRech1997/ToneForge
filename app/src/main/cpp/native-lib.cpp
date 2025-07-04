@@ -452,3 +452,123 @@ extern "C" JNIEXPORT jint JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_getOversamplingFactor(JNIEnv* env, jclass clazz) {
     return getOversamplingFactor();
 }
+
+// Novas funções JNI para looper avançado
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperLength(JNIEnv* env, jclass clazz) {
+    return getLooperLength();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperPosition(JNIEnv* env, jclass clazz) {
+    return getLooperPosition();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperTrackVolume(JNIEnv* env, jclass clazz, jint trackIndex, jfloat volume) {
+    setLooperTrackVolume(trackIndex, volume);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperTrackMuted(JNIEnv* env, jclass clazz, jint trackIndex, jboolean muted) {
+    setLooperTrackMuted(trackIndex, muted);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperTrackSoloed(JNIEnv* env, jclass clazz, jint trackIndex, jboolean soloed) {
+    setLooperTrackSoloed(trackIndex, soloed);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_removeLooperTrack(JNIEnv* env, jclass clazz, jint trackIndex) {
+    removeLooperTrack(trackIndex);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperBPM(JNIEnv* env, jclass clazz, jint bpm) {
+    setLooperBPM(bpm);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperSyncEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperSyncEnabled(enabled);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperRecording(JNIEnv* env, jclass clazz) {
+    return isLooperRecording();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperPlaying(JNIEnv* env, jclass clazz) {
+    return isLooperPlaying();
+}
+
+extern "C" JNIEXPORT jfloatArray JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperMix(JNIEnv* env, jclass clazz) {
+    int length = 0;
+    float* mix = getLooperMix(&length);
+    if (length == 0 || mix == nullptr) {
+        return env->NewFloatArray(0);
+    }
+    jfloatArray result = env->NewFloatArray(length);
+    env->SetFloatArrayRegion(result, 0, length, mix);
+    delete[] mix;
+    return result;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_loadLooperFromAudio(JNIEnv* env, jclass clazz, jfloatArray audioData) {
+    jsize length = env->GetArrayLength(audioData);
+    jfloat* data = env->GetFloatArrayElements(audioData, nullptr);
+    
+    loadLooperFromAudio(data, length);
+    
+    env->ReleaseFloatArrayElements(audioData, data, JNI_ABORT);
+}
+
+// Funcionalidades especiais do looper
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperReverse(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperReverse(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperSpeed(JNIEnv* env, jclass clazz, jfloat speed) {
+    setLooperSpeed(speed);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperPitchShift(JNIEnv* env, jclass clazz, jfloat semitones) {
+    setLooperPitchShift(semitones);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperStutter(JNIEnv* env, jclass clazz, jboolean enabled, jfloat rate) {
+    setLooperStutter(enabled, rate);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperReverseEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperReverseEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperSpeed(JNIEnv* env, jclass clazz) {
+    return getLooperSpeed();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperPitchShift(JNIEnv* env, jclass clazz) {
+    return getLooperPitchShift();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperStutterEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperStutterEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperStutterRate(JNIEnv* env, jclass clazz) {
+    return getLooperStutterRate();
+}

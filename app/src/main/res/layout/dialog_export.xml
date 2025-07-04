@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/black">
+
+    <!-- Título -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Exportar Loop"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Nome do arquivo -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Nome do arquivo:"
+        android:textSize="16sp"
+        android:textColor="@color/white"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/fileNameInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Digite o nome do arquivo"
+        android:textColor="@color/white"
+        android:textColorHint="@color/gray"
+        android:background="@drawable/button_background"
+        android:padding="12dp"
+        android:layout_marginBottom="24dp"
+        android:inputType="text"
+        android:maxLines="1"/>
+
+    <!-- Formato de exportação -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Formato de exportação:"
+        android:textSize="16sp"
+        android:textColor="@color/white"
+        android:layout_marginBottom="12dp"/>
+
+    <RadioGroup
+        android:id="@+id/formatGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
+
+        <RadioButton
+            android:id="@+id/radioWav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="WAV - Qualidade máxima (sem compressão)"
+            android:textColor="@color/white"
+            android:checked="true"
+            android:padding="8dp"
+            android:buttonTint="@color/accent_blue"/>
+
+        <RadioButton
+            android:id="@+id/radioMp3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="MP3 - Tamanho reduzido (com compressão)"
+            android:textColor="@color/white"
+            android:padding="8dp"
+            android:buttonTint="@color/accent_blue"/>
+
+        <RadioButton
+            android:id="@+id/radioFlac"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="FLAC - Qualidade máxima (compressão sem perdas)"
+            android:textColor="@color/white"
+            android:padding="8dp"
+            android:buttonTint="@color/accent_blue"/>
+
+    </RadioGroup>
+
+    <!-- Informações sobre formatos -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/header_background"
+        android:padding="12dp"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Informações sobre formatos:"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/accent_blue"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• WAV: Melhor qualidade, arquivos maiores"
+            android:textSize="12sp"
+            android:textColor="@color/gray"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• MP3: Tamanho reduzido, qualidade menor"
+            android:textSize="12sp"
+            android:textColor="@color/gray"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• FLAC: Qualidade máxima, compressão eficiente"
+            android:textSize="12sp"
+            android:textColor="@color/gray"/>
+
+    </LinearLayout>
+
+    <!-- Botões -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancelar"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/dark_gray"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/exportButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exportar"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/accent_blue"/>
+
+    </LinearLayout>
+
+</LinearLayout> 

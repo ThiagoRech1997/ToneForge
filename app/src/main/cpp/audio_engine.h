@@ -30,6 +30,16 @@ extern "C" {
     void clearLooper();
     bool isLooperRecording();
     bool isLooperPlaying();
+    
+    // Novas funções para looper avançado
+    int getLooperLength();
+    int getLooperPosition();
+    void setLooperTrackVolume(int trackIndex, float volume);
+    void setLooperTrackMuted(int trackIndex, bool muted);
+    void setLooperTrackSoloed(int trackIndex, bool soloed);
+    void removeLooperTrack(int trackIndex);
+    void setLooperBPM(int bpm);
+    void setLooperSyncEnabled(bool enabled);
 
     // Afinador
     void startTuner();
@@ -97,6 +107,22 @@ extern "C" {
     void setDelayBPM(int bpm);
 
     void setReverbType(int type); // 0=Hall, 1=Plate, 2=Spring
+
+    float* getLooperMix(int* outLength);
+    
+    // Função para carregar áudio no looper
+    void loadLooperFromAudio(const float* audioData, int length);
+
+    // Funcionalidades especiais do looper
+    void setLooperReverse(bool enabled);
+    void setLooperSpeed(float speed); // 0.5 = metade da velocidade, 2.0 = dobro
+    void setLooperPitchShift(float semitones); // -12 a +12 semitons
+    void setLooperStutter(bool enabled, float rate); // rate em Hz
+    bool isLooperReverseEnabled();
+    float getLooperSpeed();
+    float getLooperPitchShift();
+    bool isLooperStutterEnabled();
+    float getLooperStutterRate();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

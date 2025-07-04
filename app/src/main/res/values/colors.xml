@@ -13,9 +13,11 @@
     <color name="accent_green">#FF4CAF50</color>
     <color name="accent_red">#FFF44336</color>
     <color name="accent_orange">#FFFF9800</color>
+    <color name="accent_purple">#FF9C27B0</color>
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
     <color name="yellow">#FFEB3B</color>
+    <color name="gray">#FF9E9E9E</color>
     
     <!-- Cores para indicadores de bypass -->
     <color name="effect_enabled">#FF4CAF50</color>  <!-- Verde para ativado -->
