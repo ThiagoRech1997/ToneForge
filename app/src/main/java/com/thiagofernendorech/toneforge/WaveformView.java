@@ -27,6 +27,7 @@ public class WaveformView extends View {
     private boolean isPlaying = false;
     private boolean showGrid = true;
     private boolean showPlayhead = true;
+    private boolean useRMS = true; // Usar RMS ou forma de onda direta
     
     private OnWaveformClickListener listener;
     
@@ -116,6 +117,11 @@ public class WaveformView extends View {
         invalidate();
     }
     
+    public void setUseRMS(boolean useRMS) {
+        this.useRMS = useRMS;
+        invalidate();
+    }
+    
     public void setOnWaveformClickListener(OnWaveformClickListener listener) {
         this.listener = listener;
     }
@@ -173,25 +179,41 @@ public class WaveformView extends View {
         float centerY = height / 2f;
         float scaleY = height / 2f * 0.8f; // 80% da altura
         
-        // Calcular quantos pontos da forma de onda cabem na tela
-        int pointsPerPixel = Math.max(1, waveformLength / width);
-        int numPoints = Math.min(width, waveformLength / pointsPerPixel);
-        
         Path waveformPath = new Path();
         waveformPath.moveTo(0, centerY);
         
-        for (int i = 0; i < numPoints; i++) {
-            int dataIndex = i * pointsPerPixel;
-            if (dataIndex >= waveformLength) break;
+        if (useRMS) {
+            // Usar RMS (Root Mean Square) para melhor visualização
+            float[] rmsData = getRMSData(width);
             
-            float amplitude = waveformData[dataIndex];
-            float x = (float) i / numPoints * width;
-            float y = centerY - amplitude * scaleY;
+            for (int i = 0; i < width; i++) {
+                float amplitude = rmsData[i];
+                float x = i;
+                float y = centerY - amplitude * scaleY;
+                
+                if (i == 0) {
+                    waveformPath.moveTo(x, y);
+                } else {
+                    waveformPath.lineTo(x, y);
+                }
+            }
+        } else {
+            // Usar forma de onda direta (amostras individuais)
+            int samplesPerPixel = Math.max(1, waveformLength / width);
             
-            if (i == 0) {
-                waveformPath.moveTo(x, y);
-            } else {
-                waveformPath.lineTo(x, y);
+            for (int i = 0; i < width; i++) {
+                int dataIndex = i * samplesPerPixel;
+                if (dataIndex >= waveformLength) break;
+                
+                float amplitude = waveformData[dataIndex];
+                float x = i;
+                float y = centerY - amplitude * scaleY;
+                
+                if (i == 0) {
+                    waveformPath.moveTo(x, y);
+                } else {
+                    waveformPath.lineTo(x, y);
+                }
             }
         }
         
@@ -272,6 +294,17 @@ public class WaveformView extends View {
         float[] rmsData = new float[numPoints];
         int samplesPerPoint = Math.max(1, waveformLength / numPoints);
         
+        // Normalizar os dados para melhor visualização
+        float maxAmplitude = 0.0f;
+        for (int i = 0; i < waveformLength; i++) {
+            maxAmplitude = Math.max(maxAmplitude, Math.abs(waveformData[i]));
+        }
+        
+        // Se não há amplitude, retornar array vazio
+        if (maxAmplitude == 0.0f) {
+            return rmsData;
+        }
+        
         for (int i = 0; i < numPoints; i++) {
             int startIndex = i * samplesPerPoint;
             int endIndex = Math.min(startIndex + samplesPerPoint, waveformLength);
@@ -285,7 +318,9 @@ public class WaveformView extends View {
             }
             
             if (count > 0) {
-                rmsData[i] = (float) Math.sqrt(sum / count);
+                float rms = (float) Math.sqrt(sum / count);
+                // Normalizar pela amplitude máxima
+                rmsData[i] = rms / maxAmplitude;
             }
         }
         
