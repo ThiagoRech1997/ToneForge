@@ -61,15 +61,6 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 }
 
-// Configuração do JaCoCo para cobertura de código
-android {
-    buildTypes {
-        debug {
-            testCoverageEnabled = true
-        }
-    }
-}
-
 // Task para gerar relatório de cobertura
 tasks.register("jacocoTestReport", JacocoReport::class) {
     dependsOn("testDebugUnitTest")
@@ -88,7 +79,7 @@ tasks.register("jacocoTestReport", JacocoReport::class) {
         "android/**/*.*"
     )
     
-    val debugTree = fileTree("${buildDir}/intermediates/javac/debug") {
+    val debugTree = fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
         exclude(fileFilter)
     }
     
@@ -96,7 +87,7 @@ tasks.register("jacocoTestReport", JacocoReport::class) {
     
     sourceDirectories.setFrom(files(mainSrc))
     classDirectories.setFrom(files(debugTree))
-    executionData.setFrom(fileTree(buildDir) {
+    executionData.setFrom(fileTree(layout.buildDirectory.get().asFile) {
         include("/jacoco/testDebugUnitTest.exec")
     })
 }
