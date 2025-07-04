@@ -572,3 +572,55 @@ extern "C" JNIEXPORT jfloat JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperStutterRate(JNIEnv* env, jclass clazz) {
     return getLooperStutterRate();
 }
+
+// Funcionalidade de Slicing
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperSlicingEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperSlicingEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperSlicePoints(JNIEnv* env, jclass clazz, jintArray points) {
+    jint* pointsPtr = env->GetIntArrayElements(points, nullptr);
+    jsize length = env->GetArrayLength(points);
+    setLooperSlicePoints(pointsPtr, length);
+    env->ReleaseIntArrayElements(points, pointsPtr, JNI_ABORT);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperSliceLength(JNIEnv* env, jclass clazz, jint length) {
+    setLooperSliceLength(length);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperSlicingEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperSlicingEnabled();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperSliceLength(JNIEnv* env, jclass clazz) {
+    return getLooperSliceLength();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperNumSlices(JNIEnv* env, jclass clazz) {
+    return getLooperNumSlices();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperSliceOrder(JNIEnv* env, jclass clazz, jintArray order) {
+    jint* orderPtr = env->GetIntArrayElements(order, nullptr);
+    jsize length = env->GetArrayLength(order);
+    setLooperSliceOrder(orderPtr, length);
+    env->ReleaseIntArrayElements(order, orderPtr, JNI_ABORT);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_randomizeLooperSlices(JNIEnv* env, jclass clazz) {
+    randomizeLooperSlices();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_reverseLooperSlices(JNIEnv* env, jclass clazz) {
+    reverseLooperSlices();
+}
