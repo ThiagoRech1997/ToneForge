@@ -14,12 +14,4 @@ paths-ignore:
 queries:
   - uses: security-and-quality
   - uses: security-extended
-  - uses: security-experimental
-
-query-filters:
-  - include:
-      tags contain: android
-  - include:
-      tags contain: security
-  - exclude:
-      tags contain: false-positive 
+  - uses: security-experimental 
