@@ -24,15 +24,27 @@ public class WaveformView extends View {
     private float currentPosition = 0.0f; // 0.0 a 1.0
     private float playheadPosition = 0.0f; // 0.0 a 1.0
     
+    // Seleção de trechos para edição
+    private float selectionStart = 0.0f; // 0.0 a 1.0
+    private float selectionEnd = 0.0f; // 0.0 a 1.0
+    private boolean isSelecting = false;
+    private boolean showSelection = false;
+    
     private boolean isPlaying = false;
     private boolean showGrid = true;
     private boolean showPlayhead = true;
     private boolean useRMS = true; // Usar RMS ou forma de onda direta
+    private boolean editMode = false; // Modo de edição ativo
     
     private OnWaveformClickListener listener;
+    private OnWaveformSelectionListener selectionListener;
     
     public interface OnWaveformClickListener {
         void onWaveformClick(float position);
+    }
+    
+    public interface OnWaveformSelectionListener {
+        void onSelectionChanged(float start, float end);
     }
     
     public WaveformView(Context context) {
@@ -122,8 +134,43 @@ public class WaveformView extends View {
         invalidate();
     }
     
+    public void setEditMode(boolean editMode) {
+        this.editMode = editMode;
+        invalidate();
+    }
+    
+    public void setSelection(float start, float end) {
+        this.selectionStart = Math.max(0.0f, Math.min(1.0f, start));
+        this.selectionEnd = Math.max(0.0f, Math.min(1.0f, end));
+        this.showSelection = true;
+        invalidate();
+    }
+    
+    public void clearSelection() {
+        this.showSelection = false;
+        this.selectionStart = 0.0f;
+        this.selectionEnd = 0.0f;
+        invalidate();
+    }
+    
+    public float getSelectionStart() {
+        return selectionStart;
+    }
+    
+    public float getSelectionEnd() {
+        return selectionEnd;
+    }
+    
+    public boolean hasSelection() {
+        return showSelection;
+    }
+    
     public void setOnWaveformClickListener(OnWaveformClickListener listener) {
         this.listener = listener;
+    }
+    
+    public void setOnWaveformSelectionListener(OnWaveformSelectionListener listener) {
+        this.selectionListener = listener;
     }
     
     @Override
@@ -146,6 +193,11 @@ public class WaveformView extends View {
         // Desenhar forma de onda
         if (waveformData != null && waveformLength > 0) {
             drawWaveform(canvas, width, height);
+        }
+        
+        // Desenhar seleção
+        if (showSelection && editMode) {
+            drawSelection(canvas, width, height);
         }
         
         // Desenhar playhead
@@ -259,18 +311,46 @@ public class WaveformView extends View {
     
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN || 
-            event.getAction() == MotionEvent.ACTION_MOVE) {
-            
-            float x = event.getX();
-            float position = x / getWidth();
-            position = Math.max(0.0f, Math.min(1.0f, position));
-            
-            if (listener != null) {
-                listener.onWaveformClick(position);
-            }
-            
-            return true;
+        float x = event.getX();
+        float position = x / getWidth();
+        position = Math.max(0.0f, Math.min(1.0f, position));
+        
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                if (editMode) {
+                    // Iniciar seleção
+                    isSelecting = true;
+                    selectionStart = position;
+                    selectionEnd = position;
+                    showSelection = true;
+                    invalidate();
+                } else if (listener != null) {
+                    listener.onWaveformClick(position);
+                }
+                return true;
+                
+            case MotionEvent.ACTION_MOVE:
+                if (editMode && isSelecting) {
+                    // Atualizar seleção
+                    selectionEnd = position;
+                    invalidate();
+                    
+                    if (selectionListener != null) {
+                        selectionListener.onSelectionChanged(selectionStart, selectionEnd);
+                    }
+                }
+                return true;
+                
+            case MotionEvent.ACTION_UP:
+                if (editMode && isSelecting) {
+                    // Finalizar seleção
+                    isSelecting = false;
+                    if (Math.abs(selectionEnd - selectionStart) < 0.01f) {
+                        // Seleção muito pequena, limpar
+                        clearSelection();
+                    }
+                }
+                return true;
         }
         
         return super.onTouchEvent(event);
@@ -325,5 +405,36 @@ public class WaveformView extends View {
         }
         
         return rmsData;
+    }
+    
+    private void drawSelection(Canvas canvas, int width, int height) {
+        if (!showSelection) return;
+        
+        float startX = selectionStart * width;
+        float endX = selectionEnd * width;
+        
+        // Garantir que startX <= endX
+        if (startX > endX) {
+            float temp = startX;
+            startX = endX;
+            endX = temp;
+        }
+        
+        // Desenhar área de seleção
+        Paint selectionPaint = new Paint();
+        selectionPaint.setColor(Color.parseColor("#4CAF50"));
+        selectionPaint.setAlpha(50);
+        selectionPaint.setStyle(Paint.Style.FILL);
+        
+        canvas.drawRect(startX, 0, endX, height, selectionPaint);
+        
+        // Desenhar bordas da seleção
+        Paint borderPaint = new Paint();
+        borderPaint.setColor(Color.parseColor("#4CAF50"));
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(2f);
+        
+        canvas.drawLine(startX, 0, startX, height, borderPaint);
+        canvas.drawLine(endX, 0, endX, height, borderPaint);
     }
 } 

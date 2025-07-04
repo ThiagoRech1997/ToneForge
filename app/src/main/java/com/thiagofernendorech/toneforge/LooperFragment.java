@@ -61,6 +61,13 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private Button looperReverseSlicesButton;
     private TextView looperSlicesInfoText;
     
+    // Controles de Edição
+    private Switch looperEditModeSwitch;
+    private Button looperCutButton;
+    private Button looperFadeInButton;
+    private Button looperFadeOutButton;
+    private TextView looperSelectionInfoText;
+    
     // Adapter para faixas
     private LooperTrackAdapter trackAdapter;
     
@@ -157,6 +164,13 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperRandomizeSlicesButton = view.findViewById(R.id.looperRandomizeSlicesButton);
         looperReverseSlicesButton = view.findViewById(R.id.looperReverseSlicesButton);
         looperSlicesInfoText = view.findViewById(R.id.looperSlicesInfoText);
+        
+        // Controles de Edição
+        looperEditModeSwitch = view.findViewById(R.id.looperEditModeSwitch);
+        looperCutButton = view.findViewById(R.id.looperCutButton);
+        looperFadeInButton = view.findViewById(R.id.looperFadeInButton);
+        looperFadeOutButton = view.findViewById(R.id.looperFadeOutButton);
+        looperSelectionInfoText = view.findViewById(R.id.looperSelectionInfoText);
     }
     
     private void setupRecyclerView() {
@@ -227,6 +241,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         
         // Controles especiais do looper
         setupSpecialControls();
+        
+        // Controles de edição
+        setupEditControls();
         
         // Controles da visualização de onda
         setupWaveformControls();
@@ -354,6 +371,124 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             updateSlicesInfo();
             android.util.Log.d("LooperFragment", "Ordem dos slices revertida");
         });
+    }
+    
+    private void setupEditControls() {
+        // Switch do modo de edição
+        looperEditModeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            looperWaveformView.setEditMode(isChecked);
+            updateEditButtonsState();
+        });
+        
+        // Botão Cut
+        looperCutButton.setOnClickListener(v -> {
+            if (looperWaveformView.hasSelection()) {
+                cutSelectedRegion();
+            }
+        });
+        
+        // Botão Fade In
+        looperFadeInButton.setOnClickListener(v -> {
+            if (looperWaveformView.hasSelection()) {
+                applyFadeIn();
+            }
+        });
+        
+        // Botão Fade Out
+        looperFadeOutButton.setOnClickListener(v -> {
+            if (looperWaveformView.hasSelection()) {
+                applyFadeOut();
+            }
+        });
+        
+        // Listener para mudanças na seleção
+        looperWaveformView.setOnWaveformSelectionListener((start, end) -> {
+            updateSelectionInfo(start, end);
+            updateEditButtonsState();
+        });
+    }
+    
+    private void updateEditButtonsState() {
+        boolean hasSelection = looperWaveformView.hasSelection();
+        boolean editMode = looperEditModeSwitch.isChecked();
+        
+        looperCutButton.setEnabled(editMode && hasSelection);
+        looperFadeInButton.setEnabled(editMode && hasSelection);
+        looperFadeOutButton.setEnabled(editMode && hasSelection);
+    }
+    
+    private void updateSelectionInfo(float start, float end) {
+        if (start > end) {
+            float temp = start;
+            start = end;
+            end = temp;
+        }
+        
+        int startSample = (int) (start * loopLength);
+        int endSample = (int) (end * loopLength);
+        int durationMs = (int) ((endSample - startSample) / (AudioEngine.SAMPLE_RATE / 1000.0));
+        
+        String info = String.format("Seleção: %.1fs - %.1fs (%dms)", 
+                                  start * (loopLength / (float)AudioEngine.SAMPLE_RATE),
+                                  end * (loopLength / (float)AudioEngine.SAMPLE_RATE),
+                                  durationMs);
+        looperSelectionInfoText.setText(info);
+    }
+    
+    private void cutSelectedRegion() {
+        float start = looperWaveformView.getSelectionStart();
+        float end = looperWaveformView.getSelectionEnd();
+        
+        if (start > end) {
+            float temp = start;
+            start = end;
+            end = temp;
+        }
+        
+        // Implementar corte no código nativo
+        AudioEngine.cutLooperRegion(start, end);
+        
+        // Limpar seleção
+        looperWaveformView.clearSelection();
+        updateSelectionInfo(0, 0);
+        updateEditButtonsState();
+        
+        // Atualizar visualização
+        updateWaveformData();
+    }
+    
+    private void applyFadeIn() {
+        float start = looperWaveformView.getSelectionStart();
+        float end = looperWaveformView.getSelectionEnd();
+        
+        if (start > end) {
+            float temp = start;
+            start = end;
+            end = temp;
+        }
+        
+        // Implementar fade in no código nativo
+        AudioEngine.applyLooperFadeIn(start, end);
+        
+        // Atualizar visualização
+        updateWaveformData();
+    }
+    
+    private void applyFadeOut() {
+        float start = looperWaveformView.getSelectionStart();
+        float end = looperWaveformView.getSelectionEnd();
+        
+        if (start > end) {
+            float temp = start;
+            start = end;
+            end = temp;
+        }
+        
+        // Implementar fade out no código nativo
+        AudioEngine.applyLooperFadeOut(start, end);
+        
+        // Atualizar visualização
+        updateWaveformData();
     }
     
     private void updateSlicesInfo() {

@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.Log;
 
 public class AudioEngine {
+    public static final int SAMPLE_RATE = 48000; // Taxa de amostragem padrão
+    
     static {
         System.loadLibrary("toneforge");
     }
@@ -228,4 +230,9 @@ public class AudioEngine {
     public static native void setLooperSliceOrder(int[] order);
     public static native void randomizeLooperSlices();
     public static native void reverseLooperSlices();
+    
+    // Funções de edição do looper
+    public static native void cutLooperRegion(float start, float end);
+    public static native void applyLooperFadeIn(float start, float end);
+    public static native void applyLooperFadeOut(float start, float end);
 } 

@@ -1290,3 +1290,124 @@ void reverseLooperSlices() {
     }
 }
 
+void cutLooperRegion(float start, float end) {
+    // Encontrar a faixa ativa mais longa
+    int maxLength = 0;
+    int targetTrack = -1;
+    
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+            maxLength = looperTracks[i].length;
+            targetTrack = i;
+        }
+    }
+    
+    if (targetTrack == -1 || maxLength == 0) return;
+    
+    int startSample = static_cast<int>(start * maxLength);
+    int endSample = static_cast<int>(end * maxLength);
+    
+    // Garantir que startSample <= endSample
+    if (startSample > endSample) {
+        std::swap(startSample, endSample);
+    }
+    
+    // Garantir limites válidos
+    startSample = std::max(0, std::min(startSample, maxLength));
+    endSample = std::max(0, std::min(endSample, maxLength));
+    
+    // Remover a região selecionada
+    float* buffer = looperTracks[targetTrack].buffer;
+    int newLength = maxLength - (endSample - startSample);
+    
+    // Mover os samples após a região cortada
+    for (int i = endSample; i < maxLength; i++) {
+        buffer[i - (endSample - startSample)] = buffer[i];
+    }
+    
+    // Atualizar comprimento da faixa
+    looperTracks[targetTrack].length = newLength;
+    
+    // Atualizar comprimento do looper
+    looperLength = newLength;
+    
+    // Ajustar posição atual se necessário
+    if (looperReadIndex >= looperLength) {
+        looperReadIndex = 0;
+    }
+}
+
+void applyLooperFadeIn(float start, float end) {
+    // Encontrar a faixa ativa mais longa
+    int maxLength = 0;
+    int targetTrack = -1;
+    
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+            maxLength = looperTracks[i].length;
+            targetTrack = i;
+        }
+    }
+    
+    if (targetTrack == -1 || maxLength == 0) return;
+    
+    int startSample = static_cast<int>(start * maxLength);
+    int endSample = static_cast<int>(end * maxLength);
+    
+    // Garantir que startSample <= endSample
+    if (startSample > endSample) {
+        std::swap(startSample, endSample);
+    }
+    
+    // Garantir limites válidos
+    startSample = std::max(0, std::min(startSample, maxLength));
+    endSample = std::max(0, std::min(endSample, maxLength));
+    
+    int fadeLength = endSample - startSample;
+    if (fadeLength <= 0) return;
+    
+    // Aplicar fade in (volume crescente de 0 a 1)
+    float* buffer = looperTracks[targetTrack].buffer;
+    for (int i = 0; i < fadeLength; ++i) {
+        float fadeFactor = static_cast<float>(i) / fadeLength;
+        buffer[startSample + i] *= fadeFactor;
+    }
+}
+
+void applyLooperFadeOut(float start, float end) {
+    // Encontrar a faixa ativa mais longa
+    int maxLength = 0;
+    int targetTrack = -1;
+    
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+            maxLength = looperTracks[i].length;
+            targetTrack = i;
+        }
+    }
+    
+    if (targetTrack == -1 || maxLength == 0) return;
+    
+    int startSample = static_cast<int>(start * maxLength);
+    int endSample = static_cast<int>(end * maxLength);
+    
+    // Garantir que startSample <= endSample
+    if (startSample > endSample) {
+        std::swap(startSample, endSample);
+    }
+    
+    // Garantir limites válidos
+    startSample = std::max(0, std::min(startSample, maxLength));
+    endSample = std::max(0, std::min(endSample, maxLength));
+    
+    int fadeLength = endSample - startSample;
+    if (fadeLength <= 0) return;
+    
+    // Aplicar fade out (volume decrescente de 1 a 0)
+    float* buffer = looperTracks[targetTrack].buffer;
+    for (int i = 0; i < fadeLength; ++i) {
+        float fadeFactor = 1.0f - (static_cast<float>(i) / fadeLength);
+        buffer[startSample + i] *= fadeFactor;
+    }
+}
+

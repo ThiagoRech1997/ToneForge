@@ -134,6 +134,11 @@ extern "C" {
     void setLooperSliceOrder(const int* order, int numSlices);
     void randomizeLooperSlices();
     void reverseLooperSlices();
+    
+    // Funções de edição do looper
+    void cutLooperRegion(float start, float end);
+    void applyLooperFadeIn(float start, float end);
+    void applyLooperFadeOut(float start, float end);
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

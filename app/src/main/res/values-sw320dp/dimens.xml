@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dimensões para telas pequenas (320dp) -->
+    <dimen name="spacing_tiny">1dp</dimen>
+    <dimen name="spacing_small">2dp</dimen>
+    <dimen name="spacing_medium">4dp</dimen>
+    <dimen name="spacing_large">8dp</dimen>
+    <dimen name="spacing_xlarge">12dp</dimen>
+    
+    <!-- Margens e Padding -->
+    <dimen name="margin_small">2dp</dimen>
+    <dimen name="margin_medium">4dp</dimen>
+    <dimen name="margin_large">8dp</dimen>
+    <dimen name="margin_xlarge">12dp</dimen>
+    
+    <dimen name="padding_small">4dp</dimen>
+    <dimen name="padding_medium">6dp</dimen>
+    <dimen name="padding_large">8dp</dimen>
+    <dimen name="padding_xlarge">12dp</dimen>
+    
+    <!-- Tamanhos de Texto -->
+    <dimen name="text_size_tiny">6sp</dimen>
+    <dimen name="text_size_small">8sp</dimen>
+    <dimen name="text_size_medium">10sp</dimen>
+    <dimen name="text_size_large">12sp</dimen>
+    <dimen name="text_size_xlarge">14sp</dimen>
+    <dimen name="text_size_title">16sp</dimen>
+    <dimen name="text_size_header">20sp</dimen>
+    <dimen name="text_size_display">24sp</dimen>
+    <dimen name="text_size_timer">28sp</dimen>
+    <dimen name="text_size_timer_large">36sp</dimen>
+    
+    <!-- Alturas de Componentes -->
+    <dimen name="button_height_small">28dp</dimen>
+    <dimen name="button_height_medium">32dp</dimen>
+    <dimen name="button_height_large">36dp</dimen>
+    <dimen name="button_height_xlarge">40dp</dimen>
+    
+    <dimen name="input_height_small">28dp</dimen>
+    <dimen name="input_height_medium">32dp</dimen>
+    <dimen name="input_height_large">36dp</dimen>
+    
+    <!-- Larguras de Componentes -->
+    <dimen name="button_width_small">50dp</dimen>
+    <dimen name="button_width_medium">60dp</dimen>
+    <dimen name="button_width_large">70dp</dimen>
+    <dimen name="button_width_xlarge">80dp</dimen>
+    
+    <!-- Alturas de Containers -->
+    <dimen name="container_height_small">50dp</dimen>
+    <dimen name="container_height_medium">60dp</dimen>
+    <dimen name="container_height_large">80dp</dimen>
+    <dimen name="container_height_xlarge">100dp</dimen>
+    <dimen name="container_height_xxlarge">120dp</dimen>
+    
+    <!-- Larguras de SeekBars -->
+    <dimen name="seekbar_width_small">40dp</dimen>
+    <dimen name="seekbar_width_medium">50dp</dimen>
+    <dimen name="seekbar_width_large">60dp</dimen>
+    
+    <!-- Larguras de Textos -->
+    <dimen name="text_width_small">30dp</dimen>
+    <dimen name="text_width_medium">40dp</dimen>
+    <dimen name="text_width_large">50dp</dimen>
+    
+    <!-- Alturas de ProgressBars -->
+    <dimen name="progress_height_small">3dp</dimen>
+    <dimen name="progress_height_medium">4dp</dimen>
+    <dimen name="progress_height_large">6dp</dimen>
+    
+    <!-- Header e Navigation -->
+    <dimen name="header_height">40dp</dimen>
+    <dimen name="navigation_height">48dp</dimen>
+    
+    <!-- Cards e Containers -->
+    <dimen name="card_corner_radius">6dp</dimen>
+    <dimen name="card_elevation">1dp</dimen>
+    
+    <!-- Grid e Layout -->
+    <dimen name="grid_spacing">2dp</dimen>
+    <dimen name="grid_margin">4dp</dimen>
+    
+    <!-- Responsividade -->
+    <dimen name="min_touch_target">44dp</dimen>
+    <dimen name="min_text_size">10sp</dimen>
+</resources> 
