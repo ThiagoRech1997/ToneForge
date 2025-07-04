@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- ===== CABEÇALHO ===== -->
+    <TextView
+        android:id="@+id/settingsTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Configurações"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_size_header"
+        android:textStyle="bold"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="@dimen/margin_xlarge"
+        android:layout_marginBottom="@dimen/margin_large"/>
+
+    <!-- ===== CONTAINER PRINCIPAL ===== -->
+    <ScrollView
+        android:id="@+id/settingsScrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/settingsTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="@dimen/margin_large"
+        android:layout_marginEnd="@dimen/margin_large"
+        android:layout_marginBottom="@dimen/margin_large">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/dark_gray"
+            android:padding="@dimen/padding_large">
+
+            <!-- ===== CONFIGURAÇÕES GERAIS ===== -->
+            <TextView
+                android:id="@+id/generalSettingsTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Configurações Gerais"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_title"
+                android:textStyle="bold"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <!-- Tema Escuro -->
+            <TextView
+                android:id="@+id/darkThemeLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Tema escuro"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/generalSettingsTitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/switchDarkTheme"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <Switch
+                android:id="@+id/switchDarkTheme"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                app:layout_constraintTop_toTopOf="@id/darkThemeLabel"
+                app:layout_constraintStart_toEndOf="@id/darkThemeLabel"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- Vibração -->
+            <TextView
+                android:id="@+id/vibrationLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Vibração"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/darkThemeLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/switchVibration"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <Switch
+                android:id="@+id/switchVibration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                app:layout_constraintTop_toTopOf="@id/vibrationLabel"
+                app:layout_constraintStart_toEndOf="@id/vibrationLabel"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- Auto Save -->
+            <TextView
+                android:id="@+id/autoSaveLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Salvar gravações automaticamente"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/vibrationLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/switchAutoSave"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <Switch
+                android:id="@+id/switchAutoSave"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                app:layout_constraintTop_toTopOf="@id/autoSaveLabel"
+                app:layout_constraintStart_toEndOf="@id/autoSaveLabel"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- Background Service -->
+            <TextView
+                android:id="@+id/backgroundServiceLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/audio_background_service"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/autoSaveLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/switchAudioBackground"
+                android:layout_marginBottom="@dimen/margin_xlarge"/>
+
+            <Switch
+                android:id="@+id/switchAudioBackground"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                app:layout_constraintTop_toTopOf="@id/backgroundServiceLabel"
+                app:layout_constraintStart_toEndOf="@id/backgroundServiceLabel"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- ===== CONFIGURAÇÕES DE LATÊNCIA ===== -->
+            <TextView
+                android:id="@+id/latencySettingsTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/latency_settings"
+                android:textColor="@color/green"
+                android:textSize="@dimen/text_size_title"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/backgroundServiceLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <TextView
+                android:id="@+id/latencyModeLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/latency_mode"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/latencySettingsTitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginBottom="@dimen/margin_medium"/>
+
+            <RadioGroup
+                android:id="@+id/radioGroupLatency"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintTop_toBottomOf="@id/latencyModeLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginBottom="@dimen/margin_xlarge">
+
+                <RadioButton
+                    android:id="@+id/radioLowLatency"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_low"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/text_size_medium"
+                    android:buttonTint="@color/green"
+                    android:layout_marginBottom="@dimen/margin_small"/>
+
+                <RadioButton
+                    android:id="@+id/radioBalanced"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_balanced"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/text_size_medium"
+                    android:buttonTint="@color/green"
+                    android:checked="true"
+                    android:layout_marginBottom="@dimen/margin_small"/>
+
+                <RadioButton
+                    android:id="@+id/radioStability"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latency_stability"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/text_size_medium"
+                    android:buttonTint="@color/green"/>
+            </RadioGroup>
+
+            <!-- ===== CONFIGURAÇÕES DE ÁUDIO ===== -->
+            <TextView
+                android:id="@+id/audioSettingsTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Configurações de Áudio"
+                android:textColor="@color/green"
+                android:textSize="@dimen/text_size_title"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/radioGroupLatency"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <!-- Sample Rate -->
+            <TextView
+                android:id="@+id/sampleRateLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/sample_rate"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/audioSettingsTitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/sampleRateSpinner"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <Spinner
+                android:id="@+id/sampleRateSpinner"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/input_height_medium"
+                android:background="@drawable/button_background"
+                android:popupBackground="@color/black"
+                app:layout_constraintTop_toTopOf="@id/sampleRateLabel"
+                app:layout_constraintStart_toEndOf="@id/sampleRateLabel"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- Buffer Size -->
+            <TextView
+                android:id="@+id/bufferSizeLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/buffer_size"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_large"
+                app:layout_constraintTop_toBottomOf="@id/sampleRateLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/bufferSizeSpinner"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <Spinner
+                android:id="@+id/bufferSizeSpinner"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/input_height_medium"
+                android:background="@drawable/button_background"
+                android:popupBackground="@color/black"
+                app:layout_constraintTop_toTopOf="@id/bufferSizeLabel"
+                app:layout_constraintStart_toEndOf="@id/bufferSizeLabel"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- ===== BOTÕES DE AÇÃO ===== -->
+            <Button
+                android:id="@+id/btnApplySettings"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height_large"
+                android:text="Aplicar Configurações"
+                android:textSize="@dimen/text_size_medium"
+                android:background="@drawable/button_background"
+                android:textColor="@color/white"
+                app:layout_constraintTop_toBottomOf="@id/bufferSizeLabel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="@dimen/margin_xlarge"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <Button
+                android:id="@+id/btnResetSettings"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height_large"
+                android:text="Restaurar Padrões"
+                android:textSize="@dimen/text_size_medium"
+                android:background="@drawable/reset_button_background"
+                android:textColor="@color/white"
+                app:layout_constraintTop_toBottomOf="@id/btnApplySettings"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

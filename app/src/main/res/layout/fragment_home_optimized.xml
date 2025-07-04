@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/lava_dark_bg"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/padding_large"
+        android:minHeight="match_parent">
+
+        <!-- ===== CABEÇALHO ===== -->
+        <TextView
+            android:id="@+id/homeTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="ToneForge"
+            android:textColor="@color/lava_text_primary"
+            android:textSize="@dimen/text_size_header"
+            android:textStyle="bold"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="@dimen/margin_xlarge"
+            android:layout_marginBottom="@dimen/margin_xlarge"/>
+
+        <!-- ===== GRADE DE MENU ===== -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/gridMenu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/homeTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="@dimen/margin_xlarge">
+
+            <!-- ===== PRIMEIRA LINHA ===== -->
+            <!-- Afinador -->
+            <LinearLayout
+                android:id="@+id/btnTuner"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btnEffects"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginEnd="@dimen/margin_medium">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_target"
+                    android:tint="@color/lava_blue"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Afinador"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+            <!-- Efeitos -->
+            <LinearLayout
+                android:id="@+id/btnEffects"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@id/btnTuner"
+                app:layout_constraintEnd_toStartOf="@id/btnLooper"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginStart="@dimen/margin_small"
+                android:layout_marginEnd="@dimen/margin_small">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_graphic_eq"
+                    android:tint="@color/lava_purple"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Efeitos"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+            <!-- Looper -->
+            <LinearLayout
+                android:id="@+id/btnLooper"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@id/btnEffects"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginStart="@dimen/margin_medium">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_rotate_left"
+                    android:tint="@color/lava_green"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Looper"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+            <!-- ===== SEGUNDA LINHA ===== -->
+            <!-- Metrônomo -->
+            <LinearLayout
+                android:id="@+id/btnMetronome"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toBottomOf="@id/btnTuner"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btnLearning"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginTop="@dimen/margin_large"
+                android:layout_marginEnd="@dimen/margin_medium">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_av_timer"
+                    android:tint="@color/lava_red"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Metrônomo"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+            <!-- Aprendizado -->
+            <LinearLayout
+                android:id="@+id/btnLearning"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toBottomOf="@id/btnEffects"
+                app:layout_constraintStart_toEndOf="@id/btnMetronome"
+                app:layout_constraintEnd_toStartOf="@id/btnRecorder"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginStart="@dimen/margin_small"
+                android:layout_marginEnd="@dimen/margin_small">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_book"
+                    android:tint="@color/lava_orange"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Aprender"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+            <!-- Gravador -->
+            <LinearLayout
+                android:id="@+id/btnRecorder"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toBottomOf="@id/btnLooper"
+                app:layout_constraintStart_toEndOf="@id/btnLearning"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginStart="@dimen/margin_medium">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_mic"
+                    android:tint="@color/lava_pink"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Gravar"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+            <!-- ===== TERCEIRA LINHA ===== -->
+            <!-- Configurações -->
+            <LinearLayout
+                android:id="@+id/btnSettings"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_width_large"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/round_button_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/padding_medium"
+                app:layout_constraintTop_toBottomOf="@id/btnMetronome"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintWidth_percent="0.3"
+                android:layout_marginTop="@dimen/margin_large">
+
+                <ImageView
+                    android:layout_width="@dimen/button_height_medium"
+                    android:layout_height="@dimen/button_height_medium"
+                    android:src="@drawable/ic_settings"
+                    android:tint="@color/lava_text_primary"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Configurações"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/margin_small"/>
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- ===== STATUS DO SISTEMA ===== -->
+        <LinearLayout
+            android:id="@+id/systemStatusContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/status_background"
+            android:padding="@dimen/padding_medium"
+            app:layout_constraintTop_toBottomOf="@id/gridMenu"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="@dimen/margin_large">
+
+            <TextView
+                android:id="@+id/systemStatusTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Status do Sistema"
+                android:textColor="@color/lava_text_primary"
+                android:textSize="@dimen/text_size_large"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="@dimen/margin_medium"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/margin_small">
+
+                <ImageView
+                    android:id="@+id/batteryIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_battery"
+                    android:tint="@color/lava_green"
+                    android:layout_marginEnd="@dimen/margin_small"/>
+
+                <TextView
+                    android:id="@+id/batteryStatus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Bateria: 85%"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/wifiIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_wifi"
+                    android:tint="@color/lava_green"
+                    android:layout_marginEnd="@dimen/margin_small"/>
+
+                <TextView
+                    android:id="@+id/wifiStatus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="WiFi: Conectado"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="@dimen/text_size_medium"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView> 
