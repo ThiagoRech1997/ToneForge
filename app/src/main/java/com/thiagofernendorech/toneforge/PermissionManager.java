@@ -22,8 +22,9 @@ public class PermissionManager {
     
     // Códigos de requisição de permissão
     public static final int PERMISSION_REQUEST_CODE = 1001;
-    public static final int OVERLAY_PERMISSION_REQUEST_CODE = 1002;
-    public static final int BATTERY_OPTIMIZATION_REQUEST_CODE = 1003;
+    public static final int STORAGE_PERMISSION_REQUEST_CODE = 1002;
+    public static final int OVERLAY_PERMISSION_REQUEST_CODE = 1003;
+    public static final int BATTERY_OPTIMIZATION_REQUEST_CODE = 1004;
     
     // Lista de permissões necessárias
     private static final String[] REQUIRED_PERMISSIONS = {
@@ -184,7 +185,7 @@ public class PermissionManager {
      * Processa o resultado da requisição de permissões
      */
     public static void handlePermissionResult(Activity activity, int requestCode, String[] permissions, int[] grantResults, PermissionCallback callback) {
-        if (requestCode == PERMISSION_REQUEST_CODE) {
+        if (requestCode == PERMISSION_REQUEST_CODE || requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
             List<String> deniedPermissions = new ArrayList<>();
             List<String> explanationNeeded = new ArrayList<>();
             
@@ -321,7 +322,7 @@ public class PermissionManager {
             callback.onPermissionsGranted();
         } else {
             String[] permissions = permissionsToRequest.toArray(new String[0]);
-            ActivityCompat.requestPermissions(activity, permissions, PERMISSION_REQUEST_CODE);
+            ActivityCompat.requestPermissions(activity, permissions, STORAGE_PERMISSION_REQUEST_CODE);
         }
     }
     

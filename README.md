@@ -23,7 +23,7 @@ ToneForge is a digital multi-effects pedalboard for Android, featuring real-time
 - Gradle & CMake
 
 ## 📖 Full Documentation
-For detailed features, usage, architecture, and advanced guides, see the [project Wiki](features-new/wiki/).
+For detailed features, usage, architecture, and advanced guides, see the [project Wiki](https://github.com/ThiagoRech1997/ToneForge/wiki).
 
 ## ✨ Key Features
 
@@ -68,4 +68,4 @@ Thiago Fernando Rech - Android Developer and Audio Enthusiast
 
 ---
 
-**ToneForge** - Turn your Android into a professional pedalboard! 🎸 # Teste CI/CD
+**ToneForge** - Turn your Android into a professional pedalboard! 🎸
