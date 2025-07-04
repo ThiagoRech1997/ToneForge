@@ -109,7 +109,17 @@ jobs:
         languages: ${{ matrix.language }}
         config-file: ./.github/codeql/codeql-config.yml
     
-    - name: Autobuild
+    - name: Build native code (CMake)
+      if: matrix.language == 'cpp'
+      run: |
+        cd app/src/main/cpp
+        mkdir -p build
+        cd build
+        cmake ..
+        make
+    
+    - name: Autobuild (Java)
+      if: matrix.language == 'java'
       uses: github/codeql-action/autobuild@v3
     
     - name: Perform CodeQL Analysis
