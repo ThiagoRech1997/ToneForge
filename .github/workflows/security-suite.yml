@@ -32,7 +32,7 @@ jobs:
     
     - name: Upload Semgrep results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: always() && hashFiles('semgrep-results.sarif') != ''
       with:
         sarif_file: semgrep-results.sarif
     
@@ -70,7 +70,7 @@ jobs:
                 }
               }
             } else {
-              comment += '⚠️ Nenhum resultado encontrado.\n';
+              comment += '⚠️ Nenhum resultado encontrado ou erro na análise.\n';
             }
           } catch (error) {
             comment += '❌ Erro ao processar resultados.\n';
