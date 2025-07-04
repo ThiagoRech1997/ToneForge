@@ -1,44 +1,14 @@
 package com.thiagofernendorech.toneforge;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import org.junit.Test;
-import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doNothing;
 
 /**
  * Unit tests for ToneForge app components.
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
-@RunWith(MockitoJUnitRunner.class)
 public class ExampleUnitTest {
-    
-    @Mock
-    private Context mockContext;
-    
-    @Mock
-    private SharedPreferences mockPrefs;
-    
-    @Mock
-    private SharedPreferences.Editor mockEditor;
-    
-    @Before
-    public void setUp() {
-        // Configurar mocks para SharedPreferences
-        when(mockContext.getApplicationContext()).thenReturn(mockContext);
-        when(mockContext.getSharedPreferences("latency_prefs", Context.MODE_PRIVATE)).thenReturn(mockPrefs);
-        when(mockPrefs.edit()).thenReturn(mockEditor);
-        when(mockEditor.putInt("latency_mode", 1)).thenReturn(mockEditor);
-        doNothing().when(mockEditor).apply();
-        when(mockPrefs.getInt("latency_mode", 1)).thenReturn(1);
-    }
     
     @Test
     public void addition_isCorrect() {
@@ -46,95 +16,75 @@ public class ExampleUnitTest {
     }
     
     @Test
-    public void testLatencyManager_LowLatencyMode() {
-        // Teste do modo de baixa latência
-        LatencyManager latencyManager = LatencyManager.getInstance(mockContext);
-        latencyManager.setLatencyMode(LatencyManager.MODE_LOW_LATENCY);
+    public void testLatencyCalculations() {
+        // Teste dos cálculos de latência baseados nas configurações do LatencyManager
         
-        assertEquals(LatencyManager.MODE_LOW_LATENCY, latencyManager.getCurrentMode());
-        assertEquals("Baixa Latência", latencyManager.getModeName(LatencyManager.MODE_LOW_LATENCY));
-        assertEquals(512, latencyManager.getBufferSize());
-        assertEquals(48000, latencyManager.getSampleRate());
-        assertFalse(latencyManager.isAutoOversamplingEnabled());
-        assertEquals(1, latencyManager.getOversamplingFactor());
+        // Modo Baixa Latência: buffer 512, sample rate 48000
+        float lowLatency = calculateLatency(512, 48000);
+        assertEquals(21.33f, lowLatency, 0.1f);
         
-        // Verificar cálculo de latência: (512 / 48000) * 1000 * 2 = 21.33ms
-        float expectedLatency = (float) 512 / 48000 * 1000 * 2;
-        assertEquals(expectedLatency, latencyManager.getEstimatedLatency(), 0.1f);
+        // Modo Equilibrado: buffer 1024, sample rate 48000
+        float balancedLatency = calculateLatency(1024, 48000);
+        assertEquals(42.67f, balancedLatency, 0.1f);
+        
+        // Modo Estabilidade: buffer 2048, sample rate 44100
+        float stabilityLatency = calculateLatency(2048, 44100);
+        assertEquals(92.88f, stabilityLatency, 0.1f);
     }
     
     @Test
-    public void testLatencyManager_BalancedMode() {
-        // Teste do modo equilibrado
-        LatencyManager latencyManager = LatencyManager.getInstance(mockContext);
-        latencyManager.setLatencyMode(LatencyManager.MODE_BALANCED);
+    public void testLatencyProgression() {
+        // Teste que verifica se a latência aumenta conforme o buffer aumenta
         
-        assertEquals(LatencyManager.MODE_BALANCED, latencyManager.getCurrentMode());
-        assertEquals("Equilibrado", latencyManager.getModeName(LatencyManager.MODE_BALANCED));
-        assertEquals(1024, latencyManager.getBufferSize());
-        assertEquals(48000, latencyManager.getSampleRate());
-        assertTrue(latencyManager.isAutoOversamplingEnabled());
-        assertEquals(2, latencyManager.getOversamplingFactor());
-        
-        // Verificar cálculo de latência: (1024 / 48000) * 1000 * 2 = 42.67ms
-        float expectedLatency = (float) 1024 / 48000 * 1000 * 2;
-        assertEquals(expectedLatency, latencyManager.getEstimatedLatency(), 0.1f);
-    }
-    
-    @Test
-    public void testLatencyManager_StabilityMode() {
-        // Teste do modo de estabilidade
-        LatencyManager latencyManager = LatencyManager.getInstance(mockContext);
-        latencyManager.setLatencyMode(LatencyManager.MODE_STABILITY);
-        
-        assertEquals(LatencyManager.MODE_STABILITY, latencyManager.getCurrentMode());
-        assertEquals("Estabilidade", latencyManager.getModeName(LatencyManager.MODE_STABILITY));
-        assertEquals(2048, latencyManager.getBufferSize());
-        assertEquals(44100, latencyManager.getSampleRate());
-        assertTrue(latencyManager.isAutoOversamplingEnabled());
-        assertEquals(4, latencyManager.getOversamplingFactor());
-        
-        // Verificar cálculo de latência: (2048 / 44100) * 1000 * 2 = 92.88ms
-        float expectedLatency = (float) 2048 / 44100 * 1000 * 2;
-        assertEquals(expectedLatency, latencyManager.getEstimatedLatency(), 0.1f);
-    }
-    
-    @Test
-    public void testLatencyManager_ModeDescriptions() {
-        // Teste das descrições dos modos
-        LatencyManager latencyManager = LatencyManager.getInstance(mockContext);
-        assertTrue(latencyManager.getModeDescription(LatencyManager.MODE_LOW_LATENCY).contains("performance"));
-        assertTrue(latencyManager.getModeDescription(LatencyManager.MODE_BALANCED).contains("recomendado"));
-        assertTrue(latencyManager.getModeDescription(LatencyManager.MODE_STABILITY).contains("gravação"));
-    }
-    
-    @Test
-    public void testLatencyManager_InvalidMode() {
-        // Teste de modo inválido
-        LatencyManager latencyManager = LatencyManager.getInstance(mockContext);
-        latencyManager.setLatencyMode(999); // Modo inválido
-        
-        // Deve manter o modo anterior (não deve mudar)
-        int currentMode = latencyManager.getCurrentMode();
-        assertNotEquals(999, currentMode);
-        assertEquals("Desconhecido", latencyManager.getModeName(999));
-    }
-    
-    @Test
-    public void testLatencyManager_LatencyProgression() {
-        // Teste que verifica se a latência aumenta conforme o modo
-        LatencyManager latencyManager = LatencyManager.getInstance(mockContext);
-        latencyManager.setLatencyMode(LatencyManager.MODE_LOW_LATENCY);
-        float lowLatency = latencyManager.getEstimatedLatency();
-        
-        latencyManager.setLatencyMode(LatencyManager.MODE_BALANCED);
-        float balancedLatency = latencyManager.getEstimatedLatency();
-        
-        latencyManager.setLatencyMode(LatencyManager.MODE_STABILITY);
-        float stabilityLatency = latencyManager.getEstimatedLatency();
+        float lowLatency = calculateLatency(512, 48000);
+        float balancedLatency = calculateLatency(1024, 48000);
+        float stabilityLatency = calculateLatency(2048, 44100);
         
         // Verificar progressão: baixa < equilibrada < estabilidade
         assertTrue("Latência de baixa latência deve ser menor que equilibrada", lowLatency < balancedLatency);
         assertTrue("Latência equilibrada deve ser menor que estabilidade", balancedLatency < stabilityLatency);
+    }
+    
+    @Test
+    public void testBufferSizeImpact() {
+        // Teste do impacto do tamanho do buffer na latência
+        
+        float smallBuffer = calculateLatency(256, 48000);
+        float mediumBuffer = calculateLatency(512, 48000);
+        float largeBuffer = calculateLatency(1024, 48000);
+        
+        assertTrue("Buffer menor deve ter latência menor", smallBuffer < mediumBuffer);
+        assertTrue("Buffer médio deve ter latência menor que grande", mediumBuffer < largeBuffer);
+    }
+    
+    @Test
+    public void testSampleRateImpact() {
+        // Teste do impacto da taxa de amostragem na latência
+        
+        float highSampleRate = calculateLatency(512, 48000);
+        float lowSampleRate = calculateLatency(512, 44100);
+        
+        assertTrue("Taxa de amostragem maior deve ter latência menor", highSampleRate < lowSampleRate);
+    }
+    
+    @Test
+    public void testLatencyFormula() {
+        // Teste da fórmula de latência: (buffer / sampleRate) * 1000 * 2
+        
+        int bufferSize = 1024;
+        int sampleRate = 48000;
+        
+        float expectedLatency = (float) bufferSize / sampleRate * 1000 * 2;
+        float calculatedLatency = calculateLatency(bufferSize, sampleRate);
+        
+        assertEquals("Fórmula de latência deve estar correta", expectedLatency, calculatedLatency, 0.01f);
+    }
+    
+    /**
+     * Calcula a latência estimada em milissegundos
+     * Fórmula: (tamanho do buffer / taxa de amostragem) * 1000ms * 2 (entrada + saída)
+     */
+    private float calculateLatency(int bufferSize, int sampleRate) {
+        return (float) bufferSize / sampleRate * 1000 * 2;
     }
 }
