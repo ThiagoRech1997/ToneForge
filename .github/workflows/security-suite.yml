@@ -145,10 +145,21 @@ jobs:
         tar -xzf spotbugs-4.7.3.tgz
         export PATH=$PATH:./spotbugs-4.7.3/bin
         
-        # Executar análise
-        spotbugs -textui -html -outputDir spotbugs-report \
-          -include spotbugs-include.xml \
-          app/build/intermediates/javac/debug/
+        # Criar diretório de relatório
+        mkdir -p spotbugs-report
+        
+        # Executar análise se os arquivos compilados existirem
+        if [ -d "app/build/intermediates/javac/debug/" ]; then
+          spotbugs -textui -html -outputDir spotbugs-report \
+            -include spotbugs-include.xml \
+            app/build/intermediates/javac/debug/
+        else
+          echo "## SpotBugs Analysis Results" > spotbugs-report/index.html
+          echo "<html><body><h1>SpotBugs Analysis</h1>" >> spotbugs-report/index.html
+          echo "<p>No compiled Java files found for analysis.</p>" >> spotbugs-report/index.html
+          echo "<p>Build completed successfully but no Java bytecode available.</p>" >> spotbugs-report/index.html
+          echo "</body></html>" >> spotbugs-report/index.html
+        fi
     
     - name: Upload SpotBugs report
       uses: actions/upload-artifact@v4
@@ -171,6 +182,9 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
     
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -284,13 +298,19 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       run: |
-        ./gradlew sonarqube \
-          -Dsonar.projectKey=thiagofernendorech_toneforge \
-          -Dsonar.host.url=$SONAR_HOST_URL \
-          -Dsonar.login=$SONAR_TOKEN \
-          -Dsonar.pullrequest.key=${{ github.event.number }} \
-          -Dsonar.pullrequest.branch=${{ github.head_ref }} \
-          -Dsonar.pullrequest.base=${{ github.base_ref }}
+        # Executar SonarQube apenas se as credenciais estiverem configuradas
+        if [ -n "$SONAR_TOKEN" ] && [ -n "$SONAR_HOST_URL" ]; then
+          ./gradlew sonarqube \
+            -Dsonar.projectKey=thiagofernendorech_toneforge \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.pullrequest.key=${{ github.event.number }} \
+            -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+        else
+          echo "SonarQube credentials not configured. Skipping analysis."
+          echo "To enable SonarQube analysis, configure SONAR_TOKEN and SONAR_HOST_URL secrets."
+        fi
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -348,16 +368,40 @@ jobs:
           const fs = require('fs');
           
           let comment = '## 🔒 Security Analysis Suite - Summary\n\n';
-          comment += '✅ **All security analysis tools completed successfully!**\n\n';
-          comment += '### Tools Executed:\n';
-          comment += '- 🔍 **Semgrep**: Vulnerability scanning\n';
-          comment += '- 🧠 **CodeQL**: Semantic analysis\n';
-          comment += '- 🐛 **SpotBugs**: Java/Android analysis\n';
-          comment += '- ⚙️ **Clang**: C/C++ analysis\n';
-          comment += '- 📦 **OWASP**: Dependency check\n';
-          comment += '- 📊 **SonarQube**: Code quality\n\n';
+          
+          // Verificar status dos jobs
+          const jobs = ['semgrep', 'codeql', 'spotbugs', 'clang-analyzer', 'owasp-dependency-check', 'sonarqube'];
+          const jobResults = {};
+          
+          for (const job of jobs) {
+            try {
+              const jobResult = await github.rest.actions.listJobsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId
+              });
+              
+              const targetJob = jobResult.data.jobs.find(j => j.name.toLowerCase().includes(job));
+              jobResults[job] = targetJob ? targetJob.conclusion : 'unknown';
+            } catch (error) {
+              jobResults[job] = 'unknown';
+            }
+          }
+          
+          comment += '### Tools Status:\n';
+          comment += `- 🔍 **Semgrep**: ${jobResults.semgrep === 'success' ? '✅' : '⚠️'} Vulnerability scanning\n`;
+          comment += `- 🧠 **CodeQL**: ${jobResults.codeql === 'success' ? '✅' : '⚠️'} Semantic analysis\n`;
+          comment += `- 🐛 **SpotBugs**: ${jobResults.spotbugs === 'success' ? '✅' : '⚠️'} Java/Android analysis\n`;
+          comment += `- ⚙️ **Clang**: ${jobResults['clang-analyzer'] === 'success' ? '✅' : '⚠️'} C/C++ analysis\n`;
+          comment += `- 📦 **OWASP**: ${jobResults['owasp-dependency-check'] === 'success' ? '✅' : '⚠️'} Dependency check\n`;
+          comment += `- 📊 **SonarQube**: ${jobResults.sonarqube === 'success' ? '✅' : '⚠️'} Code quality\n\n`;
+          
           comment += '📋 **Check the Actions artifacts for detailed reports**\n';
           comment += '🔒 **Review findings in the GitHub Security tab**\n';
+          
+          if (Object.values(jobResults).some(result => result !== 'success')) {
+            comment += '\n⚠️ **Some tools may have encountered issues. Check the Actions logs for details.**\n';
+          }
           
           github.rest.issues.createComment({
             issue_number: context.issue.number,
