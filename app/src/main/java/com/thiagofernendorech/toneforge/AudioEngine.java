@@ -274,4 +274,37 @@ public class AudioEngine {
     public static native boolean isLooperReverbTailEnabled();
     public static native float getLooperReverbTailDecay();
     public static native float getLooperReverbTailMix();
+    
+    // === FASE 6: INTEGRAÇÃO AVANÇADA ===
+    
+    // Quantização
+    public static native void setLooperQuantization(boolean enabled);
+    public static native void setLooperQuantizationGrid(float gridSize);
+    public static native boolean isLooperQuantizationEnabled();
+    public static native float getLooperQuantizationGrid();
+    
+    // Fade In/Out automático
+    public static native void setLooperAutoFadeIn(boolean enabled);
+    public static native void setLooperAutoFadeOut(boolean enabled);
+    public static native void setLooperFadeInDuration(float duration);
+    public static native void setLooperFadeOutDuration(float duration);
+    public static native boolean isLooperAutoFadeInEnabled();
+    public static native boolean isLooperAutoFadeOutEnabled();
+    public static native float getLooperFadeInDuration();
+    public static native float getLooperFadeOutDuration();
+    
+    // Integração MIDI
+    public static native void setLooperMidiEnabled(boolean enabled);
+    public static native void setLooperMidiChannel(int channel);
+    public static native void setLooperMidiCCMapping(int ccNumber, int function);
+    public static native boolean isLooperMidiEnabled();
+    public static native int getLooperMidiChannel();
+    public static native void processLooperMidiMessage(int status, int data1, int data2);
+    
+    // Notificações
+    public static native void setLooperNotificationEnabled(boolean enabled);
+    public static native void setLooperNotificationControls(boolean showControls);
+    public static native boolean isLooperNotificationEnabled();
+    public static native boolean isLooperNotificationControlsEnabled();
+    public static native void updateLooperNotificationState();
 } 

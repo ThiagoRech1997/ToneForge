@@ -776,6 +776,127 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperReverbTailMix(JNIEnv*
     return getLooperReverbTailMix();
 }
 
+// === JNI PARA INTEGRAÇÃO AVANÇADA (FASE 6) ===
+
+// Quantização
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperQuantization(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperQuantization(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperQuantizationGrid(JNIEnv* env, jclass clazz, jfloat gridSize) {
+    setLooperQuantizationGrid(gridSize);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperQuantizationEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperQuantizationEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperQuantizationGrid(JNIEnv* env, jclass clazz) {
+    return getLooperQuantizationGrid();
+}
+
+// Fade In/Out automático
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperAutoFadeIn(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperAutoFadeIn(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperAutoFadeOut(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperAutoFadeOut(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperFadeInDuration(JNIEnv* env, jclass clazz, jfloat duration) {
+    setLooperFadeInDuration(duration);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperFadeOutDuration(JNIEnv* env, jclass clazz, jfloat duration) {
+    setLooperFadeOutDuration(duration);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperAutoFadeInEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperAutoFadeInEnabled();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperAutoFadeOutEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperAutoFadeOutEnabled();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperFadeInDuration(JNIEnv* env, jclass clazz) {
+    return getLooperFadeInDuration();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperFadeOutDuration(JNIEnv* env, jclass clazz) {
+    return getLooperFadeOutDuration();
+}
+
+// Integração MIDI
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperMidiEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperMidiEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperMidiChannel(JNIEnv* env, jclass clazz, jint channel) {
+    setLooperMidiChannel(channel);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperMidiCCMapping(JNIEnv* env, jclass clazz, jint ccNumber, jint function) {
+    setLooperMidiCCMapping(ccNumber, function);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperMidiEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperMidiEnabled();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperMidiChannel(JNIEnv* env, jclass clazz) {
+    return getLooperMidiChannel();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_processLooperMidiMessage(JNIEnv* env, jclass clazz, jint status, jint data1, jint data2) {
+    processLooperMidiMessage(status, data1, data2);
+}
+
+// Notificações
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperNotificationEnabled(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setLooperNotificationEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperNotificationControls(JNIEnv* env, jclass clazz, jboolean showControls) {
+    setLooperNotificationControls(showControls);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperNotificationEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperNotificationEnabled();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isLooperNotificationControlsEnabled(JNIEnv* env, jclass clazz) {
+    return isLooperNotificationControlsEnabled();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_updateLooperNotificationState(JNIEnv* env, jclass clazz) {
+    updateLooperNotificationState();
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_cutLooperRegion(JNIEnv* env, jclass clazz, jfloat start, jfloat end) {
     cutLooperRegion(start, end);

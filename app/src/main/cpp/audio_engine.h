@@ -178,6 +178,39 @@ extern "C" {
     bool isLooperReverbTailEnabled();
     float getLooperReverbTailDecay();
     float getLooperReverbTailMix();
+    
+    // === FASE 6: INTEGRAÇÃO AVANÇADA ===
+    
+    // Quantização
+    void setLooperQuantization(bool enabled);
+    void setLooperQuantizationGrid(float gridSize); // em batidas (1/4, 1/8, 1/16, etc.)
+    bool isLooperQuantizationEnabled();
+    float getLooperQuantizationGrid();
+    
+    // Fade In/Out automático
+    void setLooperAutoFadeIn(bool enabled);
+    void setLooperAutoFadeOut(bool enabled);
+    void setLooperFadeInDuration(float duration); // segundos
+    void setLooperFadeOutDuration(float duration); // segundos
+    bool isLooperAutoFadeInEnabled();
+    bool isLooperAutoFadeOutEnabled();
+    float getLooperFadeInDuration();
+    float getLooperFadeOutDuration();
+    
+    // Integração MIDI
+    void setLooperMidiEnabled(bool enabled);
+    void setLooperMidiChannel(int channel);
+    void setLooperMidiCCMapping(int ccNumber, int function); // 0=record, 1=play, 2=stop, etc.
+    bool isLooperMidiEnabled();
+    int getLooperMidiChannel();
+    void processLooperMidiMessage(int status, int data1, int data2);
+    
+    // Notificações
+    void setLooperNotificationEnabled(bool enabled);
+    void setLooperNotificationControls(bool showControls);
+    bool isLooperNotificationEnabled();
+    bool isLooperNotificationControlsEnabled();
+    void updateLooperNotificationState();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

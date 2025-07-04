@@ -221,6 +221,35 @@ static float compressorGain = 1.0f;         // Gain reduction
 
 static int reverbType = 0; // 0=Hall, 1=Plate, 2=Spring
 
+// === FASE 6: INTEGRAÇÃO AVANÇADA ===
+
+// Quantização
+static bool looperQuantizationEnabled = false;
+static float looperQuantizationGrid = 0.25f; // 1/4 de batida por padrão
+static int looperQuantizationSamples = 0; // samples por grid
+static int looperQuantizationCounter = 0; // contador para alinhamento
+
+// Fade In/Out automático
+static bool looperAutoFadeInEnabled = false;
+static bool looperAutoFadeOutEnabled = false;
+static float looperFadeInDuration = 0.1f; // segundos
+static float looperFadeOutDuration = 0.1f; // segundos
+static int looperFadeInSamples = 0;
+static int looperFadeOutSamples = 0;
+static int looperFadeInCounter = 0;
+static int looperFadeOutCounter = 0;
+
+// Integração MIDI
+static bool looperMidiEnabled = false;
+static int looperMidiChannel = 0; // canal 1 (0-based)
+static int looperMidiCCMapping[128]; // mapeamento CC -> função
+static bool looperMidiCCActive[128]; // estado dos CCs
+
+// Notificações
+static bool looperNotificationEnabled = false;
+static bool looperNotificationControlsEnabled = false;
+static std::string looperNotificationState = "stopped"; // stopped, recording, playing
+
 void initAudioEngine() {
     // Inicializar buffers de oversampling
     oversampleBufferSize = 4096 * oversamplingFactor;
@@ -267,6 +296,23 @@ void initAudioEngine() {
     looperPeakLevel = 0.0f;
     looperLowPassX1 = looperLowPassX2 = looperLowPassY1 = looperLowPassY2 = 0.0f;
     looperHighPassX1 = looperHighPassX2 = looperHighPassY1 = looperHighPassY2 = 0.0f;
+    
+    // Resetar integração avançada (Fase 6)
+    looperQuantizationCounter = 0;
+    looperFadeInCounter = 0;
+    looperFadeOutCounter = 0;
+    
+    // Inicializar mapeamento MIDI
+    for (int i = 0; i < 128; i++) {
+        looperMidiCCMapping[i] = -1; // não mapeado
+        looperMidiCCActive[i] = false;
+    }
+    
+    // Mapeamento padrão de CCs
+    looperMidiCCMapping[64] = 0; // CC64 = Record
+    looperMidiCCMapping[65] = 1; // CC65 = Play
+    looperMidiCCMapping[66] = 2; // CC66 = Stop
+    looperMidiCCMapping[67] = 3; // CC67 = Clear
 }
 
 void cleanupAudioEngine() {
@@ -384,9 +430,28 @@ static float getMetronomeSample() {
 }
 
 void startLooperRecording() {
+    // Verificar quantização se habilitada
+    if (looperQuantizationEnabled && looperQuantizationSamples > 0) {
+        // Aguardar até o próximo grid
+        int currentBeat = (int)((float)metronomeSampleCounter / metronomeSamplesPerBeat);
+        float currentBeatFraction = (float)(metronomeSampleCounter % metronomeSamplesPerBeat) / metronomeSamplesPerBeat;
+        
+        // Calcular quantos samples faltam para o próximo grid
+        int samplesToNextGrid = (int)((looperQuantizationGrid - currentBeatFraction) * metronomeSamplesPerBeat);
+        if (samplesToNextGrid > 0) {
+            looperQuantizationCounter = samplesToNextGrid;
+            printf("startLooperRecording: aguardando quantização (%d samples)\n", samplesToNextGrid);
+            return; // Aguardar quantização
+        }
+    }
+    
     looperRecording = true;
     looperPlaying = false;
     looperWriteIndex = 0;
+    
+    // Resetar contadores de fade
+    looperFadeInCounter = 0;
+    looperFadeOutCounter = 0;
     
     printf("startLooperRecording: iniciando gravação\n");
     
@@ -415,6 +480,9 @@ void startLooperRecording() {
     looperTracks[currentTrack].soloed = false;
     looperTracks[currentTrack].active = true;
     
+    // Atualizar estado da notificação
+    looperNotificationState = "recording";
+    
     printf("startLooperRecording: track %d configurada para gravação\n", currentTrack);
 }
 
@@ -426,17 +494,38 @@ void stopLooperRecording() {
         printf("stopLooperRecording: definido length=%d para track %d\n", looperWriteIndex, currentTrack);
     }
     looperReadIndex = 0;
+    
+    // Atualizar estado da notificação
+    looperNotificationState = "stopped";
 }
 
 void startLooperPlayback() {
     if (looperTracks[currentTrack].length > 0) {
         looperPlaying = true;
         looperReadIndex = 0;
+        
+        // Configurar fade in se habilitado
+        if (looperAutoFadeInEnabled) {
+            looperFadeInCounter = 0;
+            looperFadeInSamples = (int)(looperFadeInDuration * looperSampleRate);
+        }
+        
+        // Atualizar estado da notificação
+        looperNotificationState = "playing";
     }
 }
 
 void stopLooperPlayback() {
     looperPlaying = false;
+    
+    // Configurar fade out se habilitado
+    if (looperAutoFadeOutEnabled) {
+        looperFadeOutSamples = (int)(looperFadeOutDuration * looperSampleRate);
+        looperFadeOutCounter = looperFadeOutSamples;
+    }
+    
+    // Atualizar estado da notificação
+    looperNotificationState = "stopped";
 }
 
 void clearLooper() {
@@ -968,6 +1057,21 @@ float processSample(float input) {
             // Atualizar buffer de reverb
             looperReverbTailBuffer[looperReverbTailIndex] = processedLooperOutput * looperReverbTailDecayCoeff;
             looperReverbTailIndex = (looperReverbTailIndex + 1) % looperReverbTailSize;
+        }
+        
+        // === APLICAR EFEITOS DA FASE 6 ===
+        
+        // 5. Fade In/Out automático
+        if (looperAutoFadeInEnabled && looperFadeInCounter < looperFadeInSamples) {
+            float fadeFactor = (float)looperFadeInCounter / looperFadeInSamples;
+            processedLooperOutput *= fadeFactor;
+            looperFadeInCounter++;
+        }
+        
+        if (looperAutoFadeOutEnabled && looperFadeOutCounter > 0) {
+            float fadeFactor = (float)looperFadeOutCounter / looperFadeOutSamples;
+            processedLooperOutput *= fadeFactor;
+            looperFadeOutCounter--;
         }
         
         output += processedLooperOutput;
@@ -1595,6 +1699,172 @@ float getLooperReverbTailDecay() {
 
 float getLooperReverbTailMix() {
     return looperReverbTailMix;
+}
+
+// === IMPLEMENTAÇÕES DA FASE 6: INTEGRAÇÃO AVANÇADA ===
+
+// Quantização
+void setLooperQuantization(bool enabled) {
+    looperQuantizationEnabled = enabled;
+    if (enabled) {
+        // Calcular samples por grid baseado no BPM atual
+        looperQuantizationSamples = (int)(looperQuantizationGrid * metronomeSamplesPerBeat);
+    } else {
+        looperQuantizationSamples = 0;
+        looperQuantizationCounter = 0;
+    }
+}
+
+void setLooperQuantizationGrid(float gridSize) {
+    looperQuantizationGrid = gridSize;
+    if (looperQuantizationEnabled) {
+        looperQuantizationSamples = (int)(gridSize * metronomeSamplesPerBeat);
+    }
+}
+
+bool isLooperQuantizationEnabled() {
+    return looperQuantizationEnabled;
+}
+
+float getLooperQuantizationGrid() {
+    return looperQuantizationGrid;
+}
+
+// Fade In/Out automático
+void setLooperAutoFadeIn(bool enabled) {
+    looperAutoFadeInEnabled = enabled;
+    if (enabled) {
+        looperFadeInSamples = (int)(looperFadeInDuration * looperSampleRate);
+    }
+}
+
+void setLooperAutoFadeOut(bool enabled) {
+    looperAutoFadeOutEnabled = enabled;
+}
+
+void setLooperFadeInDuration(float duration) {
+    looperFadeInDuration = duration;
+    if (looperAutoFadeInEnabled) {
+        looperFadeInSamples = (int)(duration * looperSampleRate);
+    }
+}
+
+void setLooperFadeOutDuration(float duration) {
+    looperFadeOutDuration = duration;
+}
+
+bool isLooperAutoFadeInEnabled() {
+    return looperAutoFadeInEnabled;
+}
+
+bool isLooperAutoFadeOutEnabled() {
+    return looperAutoFadeOutEnabled;
+}
+
+float getLooperFadeInDuration() {
+    return looperFadeInDuration;
+}
+
+float getLooperFadeOutDuration() {
+    return looperFadeOutDuration;
+}
+
+// Integração MIDI
+void setLooperMidiEnabled(bool enabled) {
+    looperMidiEnabled = enabled;
+}
+
+void setLooperMidiChannel(int channel) {
+    looperMidiChannel = channel;
+}
+
+void setLooperMidiCCMapping(int ccNumber, int function) {
+    if (ccNumber >= 0 && ccNumber < 128) {
+        looperMidiCCMapping[ccNumber] = function;
+    }
+}
+
+bool isLooperMidiEnabled() {
+    return looperMidiEnabled;
+}
+
+int getLooperMidiChannel() {
+    return looperMidiChannel;
+}
+
+void processLooperMidiMessage(int status, int data1, int data2) {
+    if (!looperMidiEnabled) return;
+    
+    int channel = status & 0x0F;
+    int messageType = status & 0xF0;
+    
+    // Verificar se é o canal correto
+    if (channel != looperMidiChannel) return;
+    
+    // Processar mensagens CC (Control Change)
+    if (messageType == 0xB0) { // CC
+        int ccNumber = data1;
+        int ccValue = data2;
+        
+        if (ccNumber >= 0 && ccNumber < 128 && looperMidiCCMapping[ccNumber] >= 0) {
+            int function = looperMidiCCMapping[ccNumber];
+            
+            // Ativar função baseado no valor CC
+            bool activate = ccValue >= 64; // threshold de 64
+            
+            switch (function) {
+                case 0: // Record
+                    if (activate && !looperRecording) {
+                        startLooperRecording();
+                    } else if (!activate && looperRecording) {
+                        stopLooperRecording();
+                    }
+                    break;
+                case 1: // Play
+                    if (activate && !looperPlaying) {
+                        startLooperPlayback();
+                    } else if (!activate && looperPlaying) {
+                        stopLooperPlayback();
+                    }
+                    break;
+                case 2: // Stop
+                    if (activate) {
+                        stopLooperRecording();
+                        stopLooperPlayback();
+                    }
+                    break;
+                case 3: // Clear
+                    if (activate) {
+                        clearLooper();
+                    }
+                    break;
+            }
+            
+            looperMidiCCActive[ccNumber] = activate;
+        }
+    }
+}
+
+// Notificações
+void setLooperNotificationEnabled(bool enabled) {
+    looperNotificationEnabled = enabled;
+}
+
+void setLooperNotificationControls(bool showControls) {
+    looperNotificationControlsEnabled = showControls;
+}
+
+bool isLooperNotificationEnabled() {
+    return looperNotificationEnabled;
+}
+
+bool isLooperNotificationControlsEnabled() {
+    return looperNotificationControlsEnabled;
+}
+
+void updateLooperNotificationState() {
+    // Esta função será chamada pela interface Java para atualizar a notificação
+    // O estado atual está em looperNotificationState
 }
 
 void cutLooperRegion(float start, float end) {

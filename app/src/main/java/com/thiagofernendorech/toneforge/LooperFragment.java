@@ -79,6 +79,18 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private SeekBar looperReverbTailDecaySeekBar;
     private TextView looperReverbTailDecayText;
     
+    // Controles de Integração Avançada (Fase 6)
+    private Switch looperQuantizationSwitch;
+    private android.widget.Spinner looperQuantizationGridSpinner;
+    private Switch looperFadeInSwitch;
+    private Switch looperFadeOutSwitch;
+    private SeekBar looperFadeInDurationSeekBar;
+    private TextView looperFadeInDurationText;
+    private SeekBar looperFadeOutDurationSeekBar;
+    private TextView looperFadeOutDurationText;
+    private Switch looperMidiSwitch;
+    private Switch looperNotificationSwitch;
+    
     // Controles de Edição
     private Switch looperEditModeSwitch;
     private Button looperCutButton;
@@ -212,6 +224,18 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperReverbTailDecaySeekBar = view.findViewById(R.id.looperReverbTailDecaySeekBar);
         looperReverbTailDecayText = view.findViewById(R.id.looperReverbTailDecayText);
         
+        // Controles de Integração Avançada (Fase 6)
+        looperQuantizationSwitch = view.findViewById(R.id.looperQuantizationSwitch);
+        looperQuantizationGridSpinner = view.findViewById(R.id.looperQuantizationGridSpinner);
+        looperFadeInSwitch = view.findViewById(R.id.looperFadeInSwitch);
+        looperFadeOutSwitch = view.findViewById(R.id.looperFadeOutSwitch);
+        looperFadeInDurationSeekBar = view.findViewById(R.id.looperFadeInDurationSeekBar);
+        looperFadeInDurationText = view.findViewById(R.id.looperFadeInDurationText);
+        looperFadeOutDurationSeekBar = view.findViewById(R.id.looperFadeOutDurationSeekBar);
+        looperFadeOutDurationText = view.findViewById(R.id.looperFadeOutDurationText);
+        looperMidiSwitch = view.findViewById(R.id.looperMidiSwitch);
+        looperNotificationSwitch = view.findViewById(R.id.looperNotificationSwitch);
+        
         // Controles de Edição
         looperEditModeSwitch = view.findViewById(R.id.looperEditModeSwitch);
         looperCutButton = view.findViewById(R.id.looperCutButton);
@@ -312,6 +336,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         
         // Controles de Efeitos Avançados (Fase 5)
         setupAdvancedEffectsControls();
+        
+        // Controles de Integração Avançada (Fase 6)
+        setupAdvancedIntegrationControls();
     }
     
     private void setupSpecialControls() {
@@ -564,6 +591,107 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperLowPassFreqSeekBar.setEnabled(false);
         looperHighPassFreqSeekBar.setEnabled(false);
         looperReverbTailDecaySeekBar.setEnabled(false);
+    }
+    
+    private void setupAdvancedIntegrationControls() {
+        // Configurar spinner de grid de quantização
+        String[] gridOptions = {"1/4", "1/8", "1/16", "1/32"};
+        android.widget.ArrayAdapter<String> gridAdapter = new android.widget.ArrayAdapter<>(
+            requireContext(), android.R.layout.simple_spinner_item, gridOptions);
+        gridAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        looperQuantizationGridSpinner.setAdapter(gridAdapter);
+        looperQuantizationGridSpinner.setSelection(0); // 1/4 por padrão
+
+        // Quantização Switch
+        looperQuantizationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperQuantization(isChecked);
+            looperQuantizationGridSpinner.setEnabled(isChecked);
+            android.util.Log.d("LooperFragment", "Quantização: " + (isChecked ? "ON" : "OFF"));
+        });
+
+        // Grid de Quantização Spinner
+        looperQuantizationGridSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                float gridSize = 0.25f; // 1/4 por padrão
+                switch (position) {
+                    case 0: gridSize = 0.25f; break; // 1/4
+                    case 1: gridSize = 0.125f; break; // 1/8
+                    case 2: gridSize = 0.0625f; break; // 1/16
+                    case 3: gridSize = 0.03125f; break; // 1/32
+                }
+                AudioEngine.setLooperQuantizationGrid(gridSize);
+                android.util.Log.d("LooperFragment", "Grid de quantização: " + gridOptions[position]);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+
+        // Fade In Switch
+        looperFadeInSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperAutoFadeIn(isChecked);
+            looperFadeInDurationSeekBar.setEnabled(isChecked);
+            looperFadeInDurationText.setTextColor(getResources().getColor(isChecked ? R.color.white : R.color.gray));
+            android.util.Log.d("LooperFragment", "Fade In: " + (isChecked ? "ON" : "OFF"));
+        });
+
+        // Fade Out Switch
+        looperFadeOutSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperAutoFadeOut(isChecked);
+            looperFadeOutDurationSeekBar.setEnabled(isChecked);
+            looperFadeOutDurationText.setTextColor(getResources().getColor(isChecked ? R.color.white : R.color.gray));
+            android.util.Log.d("LooperFragment", "Fade Out: " + (isChecked ? "ON" : "OFF"));
+        });
+
+        // Fade In Duration SeekBar
+        looperFadeInDurationSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float duration = 0.01f + (progress / 100.0f) * 0.99f; // 0.01s a 1.0s
+                    AudioEngine.setLooperFadeInDuration(duration);
+                    looperFadeInDurationText.setText(String.format("%.2fs", duration));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+
+        // Fade Out Duration SeekBar
+        looperFadeOutDurationSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float duration = 0.01f + (progress / 100.0f) * 0.99f; // 0.01s a 1.0s
+                    AudioEngine.setLooperFadeOutDuration(duration);
+                    looperFadeOutDurationText.setText(String.format("%.2fs", duration));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+
+        // MIDI Switch
+        looperMidiSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperMidiEnabled(isChecked);
+            android.util.Log.d("LooperFragment", "MIDI: " + (isChecked ? "ON" : "OFF"));
+        });
+
+        // Notificação Switch
+        looperNotificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperNotificationEnabled(isChecked);
+            AudioEngine.setLooperNotificationControls(isChecked);
+            android.util.Log.d("LooperFragment", "Notificação: " + (isChecked ? "ON" : "OFF"));
+        });
     }
     
     private void setupEditControls() {
