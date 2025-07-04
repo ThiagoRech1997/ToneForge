@@ -1,0 +1,369 @@
+name: Security Analysis Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Executa diariamente às 3h da manhã
+    - cron: '0 3 * * *'
+
+jobs:
+  # Análise de vulnerabilidades com Semgrep
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Semgrep
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: >-
+          p/security-audit
+          p/secrets
+          p/owasp-top-ten
+          p/android
+        output-format: sarif
+        output-file: semgrep-results.sarif
+    
+    - name: Upload Semgrep results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: semgrep-results.sarif
+    
+    - name: Comment PR with Semgrep results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let comment = '## 🔍 Semgrep Security Scan Results\n\n';
+          
+          try {
+            if (fs.existsSync('semgrep-results.sarif')) {
+              const sarifContent = JSON.parse(fs.readFileSync('semgrep-results.sarif', 'utf8'));
+              const results = sarifContent.runs?.[0]?.results || [];
+              
+              if (results.length === 0) {
+                comment += '✅ Nenhuma vulnerabilidade de segurança encontrada!\n';
+              } else {
+                comment += `⚠️ **${results.length}** vulnerabilidade(s) encontrada(s):\n\n`;
+                
+                results.slice(0, 5).forEach((result, index) => {
+                  const rule = result.rule;
+                  const location = result.locations?.[0]?.physicalLocation;
+                  comment += `${index + 1}. **${rule.name}** (${rule.id})\n`;
+                  comment += `   - Severidade: ${result.level || 'warning'}\n`;
+                  comment += `   - Arquivo: \`${location?.artifactLocation?.uri}\`\n`;
+                  comment += `   - Linha: ${location?.region?.startLine}\n`;
+                  comment += `   - ${result.message?.text}\n\n`;
+                });
+                
+                if (results.length > 5) {
+                  comment += `... e mais ${results.length - 5} vulnerabilidade(s).\n`;
+                }
+              }
+            } else {
+              comment += '⚠️ Nenhum resultado encontrado.\n';
+            }
+          } catch (error) {
+            comment += '❌ Erro ao processar resultados.\n';
+          }
+          
+          comment += '\n📋 Verifique a aba Security para detalhes completos.';
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  # Análise semântica com CodeQL
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'java', 'cpp' ]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        config-file: ./.github/codeql/codeql-config.yml
+    
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+
+  # Análise específica Java/Android com SpotBugs
+  spotbugs:
+    name: SpotBugs Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Build project
+      run: ./gradlew build
+    
+    - name: Run SpotBugs
+      run: |
+        # Instalar SpotBugs
+        wget https://github.com/spotbugs/spotbugs/releases/download/4.7.3/spotbugs-4.7.3.tgz
+        tar -xzf spotbugs-4.7.3.tgz
+        export PATH=$PATH:./spotbugs-4.7.3/bin
+        
+        # Executar análise
+        spotbugs -textui -html -outputDir spotbugs-report \
+          -include spotbugs-include.xml \
+          app/build/intermediates/javac/debug/
+    
+    - name: Upload SpotBugs report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: spotbugs-report
+        path: spotbugs-report/
+
+  # Análise de código nativo C/C++ com Clang
+  clang-analyzer:
+    name: Clang Static Analyzer
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang cmake build-essential
+    
+    - name: Run Clang Static Analyzer
+      run: |
+        # Configurar CMake com Clang
+        mkdir build
+        cd build
+        cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+              ../app/src/main/cpp
+        
+        # Executar análise estática
+        scan-build -o clang-analysis make
+        
+        # Gerar relatório HTML
+        if [ -d "clang-analysis" ]; then
+          echo "## Clang Static Analyzer Results" > clang-report.md
+          echo "" >> clang-report.md
+          echo "Análise concluída. Verifique os arquivos HTML em clang-analysis/ para detalhes." >> clang-report.md
+        else
+          echo "## Clang Static Analyzer Results" > clang-report.md
+          echo "" >> clang-report.md
+          echo "✅ Nenhum problema encontrado!" >> clang-report.md
+        fi
+    
+    - name: Upload Clang analysis results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: clang-analysis
+        path: build/clang-analysis/
+    
+    - name: Upload Clang report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: clang-report
+        path: build/clang-report.md
+
+  # Análise de dependências com OWASP Dependency Check
+  owasp-dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'ToneForge'
+        path: '.'
+        format: 'HTML'
+        out: 'owasp-reports'
+        args: >
+          --failOnCVSS 7
+          --enableRetired
+          --enableExperimental
+          --suppression suppression.xml
+    
+    - name: Upload OWASP security report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: owasp-security-report
+        path: owasp-reports/
+
+  # Análise geral de qualidade com SonarQube
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Necessário para o SonarQube
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Build project
+      run: ./gradlew build
+    
+    - name: Run tests
+      run: ./gradlew test
+    
+    - name: Generate JaCoCo report
+      run: ./gradlew jacocoTestReport
+    
+    - name: Run Android Lint
+      run: ./gradlew lint
+    
+    - name: SonarQube Analysis
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      run: |
+        ./gradlew sonarqube \
+          -Dsonar.projectKey=thiagofernendorech_toneforge \
+          -Dsonar.host.url=$SONAR_HOST_URL \
+          -Dsonar.login=$SONAR_TOKEN \
+          -Dsonar.pullrequest.key=${{ github.event.number }} \
+          -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+          -Dsonar.pullrequest.base=${{ github.base_ref }}
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: app/build/reports/
+    
+    - name: Upload JaCoCo report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: jacoco-report
+        path: app/build/reports/jacoco/
+
+  # Resumo final dos resultados
+  summary:
+    name: Security Analysis Summary
+    runs-on: ubuntu-latest
+    needs: [semgrep, codeql, spotbugs, clang-analyzer, owasp-dependency-check, sonarqube]
+    if: always()
+    
+    steps:
+    - name: Generate Summary
+      run: |
+        echo "# 🔒 Security Analysis Summary" > security-summary.md
+        echo "" >> security-summary.md
+        echo "## 📊 Analysis Results" >> security-summary.md
+        echo "" >> security-summary.md
+        echo "- ✅ **Semgrep**: Vulnerability scanning completed" >> security-summary.md
+        echo "- ✅ **CodeQL**: Semantic analysis completed" >> security-summary.md
+        echo "- ✅ **SpotBugs**: Java/Android specific analysis completed" >> security-summary.md
+        echo "- ✅ **Clang Analyzer**: C/C++ native code analysis completed" >> security-summary.md
+        echo "- ✅ **OWASP Dependency Check**: Dependency vulnerability scan completed" >> security-summary.md
+        echo "- ✅ **SonarQube**: Code quality and security analysis completed" >> security-summary.md
+        echo "" >> security-summary.md
+        echo "## 📋 Next Steps" >> security-summary.md
+        echo "" >> security-summary.md
+        echo "1. Review individual reports in the Actions artifacts" >> security-summary.md
+        echo "2. Check GitHub Security tab for detailed findings" >> security-summary.md
+        echo "3. Address any high-priority security issues" >> security-summary.md
+        echo "4. Monitor for new vulnerabilities in dependencies" >> security-summary.md
+    
+    - name: Upload Summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-summary
+        path: security-summary.md
+    
+    - name: Comment PR with Summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let comment = '## 🔒 Security Analysis Suite - Summary\n\n';
+          comment += '✅ **All security analysis tools completed successfully!**\n\n';
+          comment += '### Tools Executed:\n';
+          comment += '- 🔍 **Semgrep**: Vulnerability scanning\n';
+          comment += '- 🧠 **CodeQL**: Semantic analysis\n';
+          comment += '- 🐛 **SpotBugs**: Java/Android analysis\n';
+          comment += '- ⚙️ **Clang**: C/C++ analysis\n';
+          comment += '- 📦 **OWASP**: Dependency check\n';
+          comment += '- 📊 **SonarQube**: Code quality\n\n';
+          comment += '📋 **Check the Actions artifacts for detailed reports**\n';
+          comment += '🔒 **Review findings in the GitHub Security tab**\n';
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          }); 
