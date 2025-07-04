@@ -1,0 +1,100 @@
+name: Checkmarx Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Executa diariamente às 2h da manhã
+    - cron: '0 2 * * *'
+
+jobs:
+  checkmarx-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Checkmarx CLI
+      run: |
+        # Instalar Checkmarx CLI (exemplo - ajustar conforme sua instalação)
+        wget -O checkmarx-cli.zip "https://your-checkmarx-server/download/cli"
+        unzip checkmarx-cli.zip
+        chmod +x checkmarx-cli
+    
+    - name: Run Checkmarx Scan
+      env:
+        CHECKMARX_SERVER_URL: ${{ secrets.CHECKMARX_SERVER_URL }}
+        CHECKMARX_USERNAME: ${{ secrets.CHECKMARX_USERNAME }}
+        CHECKMARX_PASSWORD: ${{ secrets.CHECKMARX_PASSWORD }}
+        CHECKMARX_CLIENT_SECRET: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
+      run: |
+        ./checkmarx-cli scan create \
+          --project-name "ToneForge" \
+          --project-id "thiagofernendorech_toneforge" \
+          --source-path "." \
+          --preset "Android" \
+          --server-url "$CHECKMARX_SERVER_URL" \
+          --username "$CHECKMARX_USERNAME" \
+          --password "$CHECKMARX_PASSWORD" \
+          --client-secret "$CHECKMARX_CLIENT_SECRET"
+    
+    - name: Generate Checkmarx Report
+      env:
+        CHECKMARX_SERVER_URL: ${{ secrets.CHECKMARX_SERVER_URL }}
+        CHECKMARX_USERNAME: ${{ secrets.CHECKMARX_USERNAME }}
+        CHECKMARX_PASSWORD: ${{ secrets.CHECKMARX_PASSWORD }}
+      run: |
+        ./checkmarx-cli report generate \
+          --project-name "ToneForge" \
+          --report-format "PDF,HTML,XML" \
+          --output-path "checkmarx-reports/" \
+          --server-url "$CHECKMARX_SERVER_URL" \
+          --username "$CHECKMARX_USERNAME" \
+          --password "$CHECKMARX_PASSWORD"
+    
+    - name: Upload Checkmarx Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: checkmarx-reports
+        path: checkmarx-reports/
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Ler resultados do Checkmarx
+          const reportPath = 'checkmarx-reports/';
+          let comment = '## 🔍 Checkmarx Security Scan Results\n\n';
+          
+          try {
+            if (fs.existsSync(reportPath)) {
+              const files = fs.readdirSync(reportPath);
+              comment += '📊 Relatórios gerados:\n';
+              files.forEach(file => {
+                comment += `- ${file}\n`;
+              });
+            } else {
+              comment += '⚠️ Nenhum relatório encontrado\n';
+            }
+          } catch (error) {
+            comment += '❌ Erro ao processar relatórios\n';
+          }
+          
+          comment += '\n📋 Verifique os artefatos anexados para detalhes completos.';
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          }); 
