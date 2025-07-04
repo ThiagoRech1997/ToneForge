@@ -123,6 +123,17 @@ extern "C" {
     float getLooperPitchShift();
     bool isLooperStutterEnabled();
     float getLooperStutterRate();
+    
+    // Funcionalidade de Slicing
+    void setLooperSlicingEnabled(bool enabled);
+    void setLooperSlicePoints(const int* points, int numPoints);
+    void setLooperSliceLength(int length);
+    bool isLooperSlicingEnabled();
+    int getLooperSliceLength();
+    int getLooperNumSlices();
+    void setLooperSliceOrder(const int* order, int numSlices);
+    void randomizeLooperSlices();
+    void reverseLooperSlices();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

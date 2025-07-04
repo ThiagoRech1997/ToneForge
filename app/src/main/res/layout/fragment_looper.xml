@@ -481,6 +481,61 @@
 
             </LinearLayout>
 
+            <!-- Terceira linha de controles - Slicing -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Slicing:"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Switch
+                    android:id="@+id/looperSlicingSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:layout_marginEnd="16dp"/>
+
+                <Button
+                    android:id="@+id/looperRandomizeSlicesButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="RND"
+                    android:textSize="10sp"
+                    android:backgroundTint="@color/accent_purple"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:enabled="false"/>
+
+                <Button
+                    android:id="@+id/looperReverseSlicesButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="REV"
+                    android:textSize="10sp"
+                    android:backgroundTint="@color/accent_orange"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:enabled="false"/>
+
+                <TextView
+                    android:id="@+id/looperSlicesInfoText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 slices"
+                    android:textColor="@color/gray"
+                    android:textSize="12sp"/>
+
+            </LinearLayout>
+
         </LinearLayout>
 
         <!-- Controles de BPM -->

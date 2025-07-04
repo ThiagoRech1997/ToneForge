@@ -55,6 +55,12 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private SeekBar looperStutterRateSeekBar;
     private TextView looperStutterRateText;
     
+    // Controles de slicing
+    private Switch looperSlicingSwitch;
+    private Button looperRandomizeSlicesButton;
+    private Button looperReverseSlicesButton;
+    private TextView looperSlicesInfoText;
+    
     // Adapter para faixas
     private LooperTrackAdapter trackAdapter;
     
@@ -145,6 +151,12 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperStutterSwitch = view.findViewById(R.id.looperStutterSwitch);
         looperStutterRateSeekBar = view.findViewById(R.id.looperStutterRateSeekBar);
         looperStutterRateText = view.findViewById(R.id.looperStutterRateText);
+        
+        // Controles de slicing
+        looperSlicingSwitch = view.findViewById(R.id.looperSlicingSwitch);
+        looperRandomizeSlicesButton = view.findViewById(R.id.looperRandomizeSlicesButton);
+        looperReverseSlicesButton = view.findViewById(R.id.looperReverseSlicesButton);
+        looperSlicesInfoText = view.findViewById(R.id.looperSlicesInfoText);
     }
     
     private void setupRecyclerView() {
@@ -218,6 +230,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         
         // Controles da visualização de onda
         setupWaveformControls();
+        
+        // Controles de slicing
+        setupSlicingControls();
     }
     
     private void setupSpecialControls() {
@@ -314,6 +329,41 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             // - Editar trechos específicos
             android.util.Log.d("LooperFragment", "Waveform clicada na posição: " + position);
         });
+    }
+    
+    private void setupSlicingControls() {
+        // Switch para ativar/desativar slicing
+        looperSlicingSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AudioEngine.setLooperSlicingEnabled(isChecked);
+            looperRandomizeSlicesButton.setEnabled(isChecked);
+            looperReverseSlicesButton.setEnabled(isChecked);
+            updateSlicesInfo();
+            android.util.Log.d("LooperFragment", "Slicing: " + (isChecked ? "ON" : "OFF"));
+        });
+        
+        // Botão para randomizar slices
+        looperRandomizeSlicesButton.setOnClickListener(v -> {
+            AudioEngine.randomizeLooperSlices();
+            updateSlicesInfo();
+            android.util.Log.d("LooperFragment", "Slices randomizados");
+        });
+        
+        // Botão para reverter ordem dos slices
+        looperReverseSlicesButton.setOnClickListener(v -> {
+            AudioEngine.reverseLooperSlices();
+            updateSlicesInfo();
+            android.util.Log.d("LooperFragment", "Ordem dos slices revertida");
+        });
+    }
+    
+    private void updateSlicesInfo() {
+        if (AudioEngine.isLooperSlicingEnabled()) {
+            int numSlices = AudioEngine.getLooperNumSlices();
+            int sliceLength = AudioEngine.getLooperSliceLength();
+            looperSlicesInfoText.setText(numSlices + " slices");
+        } else {
+            looperSlicesInfoText.setText("0 slices");
+        }
     }
     
     private void setupUIUpdateRunnable() {
@@ -563,6 +613,11 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         // Atualizar dados da forma de onda periodicamente (a cada 500ms)
         if (System.currentTimeMillis() % 500 < 50) {
             updateWaveformData();
+        }
+        
+        // Atualizar informações de slicing periodicamente
+        if (System.currentTimeMillis() % 1000 < 50) {
+            updateSlicesInfo();
         }
     }
     

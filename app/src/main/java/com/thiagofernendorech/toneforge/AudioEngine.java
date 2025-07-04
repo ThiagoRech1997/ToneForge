@@ -217,4 +217,15 @@ public class AudioEngine {
     public static native float getLooperPitchShift();
     public static native boolean isLooperStutterEnabled();
     public static native float getLooperStutterRate();
+    
+    // Funcionalidade de Slicing
+    public static native void setLooperSlicingEnabled(boolean enabled);
+    public static native void setLooperSlicePoints(int[] points);
+    public static native void setLooperSliceLength(int length);
+    public static native boolean isLooperSlicingEnabled();
+    public static native int getLooperSliceLength();
+    public static native int getLooperNumSlices();
+    public static native void setLooperSliceOrder(int[] order);
+    public static native void randomizeLooperSlices();
+    public static native void reverseLooperSlices();
 } 

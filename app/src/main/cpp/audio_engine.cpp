@@ -84,6 +84,17 @@ static float looperStutterRate = 4.0f; // 4 Hz por padrão
 static float looperStutterPhase = 0.0f;
 static int looperStutterCounter = 0;
 
+// Funcionalidade de Slicing
+static bool looperSlicingEnabled = false;
+static const int MAX_SLICES = 16;
+static int slicePoints[MAX_SLICES];
+static int numSlicePoints = 0;
+static int sliceLength = 0; // comprimento de cada slice
+static int sliceOrder[MAX_SLICES]; // ordem de reprodução dos slices
+static int currentSliceIndex = 0;
+static int slicePlaybackPosition = 0;
+static bool sliceRandomized = false;
+
 // --- Afinador (Tuner) ---
 static bool tunerActive = false;
 static float detectedFrequency = 0.0f;
@@ -727,24 +738,37 @@ float processSample(float input) {
         }
         
         if (shouldPlayStutter) {
-            // Calcular posição de leitura com speed e reverse
+            // Calcular posição de leitura com speed, reverse e slicing
             int readPos = looperReadIndex;
             
-            if (looperReverse) {
-                // Reprodução reversa
-                int maxLength = 0;
-                for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-                    if (looperTracks[i].active && looperTracks[i].length > maxLength) {
-                        maxLength = looperTracks[i].length;
+            // Aplicar slicing se ativado
+            if (looperSlicingEnabled && numSlicePoints > 0) {
+                // Calcular qual slice estamos reproduzindo
+                int totalSliceLength = sliceLength * numSlicePoints;
+                int sliceIndex = (looperReadIndex / sliceLength) % numSlicePoints;
+                int sliceOffset = looperReadIndex % sliceLength;
+                
+                // Usar a ordem definida para os slices
+                int actualSliceIndex = sliceOrder[sliceIndex];
+                readPos = slicePoints[actualSliceIndex] + sliceOffset;
+            } else {
+                // Comportamento normal sem slicing
+                if (looperReverse) {
+                    // Reprodução reversa
+                    int maxLength = 0;
+                    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+                        if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+                            maxLength = looperTracks[i].length;
+                        }
                     }
-                }
-                if (maxLength > 0) {
-                    readPos = maxLength - 1 - looperReadIndex;
+                    if (maxLength > 0) {
+                        readPos = maxLength - 1 - looperReadIndex;
+                    }
                 }
             }
             
             // Aplicar speed (interpolação linear simples)
-            float speedPos = looperReadIndex * looperSpeed;
+            float speedPos = readPos * looperSpeed;
             int pos1 = (int)speedPos;
             int pos2 = pos1 + 1;
             float frac = speedPos - pos1;
@@ -790,7 +814,7 @@ float processSample(float input) {
         output += looperOutput;
         looperReadIndex++;
         
-        // Resetar posição de leitura quando chegar ao fim do loop mais longo
+        // Resetar posição de leitura quando chegar ao fim do loop
         int maxLength = 0;
         for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
             if (looperTracks[i].active && looperTracks[i].length > maxLength) {
@@ -798,8 +822,19 @@ float processSample(float input) {
             }
         }
         
-        if (maxLength > 0 && looperReadIndex >= maxLength) {
-            looperReadIndex = 0;
+        if (maxLength > 0) {
+            if (looperSlicingEnabled && numSlicePoints > 0) {
+                // Com slicing: resetar quando completar todos os slices
+                int totalSliceLength = sliceLength * numSlicePoints;
+                if (looperReadIndex >= totalSliceLength) {
+                    looperReadIndex = 0;
+                }
+            } else {
+                // Sem slicing: resetar quando chegar ao fim do loop
+                if (looperReadIndex >= maxLength) {
+                    looperReadIndex = 0;
+                }
+            }
         }
     }
     // Limitar para evitar clipping
@@ -1164,5 +1199,94 @@ bool isLooperStutterEnabled() {
 
 float getLooperStutterRate() {
     return looperStutterRate;
+}
+
+// Implementações das funcionalidades de Slicing
+
+void setLooperSlicingEnabled(bool enabled) {
+    looperSlicingEnabled = enabled;
+    if (enabled && numSlicePoints == 0) {
+        // Se não há pontos definidos, criar slices automáticos baseados no BPM
+        int maxLength = 0;
+        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+            if (looperTracks[i].active && looperTracks[i].length > maxLength) {
+                maxLength = looperTracks[i].length;
+            }
+        }
+        
+        if (maxLength > 0) {
+            // Criar 8 slices automáticos
+            numSlicePoints = 8;
+            sliceLength = maxLength / numSlicePoints;
+            for (int i = 0; i < numSlicePoints; i++) {
+                slicePoints[i] = i * sliceLength;
+                sliceOrder[i] = i;
+            }
+        }
+    }
+}
+
+void setLooperSlicePoints(const int* points, int numPoints) {
+    if (points == nullptr || numPoints <= 0 || numPoints > MAX_SLICES) {
+        return;
+    }
+    
+    numSlicePoints = numPoints;
+    for (int i = 0; i < numPoints; i++) {
+        slicePoints[i] = points[i];
+        sliceOrder[i] = i;
+    }
+    
+    // Calcular comprimento do slice baseado no primeiro ponto
+    if (numPoints > 1) {
+        sliceLength = slicePoints[1] - slicePoints[0];
+    }
+}
+
+void setLooperSliceLength(int length) {
+    if (length > 0) {
+        sliceLength = length;
+    }
+}
+
+bool isLooperSlicingEnabled() {
+    return looperSlicingEnabled;
+}
+
+int getLooperSliceLength() {
+    return sliceLength;
+}
+
+int getLooperNumSlices() {
+    return numSlicePoints;
+}
+
+void setLooperSliceOrder(const int* order, int numSlices) {
+    if (order == nullptr || numSlices <= 0 || numSlices > MAX_SLICES) {
+        return;
+    }
+    
+    for (int i = 0; i < numSlices; i++) {
+        sliceOrder[i] = order[i];
+    }
+}
+
+void randomizeLooperSlices() {
+    // Algoritmo Fisher-Yates para embaralhar
+    for (int i = numSlicePoints - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        int temp = sliceOrder[i];
+        sliceOrder[i] = sliceOrder[j];
+        sliceOrder[j] = temp;
+    }
+    sliceRandomized = true;
+}
+
+void reverseLooperSlices() {
+    for (int i = 0; i < numSlicePoints / 2; i++) {
+        int temp = sliceOrder[i];
+        sliceOrder[i] = sliceOrder[numSlicePoints - 1 - i];
+        sliceOrder[numSlicePoints - 1 - i] = temp;
+    }
 }
 
