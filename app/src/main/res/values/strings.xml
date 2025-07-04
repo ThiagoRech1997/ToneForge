@@ -228,6 +228,8 @@
     <string name="latency_estimated">Latência Estimada: %.1f ms</string>
     <string name="latency_buffer_size">Tamanho do Buffer: %d samples</string>
     <string name="latency_sample_rate">Taxa de Amostragem: %d Hz</string>
+    <string name="sample_rate">Taxa de Amostragem</string>
+    <string name="buffer_size">Tamanho do Buffer</string>
     <string name="latency_oversampling">Oversampling: %s</string>
     <string name="latency_oversampling_enabled">Sim (%dx)</string>
     <string name="latency_oversampling_disabled">Não</string>
