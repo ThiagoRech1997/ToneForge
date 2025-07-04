@@ -47,18 +47,93 @@
             app:layout_constraintTop_toBottomOf="@id/looperStatus"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"/>
 
         <!-- Visualização de Onda -->
         <com.thiagofernendorech.toneforge.WaveformView
             android:id="@+id/looperWaveformView"
             android:layout_width="0dp"
-            android:layout_height="120dp"
+            android:layout_height="100dp"
             android:background="@drawable/effect_card_background"
             app:layout_constraintTop_toBottomOf="@id/looperTimer"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Controles de Edição -->
+        <LinearLayout
+            android:id="@+id/looperEditControls"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp"
+            android:background="@drawable/header_background"
+            app:layout_constraintTop_toBottomOf="@id/looperWaveformView"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Editor:"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginEnd="8dp"/>
+
+            <Switch
+                android:id="@+id/looperEditModeSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:layout_marginEnd="16dp"/>
+
+            <Button
+                android:id="@+id/looperCutButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CUT"
+                android:textSize="10sp"
+                android:backgroundTint="@color/accent_red"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:enabled="false"/>
+
+            <Button
+                android:id="@+id/looperFadeInButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FADE IN"
+                android:textSize="10sp"
+                android:backgroundTint="@color/accent_blue"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:enabled="false"/>
+
+            <Button
+                android:id="@+id/looperFadeOutButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FADE OUT"
+                android:textSize="10sp"
+                android:backgroundTint="@color/accent_green"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:enabled="false"/>
+
+            <TextView
+                android:id="@+id/looperSelectionInfoText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sem seleção"
+                android:textColor="@color/gray"
+                android:textSize="12sp"/>
+
+        </LinearLayout>
 
         <!-- Barra de Progresso -->
         <ProgressBar
@@ -69,10 +144,11 @@
             android:progress="0"
             android:progressTint="@color/accent_blue"
             android:progressBackgroundTint="@color/dark_gray"
-            app:layout_constraintTop_toBottomOf="@id/looperWaveformView"
+            app:layout_constraintTop_toBottomOf="@id/looperEditControls"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp"/>
 
         <!-- Contador de Batidas -->
         <TextView
@@ -85,7 +161,8 @@
             app:layout_constraintTop_toBottomOf="@id/looperProgress"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp"/>
 
         <!-- Controles da Visualização -->
         <LinearLayout
@@ -99,7 +176,8 @@
             app:layout_constraintTop_toBottomOf="@id/looperBeatCount"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -150,7 +228,8 @@
             app:layout_constraintTop_toBottomOf="@id/looperWaveformControls"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="16dp">
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp">
 
             <!-- Botão Save -->
             <Button
@@ -224,7 +303,8 @@
             app:layout_constraintTop_toBottomOf="@id/looperMainControls"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="16dp">
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp">
 
             <!-- Botão Undo -->
             <Button
@@ -298,18 +378,21 @@
             android:textStyle="bold"
             app:layout_constraintTop_toBottomOf="@id/looperRecordingControls"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginTop="24dp"/>
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp"/>
 
         <!-- Lista de Faixas -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/looperTracksList"
             android:layout_width="0dp"
             android:layout_height="120dp"
+            android:minHeight="100dp"
             android:background="@drawable/effect_card_background"
             app:layout_constraintTop_toBottomOf="@id/tracksTitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp"/>
 
         <!-- Controles de Sincronização -->
         <LinearLayout
@@ -526,15 +609,15 @@
                     android:layout_marginEnd="8dp"
                     android:enabled="false"/>
 
-                <TextView
-                    android:id="@+id/looperSlicesInfoText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0 slices"
-                    android:textColor="@color/gray"
-                    android:textSize="12sp"/>
+                            <TextView
+                android:id="@+id/looperSlicesInfoText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 slices"
+                android:textColor="@color/gray"
+                android:textSize="12sp"/>
 
-            </LinearLayout>
+        </LinearLayout>
 
         </LinearLayout>
 
