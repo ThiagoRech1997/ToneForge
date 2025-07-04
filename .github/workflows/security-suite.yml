@@ -161,7 +161,7 @@ jobs:
           app/build/intermediates/javac/debug/
     
     - name: Upload SpotBugs report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: spotbugs-report
@@ -206,14 +206,14 @@ jobs:
         fi
     
     - name: Upload Clang analysis results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: clang-analysis
         path: build/clang-analysis/
     
     - name: Upload Clang report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: clang-report
@@ -242,7 +242,7 @@ jobs:
           --suppression suppression.xml
     
     - name: Upload OWASP security report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: owasp-security-report
@@ -305,14 +305,14 @@ jobs:
           -Dsonar.pullrequest.base=${{ github.base_ref }}
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
         path: app/build/reports/
     
     - name: Upload JaCoCo report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: jacoco-report
@@ -347,7 +347,7 @@ jobs:
         echo "4. Monitor for new vulnerabilities in dependencies" >> security-summary.md
     
     - name: Upload Summary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-summary
         path: security-summary.md
