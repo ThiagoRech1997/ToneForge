@@ -49,6 +49,10 @@ static int metronomeSampleRate = 48000;
 static int metronomeSamplesPerBeat = 24000; // 120 BPM default
 static int metronomeSampleCounter = 0;
 static bool metronomeClick = false;
+static int metronomeBeatCount = 0; // Contador de batidas para acentos
+static int metronomeTimeSignature = 4; // Compasso 4/4 por padrão
+static float metronomeVolume = 0.6f; // Volume do metrônomo
+static int metronomeClickDuration = 150; // Duração do click em samples
 
 // --- Looper ---
 static const int LOOPER_MAX_SAMPLES = 48000 * 30; // até 30 segundos a 48kHz
@@ -396,36 +400,76 @@ void startMetronome(int bpm) {
     metronomeBpm = bpm;
     metronomeSamplesPerBeat = (int)((60.0 / metronomeBpm) * metronomeSampleRate);
     metronomeSampleCounter = 0;
+    metronomeBeatCount = 0;
     metronomeActive = true;
+    printf("Metronome: iniciado com %d BPM, volume %.2f\n", bpm, metronomeVolume);
 }
 
 void stopMetronome() {
     metronomeActive = false;
     metronomeSampleCounter = 0;
+    metronomeBeatCount = 0;
+}
+
+void setMetronomeVolume(float volume) {
+    metronomeVolume = std::max(0.0f, std::min(1.0f, volume));
+    printf("Metronome: volume alterado para %.2f\n", metronomeVolume);
+}
+
+void setMetronomeTimeSignature(int beats) {
+    metronomeTimeSignature = std::max(1, std::min(16, beats));
 }
 
 bool isMetronomeActive() {
     return metronomeActive;
 }
 
-// Gera um click de curta duração (ex: 100 samples) no início de cada batida
+// Gera um click melhorado com envelope e diferentes sons para downbeat/upbeat
 static float getMetronomeSample() {
     if (!metronomeActive) return 0.0f;
+    
     if (metronomeSampleCounter == 0) {
         metronomeClick = true;
+        metronomeBeatCount = (metronomeBeatCount + 1) % metronomeTimeSignature;
     }
+    
     float click = 0.0f;
-    if (metronomeClick && metronomeSampleCounter < 100) {
-        // Pulso simples
-        click = 0.8f * sinf(2.0f * 3.14159f * 1000.0f * metronomeSampleCounter / metronomeSampleRate);
+    if (metronomeClick && metronomeSampleCounter < metronomeClickDuration) {
+        // Calcular envelope de amplitude (attack e decay)
+        float envelope = 0.0f;
+        if (metronomeSampleCounter < 20) {
+            // Attack rápido (20 samples)
+            envelope = (float)metronomeSampleCounter / 20.0f;
+        } else {
+            // Decay exponencial
+            float decayTime = (float)(metronomeSampleCounter - 20) / (metronomeClickDuration - 20);
+            envelope = expf(-decayTime * 3.0f); // Decay mais rápido
+        }
+        
+        // Determinar se é downbeat (primeira batida do compasso) ou upbeat
+        bool isDownbeat = (metronomeBeatCount == 0);
+        
+        // Frequências diferentes para downbeat e upbeat
+        float frequency = isDownbeat ? 800.0f : 1200.0f; // Downbeat mais grave
+        float amplitude = isDownbeat ? 1.0f : 0.7f; // Downbeat mais alto
+        
+        // Gerar som com múltiplas frequências para som mais rico
+        float fundamental = sinf(2.0f * 3.14159f * frequency * metronomeSampleCounter / metronomeSampleRate);
+        float harmonic1 = 0.5f * sinf(2.0f * 3.14159f * frequency * 2.0f * metronomeSampleCounter / metronomeSampleRate);
+        float harmonic2 = 0.3f * sinf(2.0f * 3.14159f * frequency * 3.0f * metronomeSampleCounter / metronomeSampleRate);
+        
+        click = amplitude * envelope * metronomeVolume * (fundamental + harmonic1 + harmonic2);
     }
-    if (metronomeSampleCounter >= 100) {
+    
+    if (metronomeSampleCounter >= metronomeClickDuration) {
         metronomeClick = false;
     }
+    
     metronomeSampleCounter++;
     if (metronomeSampleCounter >= metronomeSamplesPerBeat) {
         metronomeSampleCounter = 0;
     }
+    
     return click;
 }
 

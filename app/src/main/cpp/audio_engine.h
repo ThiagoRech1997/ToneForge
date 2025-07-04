@@ -211,6 +211,11 @@ extern "C" {
     bool isLooperNotificationEnabled();
     bool isLooperNotificationControlsEnabled();
     void updateLooperNotificationState();
+
+    // Declarações para o metrônomo
+    void setMetronomeVolume(float volume);
+    void setMetronomeTimeSignature(int beats);
+    bool isMetronomeActive();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

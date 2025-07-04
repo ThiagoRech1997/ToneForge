@@ -209,6 +209,21 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_stopMetronome(JNIEnv* env, jcl
     stopMetronome();
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setMetronomeVolume(JNIEnv* env, jclass clazz, jfloat volume) {
+    setMetronomeVolume(volume);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setMetronomeTimeSignature(JNIEnv* env, jclass clazz, jint beats) {
+    setMetronomeTimeSignature(beats);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isMetronomeActive(JNIEnv* env, jclass clazz) {
+    return isMetronomeActive();
+}
+
 // --------- JNI para Afinador ---------
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_startTuner(JNIEnv* env, jclass clazz) {

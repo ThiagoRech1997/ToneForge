@@ -133,6 +133,9 @@ public class AudioEngine {
     // Metrônomo
     public static native void startMetronome(int bpm);
     public static native void stopMetronome();
+    public static native void setMetronomeVolume(float volume);
+    public static native void setMetronomeTimeSignature(int beats);
+    public static native boolean isMetronomeActive();
 
     // Afinador
     public static native void startTuner();

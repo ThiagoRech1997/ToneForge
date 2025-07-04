@@ -133,4 +133,105 @@
         android:background="@drawable/round_button_background"
         android:layout_marginTop="32dp"/>
 
+    <!-- Controles Avançados -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="32dp"
+        android:padding="16dp"
+        android:background="@drawable/effect_card_background">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Configurações"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/lava_text_primary"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Controle de Volume -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Volume:"
+                android:textSize="14sp"
+                android:textColor="@color/lava_text_secondary"
+                android:layout_marginEnd="16dp"/>
+
+            <SeekBar
+                android:id="@+id/metronomeVolumeSeekBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="60"
+                android:progressTint="@color/lava_red"
+                android:thumbTint="@color/lava_red"/>
+
+            <TextView
+                android:id="@+id/metronomeVolumeValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="60%"
+                android:textSize="14sp"
+                android:textColor="@color/lava_text_secondary"
+                android:layout_marginStart="16dp"/>
+        </LinearLayout>
+
+        <!-- Controle de Compasso -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Compasso:"
+                android:textSize="14sp"
+                android:textColor="@color/lava_text_secondary"
+                android:layout_marginEnd="16dp"/>
+
+            <Button
+                android:id="@+id/btnDecreaseTimeSignature"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="-"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/round_button_background"
+                android:textColor="@color/lava_text_primary"/>
+
+            <TextView
+                android:id="@+id/metronomeTimeSignatureValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="4/4"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/lava_text_primary"
+                android:layout_marginHorizontal="16dp"/>
+
+            <Button
+                android:id="@+id/btnIncreaseTimeSignature"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="+"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/round_button_background"
+                android:textColor="@color/lava_text_primary"/>
+        </LinearLayout>
+    </LinearLayout>
+
 </LinearLayout> 
