@@ -34,6 +34,7 @@ extern "C" {
     // Novas funções para looper avançado
     int getLooperLength();
     int getLooperPosition();
+    void setLooperPosition(int position);
     void setLooperTrackVolume(int trackIndex, float volume);
     void setLooperTrackMuted(int trackIndex, bool muted);
     void setLooperTrackSoloed(int trackIndex, bool soloed);

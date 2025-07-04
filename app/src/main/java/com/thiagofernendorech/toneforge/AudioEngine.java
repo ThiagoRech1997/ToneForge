@@ -114,6 +114,7 @@ public class AudioEngine {
     // Novos métodos para looper avançado
     public static native int getLooperLength();
     public static native int getLooperPosition();
+    public static native void setLooperPosition(int position);
     public static native void setLooperTrackVolume(int trackIndex, float volume);
     public static native void setLooperTrackMuted(int trackIndex, boolean muted);
     public static native void setLooperTrackSoloed(int trackIndex, boolean soloed);

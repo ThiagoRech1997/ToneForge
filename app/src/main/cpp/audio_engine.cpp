@@ -1029,6 +1029,13 @@ int getLooperPosition() {
     }
 }
 
+void setLooperPosition(int position) {
+    if (position >= 0 && position < looperLength) {
+        looperReadIndex = position;
+        looperWriteIndex = position;
+    }
+}
+
 void setLooperTrackVolume(int trackIndex, float volume) {
     if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
         looperTracks[trackIndex].volume = volume;

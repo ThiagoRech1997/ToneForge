@@ -31,6 +31,7 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private ProgressBar looperProgress;
     private WaveformView looperWaveformView;
     private Switch looperWaveformGridSwitch;
+    private Switch looperWaveformTimeGridSwitch;
     private Switch looperWaveformPlayheadSwitch;
     private Button looperRecordButton;
     private Button looperPlayButton;
@@ -68,6 +69,13 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private Button looperZoomOutButton;
     private TextView looperSelectionInfoText;
     
+    // Controles de Marcadores
+    private Button looperAddMarkerButton;
+    private Button looperRemoveMarkerButton;
+    private Button looperPrevMarkerButton;
+    private Button looperNextMarkerButton;
+    private TextView looperMarkerInfoText;
+    
     // Adapter para faixas
     private LooperTrackAdapter trackAdapter;
     
@@ -79,6 +87,10 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private int loopLength = 0; // em samples
     private int currentPosition = 0; // em samples
     private int beatCount = 0;
+    
+    // Sistema de Marcadores
+    private List<Float> markers = new ArrayList<>();
+    private int currentMarkerIndex = -1; // -1 = nenhum marcador selecionado
     
     // Timer para atualização da UI
     private Handler uiHandler = new Handler(Looper.getMainLooper());
@@ -135,6 +147,7 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperProgress = view.findViewById(R.id.looperProgress);
         looperWaveformView = view.findViewById(R.id.looperWaveformView);
         looperWaveformGridSwitch = view.findViewById(R.id.looperWaveformGridSwitch);
+        looperWaveformTimeGridSwitch = view.findViewById(R.id.looperWaveformTimeGridSwitch);
         looperWaveformPlayheadSwitch = view.findViewById(R.id.looperWaveformPlayheadSwitch);
         looperRecordButton = view.findViewById(R.id.looperRecordButton);
         looperPlayButton = view.findViewById(R.id.looperPlayButton);
@@ -171,6 +184,13 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperZoomInButton = view.findViewById(R.id.looperZoomInButton);
         looperZoomOutButton = view.findViewById(R.id.looperZoomOutButton);
         looperSelectionInfoText = view.findViewById(R.id.looperSelectionInfoText);
+        
+        // Controles de Marcadores
+        looperAddMarkerButton = view.findViewById(R.id.looperAddMarkerButton);
+        looperRemoveMarkerButton = view.findViewById(R.id.looperRemoveMarkerButton);
+        looperPrevMarkerButton = view.findViewById(R.id.looperPrevMarkerButton);
+        looperNextMarkerButton = view.findViewById(R.id.looperNextMarkerButton);
+        looperMarkerInfoText = view.findViewById(R.id.looperMarkerInfoText);
     }
     
     private void setupRecyclerView() {
@@ -217,6 +237,8 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
                         if (isSynced) {
                             AudioEngine.startMetronome(currentBPM);
                         }
+                        // Atualizar BPM da grade de tempo
+                        looperWaveformView.setGridBPM(currentBPM);
                     }
                 } catch (NumberFormatException e) {
                     looperBPMInput.setText(String.valueOf(currentBPM));
@@ -244,6 +266,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         
         // Controles de edição
         setupEditControls();
+        
+        // Controles de marcadores
+        setupMarkerControls();
         
         // Controles da visualização de onda
         setupWaveformControls();
@@ -333,6 +358,15 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             looperWaveformView.setShowGrid(isChecked);
         });
         
+        // Switch para mostrar/ocultar grade de tempo
+        looperWaveformTimeGridSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            looperWaveformView.setShowTimeGrid(isChecked);
+            if (isChecked) {
+                // Atualizar BPM da grade quando ativada
+                looperWaveformView.setGridBPM(currentBPM);
+            }
+        });
+        
         // Switch para mostrar/ocultar playhead
         looperWaveformPlayheadSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             looperWaveformView.setShowPlayhead(isChecked);
@@ -404,6 +438,30 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         });
     }
     
+    private void setupMarkerControls() {
+        // Botão Adicionar Marcador
+        looperAddMarkerButton.setOnClickListener(v -> {
+            addMarkerAtCurrentPosition();
+        });
+        
+        // Botão Remover Marcador
+        looperRemoveMarkerButton.setOnClickListener(v -> {
+            removeCurrentMarker();
+        });
+        
+        // Botão Marcador Anterior
+        looperPrevMarkerButton.setOnClickListener(v -> {
+            goToPreviousMarker();
+        });
+        
+        // Botão Próximo Marcador
+        looperNextMarkerButton.setOnClickListener(v -> {
+            goToNextMarker();
+        });
+        
+        updateMarkerButtonsState();
+    }
+    
     private void updateEditButtonsState() {
         boolean hasSelection = looperWaveformView.hasSelection();
         boolean editMode = looperEditModeSwitch.isChecked();
@@ -454,6 +512,124 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     }
     
 
+    
+    // Métodos dos Marcadores
+    private void addMarkerAtCurrentPosition() {
+        if (loopLength == 0) {
+            Toast.makeText(getContext(), "Nenhum loop para marcar!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        float position = (float) currentPosition / loopLength;
+        position = Math.max(0.0f, Math.min(1.0f, position));
+        
+        // Verificar se já existe um marcador próximo
+        for (int i = 0; i < markers.size(); i++) {
+            if (Math.abs(markers.get(i) - position) < 0.01f) {
+                Toast.makeText(getContext(), "Marcador já existe nesta posição!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        
+        // Adicionar marcador
+        markers.add(position);
+        markers.sort(Float::compareTo); // Ordenar por posição
+        
+        // Atualizar índice do marcador atual
+        currentMarkerIndex = markers.indexOf(position);
+        
+        // Atualizar UI
+        updateMarkerButtonsState();
+        updateMarkerInfo();
+        looperWaveformView.setMarkers(markers);
+        
+        Toast.makeText(getContext(), "Marcador adicionado!", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void removeCurrentMarker() {
+        if (currentMarkerIndex >= 0 && currentMarkerIndex < markers.size()) {
+            markers.remove(currentMarkerIndex);
+            currentMarkerIndex = -1;
+            
+            updateMarkerButtonsState();
+            updateMarkerInfo();
+            looperWaveformView.setMarkers(markers);
+            
+            Toast.makeText(getContext(), "Marcador removido!", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private void goToPreviousMarker() {
+        if (markers.isEmpty()) return;
+        
+        if (currentMarkerIndex <= 0) {
+            currentMarkerIndex = markers.size() - 1;
+        } else {
+            currentMarkerIndex--;
+        }
+        
+        float markerPosition = markers.get(currentMarkerIndex);
+        int targetSample = (int) (markerPosition * loopLength);
+        
+        // Pular para a posição do marcador
+        AudioEngine.setLooperPosition(targetSample);
+        currentPosition = targetSample;
+        
+        updateMarkerButtonsState();
+        updateMarkerInfo();
+        
+        Toast.makeText(getContext(), "Marcador " + (currentMarkerIndex + 1), Toast.LENGTH_SHORT).show();
+    }
+    
+    private void goToNextMarker() {
+        if (markers.isEmpty()) return;
+        
+        if (currentMarkerIndex >= markers.size() - 1) {
+            currentMarkerIndex = 0;
+        } else {
+            currentMarkerIndex++;
+        }
+        
+        float markerPosition = markers.get(currentMarkerIndex);
+        int targetSample = (int) (markerPosition * loopLength);
+        
+        // Pular para a posição do marcador
+        AudioEngine.setLooperPosition(targetSample);
+        currentPosition = targetSample;
+        
+        updateMarkerButtonsState();
+        updateMarkerInfo();
+        
+        Toast.makeText(getContext(), "Marcador " + (currentMarkerIndex + 1), Toast.LENGTH_SHORT).show();
+    }
+    
+    private void updateMarkerButtonsState() {
+        boolean hasLoop = loopLength > 0;
+        boolean hasMarkers = !markers.isEmpty();
+        boolean hasSelectedMarker = currentMarkerIndex >= 0 && currentMarkerIndex < markers.size();
+        
+        looperAddMarkerButton.setEnabled(hasLoop);
+        looperRemoveMarkerButton.setEnabled(hasSelectedMarker);
+        looperPrevMarkerButton.setEnabled(hasMarkers);
+        looperNextMarkerButton.setEnabled(hasMarkers);
+    }
+    
+    private void updateMarkerInfo() {
+        if (markers.isEmpty()) {
+            looperMarkerInfoText.setText("0 marcadores");
+        } else if (currentMarkerIndex >= 0 && currentMarkerIndex < markers.size()) {
+            float markerPosition = markers.get(currentMarkerIndex);
+            float seconds = markerPosition * (loopLength / 48000.0f);
+            int minutes = (int) (seconds / 60);
+            int secs = (int) (seconds % 60);
+            
+            String info = String.format("Marcador %d/%d (%.2d:%.2d)", 
+                                      currentMarkerIndex + 1, markers.size(), minutes, secs);
+            looperMarkerInfoText.setText(info);
+        } else {
+            looperMarkerInfoText.setText(markers.size() + " marcadores");
+        }
+    }
     
     private void updateSlicesInfo() {
         if (AudioEngine.isLooperSlicingEnabled()) {
@@ -575,6 +751,11 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperWaveformView.setWaveformData(new float[0]);
         looperWaveformView.setPlayheadPosition(0.0f);
         looperWaveformView.setPlaying(false);
+        looperWaveformView.setMarkers(new ArrayList<>());
+        
+        // Limpar marcadores
+        markers.clear();
+        currentMarkerIndex = -1;
         
         stopUITimer();
     }
@@ -717,6 +898,12 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         // Atualizar informações de slicing periodicamente
         if (System.currentTimeMillis() % 1000 < 50) {
             updateSlicesInfo();
+        }
+        
+        // Atualizar controles de marcadores periodicamente
+        if (System.currentTimeMillis() % 500 < 50) {
+            updateMarkerButtonsState();
+            updateMarkerInfo();
         }
     }
     

@@ -465,6 +465,11 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperPosition(JNIEnv* env,
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperPosition(JNIEnv* env, jclass clazz, jint position) {
+    setLooperPosition(position);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setLooperTrackVolume(JNIEnv* env, jclass clazz, jint trackIndex, jfloat volume) {
     setLooperTrackVolume(trackIndex, volume);
 }

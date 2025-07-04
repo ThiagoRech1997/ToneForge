@@ -10,6 +10,8 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import androidx.annotation.Nullable;
+import java.util.List;
+import java.util.ArrayList;
 
 public class WaveformView extends View {
     
@@ -35,12 +37,18 @@ public class WaveformView extends View {
     private boolean showPlayhead = true;
     private boolean useRMS = true; // Usar RMS ou forma de onda direta
     private boolean editMode = false; // Modo de edição ativo
+    private boolean showTimeGrid = false; // Grade de tempo musical
+    private int gridBPM = 120; // BPM para a grade de tempo
     
     // Zoom functionality
     private float zoomLevel = 1.0f; // 1.0 = normal, 2.0 = 2x zoom, etc.
     private float zoomCenter = 0.5f; // Center of zoom (0.0 to 1.0)
     private static final float MIN_ZOOM = 1.0f;
     private static final float MAX_ZOOM = 10.0f;
+    
+    // Sistema de Marcadores
+    private List<Float> markers = new ArrayList<>();
+    private Paint markerPaint;
     
     private OnWaveformClickListener listener;
     private OnWaveformSelectionListener selectionListener;
@@ -100,6 +108,13 @@ public class WaveformView extends View {
         textPaint.setTextSize(12f);
         textPaint.setAntiAlias(true);
         
+        // Paint para marcadores
+        markerPaint = new Paint();
+        markerPaint.setColor(Color.parseColor("#FF9800")); // Laranja
+        markerPaint.setStyle(Paint.Style.STROKE);
+        markerPaint.setStrokeWidth(2f);
+        markerPaint.setAntiAlias(true);
+        
         // Dados de exemplo para teste
         setWaveformData(new float[1000]);
     }
@@ -142,6 +157,16 @@ public class WaveformView extends View {
     
     public void setEditMode(boolean editMode) {
         this.editMode = editMode;
+        invalidate();
+    }
+    
+    public void setShowTimeGrid(boolean show) {
+        this.showTimeGrid = show;
+        invalidate();
+    }
+    
+    public void setGridBPM(int bpm) {
+        this.gridBPM = bpm;
         invalidate();
     }
     
@@ -204,6 +229,11 @@ public class WaveformView extends View {
         this.selectionListener = listener;
     }
     
+    public void setMarkers(List<Float> markers) {
+        this.markers = markers != null ? new ArrayList<>(markers) : new ArrayList<>();
+        invalidate();
+    }
+    
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -226,6 +256,9 @@ public class WaveformView extends View {
             drawWaveform(canvas, width, height);
         }
         
+        // Desenhar marcadores
+        drawMarkers(canvas, width, height);
+        
         // Desenhar seleção
         if (showSelection && editMode) {
             drawSelection(canvas, width, height);
@@ -241,11 +274,73 @@ public class WaveformView extends View {
     }
     
     private void drawGrid(Canvas canvas, int width, int height) {
+        if (showTimeGrid && gridBPM > 0 && waveformLength > 0) {
+            // Grade de tempo musical baseada no BPM
+            drawTimeGrid(canvas, width, height);
+        } else {
+            // Grade padrão
+            drawStandardGrid(canvas, width, height);
+        }
+    }
+    
+    private void drawStandardGrid(Canvas canvas, int width, int height) {
         // Linhas verticais (tempo)
         int numVerticalLines = 10;
         for (int i = 0; i <= numVerticalLines; i++) {
             float x = (float) i / numVerticalLines * width;
             canvas.drawLine(x, 0, x, height, gridPaint);
+        }
+        
+        // Linhas horizontais (amplitude)
+        int numHorizontalLines = 4;
+        for (int i = 0; i <= numHorizontalLines; i++) {
+            float y = (float) i / numHorizontalLines * height;
+            canvas.drawLine(0, y, width, y, gridPaint);
+        }
+    }
+    
+    private void drawTimeGrid(Canvas canvas, int width, int height) {
+        // Calcular duração do loop em segundos
+        float loopDurationSeconds = (float) waveformLength / 48000.0f; // Assumindo 48kHz
+        
+        // Calcular duração de uma batida em segundos
+        float beatDurationSeconds = 60.0f / gridBPM;
+        
+        // Calcular quantas batidas cabem no loop
+        int totalBeats = (int) (loopDurationSeconds / beatDurationSeconds);
+        
+        // Desenhar linhas verticais para cada batida
+        Paint beatPaint = new Paint(gridPaint);
+        beatPaint.setColor(Color.parseColor("#FF9800")); // Laranja para batidas
+        beatPaint.setStrokeWidth(2f);
+        
+        Paint measurePaint = new Paint(gridPaint);
+        measurePaint.setColor(Color.parseColor("#4CAF50")); // Verde para compassos
+        measurePaint.setStrokeWidth(3f);
+        
+        for (int beat = 0; beat <= totalBeats; beat++) {
+            float beatTime = beat * beatDurationSeconds;
+            float beatPosition = beatTime / loopDurationSeconds;
+            float x = beatPosition * width;
+            
+            if (x <= width) {
+                // Linha da batida
+                canvas.drawLine(x, 0, x, height, beatPaint);
+                
+                // Número da batida a cada 4 batidas (compasso 4/4)
+                if (beat % 4 == 0) {
+                    Paint textPaint = new Paint();
+                    textPaint.setColor(Color.parseColor("#FFFFFF"));
+                    textPaint.setTextSize(10f);
+                    textPaint.setAntiAlias(true);
+                    
+                    String measureText = String.valueOf(beat / 4 + 1);
+                    canvas.drawText(measureText, x + 2, 12, textPaint);
+                    
+                    // Linha mais grossa para compassos
+                    canvas.drawLine(x, 0, x, height, measurePaint);
+                }
+            }
         }
         
         // Linhas horizontais (amplitude)
@@ -460,6 +555,40 @@ public class WaveformView extends View {
         }
         
         return rmsData;
+    }
+    
+    private void drawMarkers(Canvas canvas, int width, int height) {
+        if (markers.isEmpty()) return;
+        
+        for (int i = 0; i < markers.size(); i++) {
+            float markerPosition = markers.get(i);
+            float x = markerPosition * width;
+            
+            // Linha vertical do marcador
+            canvas.drawLine(x, 0, x, height, markerPaint);
+            
+            // Triângulo na parte inferior
+            Path triangle = new Path();
+            triangle.moveTo(x - 6, height);
+            triangle.lineTo(x + 6, height);
+            triangle.lineTo(x, height - 12);
+            triangle.close();
+            
+            Paint trianglePaint = new Paint();
+            trianglePaint.setColor(Color.parseColor("#FF9800"));
+            trianglePaint.setStyle(Paint.Style.FILL);
+            canvas.drawPath(triangle, trianglePaint);
+            
+            // Número do marcador
+            String markerNumber = String.valueOf(i + 1);
+            Paint numberPaint = new Paint();
+            numberPaint.setColor(Color.parseColor("#FFFFFF"));
+            numberPaint.setTextSize(10f);
+            numberPaint.setAntiAlias(true);
+            
+            float textWidth = numberPaint.measureText(markerNumber);
+            canvas.drawText(markerNumber, x - textWidth/2, height - 16, numberPaint);
+        }
     }
     
     private void drawSelection(Canvas canvas, int width, int height) {
