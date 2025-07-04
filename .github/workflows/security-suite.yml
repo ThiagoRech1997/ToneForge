@@ -2,12 +2,9 @@ name: Security Analysis Suite
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule:
-    # Executa diariamente às 3h da manhã
-    - cron: '0 3 * * *'
 
 jobs:
   # Análise de vulnerabilidades com Semgrep
