@@ -49,6 +49,17 @@
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginTop="16dp"/>
 
+        <!-- Visualização de Onda -->
+        <com.thiagofernendorech.toneforge.WaveformView
+            android:id="@+id/looperWaveformView"
+            android:layout_width="0dp"
+            android:layout_height="120dp"
+            android:background="@drawable/effect_card_background"
+            app:layout_constraintTop_toBottomOf="@id/looperTimer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="16dp"/>
+
         <!-- Barra de Progresso -->
         <ProgressBar
             android:id="@+id/looperProgress"
@@ -58,10 +69,10 @@
             android:progress="0"
             android:progressTint="@color/accent_blue"
             android:progressBackgroundTint="@color/dark_gray"
-            app:layout_constraintTop_toBottomOf="@id/looperTimer"
+            app:layout_constraintTop_toBottomOf="@id/looperWaveformView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginTop="8dp"/>
 
         <!-- Contador de Batidas -->
         <TextView
@@ -76,6 +87,59 @@
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginTop="8dp"/>
 
+        <!-- Controles da Visualização -->
+        <LinearLayout
+            android:id="@+id/looperWaveformControls"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp"
+            android:background="@drawable/header_background"
+            app:layout_constraintTop_toBottomOf="@id/looperBeatCount"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Visualização:"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginEnd="8dp"/>
+
+            <Switch
+                android:id="@+id/looperWaveformGridSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:layout_marginEnd="16dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Grade"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:layout_marginEnd="16dp"/>
+
+            <Switch
+                android:id="@+id/looperWaveformPlayheadSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:layout_marginEnd="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Playhead"
+                android:textColor="@color/white"
+                android:textSize="12sp"/>
+
+        </LinearLayout>
+
         <!-- Controles Principais -->
         <LinearLayout
             android:id="@+id/looperMainControls"
@@ -83,10 +147,10 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            app:layout_constraintTop_toBottomOf="@id/looperBeatCount"
+            app:layout_constraintTop_toBottomOf="@id/looperWaveformControls"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="32dp">
+            android:layout_marginTop="16dp">
 
             <!-- Botão Save -->
             <Button

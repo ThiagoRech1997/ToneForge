@@ -29,6 +29,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private TextView looperTimer;
     private TextView looperBeatCount;
     private ProgressBar looperProgress;
+    private WaveformView looperWaveformView;
+    private Switch looperWaveformGridSwitch;
+    private Switch looperWaveformPlayheadSwitch;
     private Button looperRecordButton;
     private Button looperPlayButton;
     private Button looperClearButton;
@@ -117,6 +120,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperTimer = view.findViewById(R.id.looperTimer);
         looperBeatCount = view.findViewById(R.id.looperBeatCount);
         looperProgress = view.findViewById(R.id.looperProgress);
+        looperWaveformView = view.findViewById(R.id.looperWaveformView);
+        looperWaveformGridSwitch = view.findViewById(R.id.looperWaveformGridSwitch);
+        looperWaveformPlayheadSwitch = view.findViewById(R.id.looperWaveformPlayheadSwitch);
         looperRecordButton = view.findViewById(R.id.looperRecordButton);
         looperPlayButton = view.findViewById(R.id.looperPlayButton);
         looperClearButton = view.findViewById(R.id.looperClearButton);
@@ -209,6 +215,9 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         
         // Controles especiais do looper
         setupSpecialControls();
+        
+        // Controles da visualização de onda
+        setupWaveformControls();
     }
     
     private void setupSpecialControls() {
@@ -284,6 +293,27 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
     private float getStutterRateFromSeekBar() {
         int progress = looperStutterRateSeekBar.getProgress();
         return 0.1f + (progress / 10.0f); // 0.1 Hz a 20 Hz
+    }
+    
+    private void setupWaveformControls() {
+        // Switch para mostrar/ocultar grade
+        looperWaveformGridSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            looperWaveformView.setShowGrid(isChecked);
+        });
+        
+        // Switch para mostrar/ocultar playhead
+        looperWaveformPlayheadSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            looperWaveformView.setShowPlayhead(isChecked);
+        });
+        
+        // Listener para cliques na forma de onda
+        looperWaveformView.setOnWaveformClickListener(position -> {
+            // Aqui podemos implementar funcionalidades como:
+            // - Pular para uma posição específica no loop
+            // - Marcar pontos de interesse
+            // - Editar trechos específicos
+            android.util.Log.d("LooperFragment", "Waveform clicada na posição: " + position);
+        });
     }
     
     private void setupUIUpdateRunnable() {
@@ -391,6 +421,11 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperTimer.setText("00:00");
         looperBeatCount.setText("0 batidas");
         looperProgress.setProgress(0);
+        
+        // Limpar visualização de onda
+        looperWaveformView.setWaveformData(new float[0]);
+        looperWaveformView.setPlayheadPosition(0.0f);
+        looperWaveformView.setPlaying(false);
         
         stopUITimer();
     }
@@ -515,7 +550,27 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             if (loopLength > 0) {
                 int progress = (int) ((float) currentPosition / loopLength * 100);
                 looperProgress.setProgress(progress);
+                
+                // Atualizar posição do playhead na visualização
+                float playheadPosition = (float) currentPosition / loopLength;
+                looperWaveformView.setPlayheadPosition(playheadPosition);
             }
+        }
+        
+        // Atualizar estado de reprodução na visualização
+        looperWaveformView.setPlaying(isPlaying);
+        
+        // Atualizar dados da forma de onda periodicamente (a cada 500ms)
+        if (System.currentTimeMillis() % 500 < 50) {
+            updateWaveformData();
+        }
+    }
+    
+    private void updateWaveformData() {
+        // Obter dados do mix do looper
+        float[] mix = AudioEngine.getLooperMix();
+        if (mix != null && mix.length > 0) {
+            looperWaveformView.setWaveformData(mix);
         }
     }
     
@@ -616,6 +671,11 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         looperTimer.setText("00:00");
         looperBeatCount.setText(beatCount + " batidas");
         looperProgress.setProgress(0);
+        
+        // Atualizar visualização de onda
+        updateWaveformData();
+        looperWaveformView.setPlayheadPosition(0.0f);
+        looperWaveformView.setPlaying(false);
         
         // Atualizar botões
         looperRecordButton.setBackgroundTintList(getResources().getColorStateList(R.color.red));
