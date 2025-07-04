@@ -159,6 +159,10 @@ jobs:
         # Instalar SpotBugs
         wget https://github.com/spotbugs/spotbugs/releases/download/4.7.3/spotbugs-4.7.3.tgz
         tar -xzf spotbugs-4.7.3.tgz
+        
+        # Dar permissão de execução ao SpotBugs
+        chmod +x ./spotbugs-4.7.3/bin/spotbugs
+        
         export PATH=$PATH:./spotbugs-4.7.3/bin
         
         # Criar diretório de relatório
