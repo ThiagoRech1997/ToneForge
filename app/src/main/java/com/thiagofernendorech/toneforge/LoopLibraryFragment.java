@@ -44,10 +44,14 @@ public class LoopLibraryFragment extends Fragment implements LoopLibraryAdapter.
     }
     
     private void loadLibrary() {
+        android.util.Log.d("LoopLibraryFragment", "Iniciando carregamento da biblioteca...");
         LoopLibraryManager.loadLibrary(getContext(), loops -> {
+            android.util.Log.d("LoopLibraryFragment", "Callback recebido com " + loops.size() + " loops");
             if (loops.isEmpty()) {
+                android.util.Log.d("LoopLibraryFragment", "Nenhum loop encontrado - mostrando estado vazio");
                 showEmptyState();
             } else {
+                android.util.Log.d("LoopLibraryFragment", "Loops encontrados: " + loops.size());
                 hideEmptyState();
                 adapter.updateLoops(loops);
             }

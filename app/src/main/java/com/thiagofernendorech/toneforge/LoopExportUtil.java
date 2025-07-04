@@ -49,6 +49,16 @@ public class LoopExportUtil {
                 // Verificar se o arquivo foi criado
                 if (outFile.exists()) {
                     android.util.Log.d("LoopExportUtil", "Arquivo criado com sucesso. Tamanho: " + outFile.length() + " bytes");
+                    
+                    // Listar todos os arquivos na pasta para debug
+                    File filesDir = context.getFilesDir();
+                    File[] allFiles = filesDir.listFiles();
+                    android.util.Log.d("LoopExportUtil", "Arquivos na pasta após salvar: " + (allFiles != null ? allFiles.length : 0));
+                    if (allFiles != null) {
+                        for (File f : allFiles) {
+                            android.util.Log.d("LoopExportUtil", "  - " + f.getName() + " (" + f.length() + " bytes)");
+                        }
+                    }
                 } else {
                     android.util.Log.e("LoopExportUtil", "Arquivo não foi criado!");
                     return false;

@@ -40,16 +40,22 @@ public class LoopLoadUtil {
         protected List<String> doInBackground(Void... voids) {
             List<String> fileNames = new ArrayList<>();
             File filesDir = context.getFilesDir();
+            android.util.Log.d("LoopLoadUtil", "Procurando arquivos em: " + filesDir.getAbsolutePath());
+            
             File[] files = filesDir.listFiles();
+            android.util.Log.d("LoopLoadUtil", "Total de arquivos encontrados: " + (files != null ? files.length : 0));
             
             if (files != null) {
                 for (File file : files) {
+                    android.util.Log.d("LoopLoadUtil", "Arquivo: " + file.getName() + " (tamanho: " + file.length() + " bytes)");
                     if (file.getName().endsWith(".wav") && file.getName().startsWith("loop_")) {
                         fileNames.add(file.getName());
+                        android.util.Log.d("LoopLoadUtil", "Loop encontrado: " + file.getName());
                     }
                 }
             }
             
+            android.util.Log.d("LoopLoadUtil", "Total de loops encontrados: " + fileNames.size());
             return fileNames;
         }
 

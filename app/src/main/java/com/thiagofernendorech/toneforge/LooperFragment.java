@@ -193,7 +193,10 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
         });
         
         // Botão Salvar
-        looperSaveButton.setOnClickListener(v -> saveLoopToWav());
+        looperSaveButton.setOnClickListener(v -> {
+            android.util.Log.d("LooperFragment", "Botão Salvar clicado!");
+            saveLoopToWav();
+        });
         
         // Botão Carregar
         looperLoadButton.setOnClickListener(v -> showLoadDialog());

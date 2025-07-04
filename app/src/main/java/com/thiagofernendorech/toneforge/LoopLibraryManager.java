@@ -73,10 +73,14 @@ public class LoopLibraryManager {
         protected List<LoopInfo> doInBackground(Void... voids) {
             List<LoopInfo> loops = new ArrayList<>();
             File filesDir = context.getFilesDir();
+            android.util.Log.d("LoopLibraryManager", "Procurando arquivos em: " + filesDir.getAbsolutePath());
+            
             File[] files = filesDir.listFiles();
+            android.util.Log.d("LoopLibraryManager", "Total de arquivos encontrados: " + (files != null ? files.length : 0));
             
             if (files != null) {
                 for (File file : files) {
+                    android.util.Log.d("LoopLibraryManager", "Verificando arquivo: " + file.getName() + " (tamanho: " + file.length() + " bytes)");
                     if (file.getName().endsWith(".wav") && file.getName().startsWith("loop_")) {
                         String fileName = file.getName();
                         String displayName = getDisplayName(fileName);
@@ -89,6 +93,7 @@ public class LoopLibraryManager {
                         
                         LoopInfo loopInfo = new LoopInfo(fileName, displayName, fileSize, creationTime, durationSeconds);
                         loops.add(loopInfo);
+                        android.util.Log.d("LoopLibraryManager", "Loop adicionado: " + fileName + " (" + displayName + ")");
                     }
                 }
                 
@@ -96,6 +101,7 @@ public class LoopLibraryManager {
                 Collections.sort(loops, (a, b) -> Long.compare(b.creationTime, a.creationTime));
             }
             
+            android.util.Log.d("LoopLibraryManager", "Total de loops encontrados: " + loops.size());
             return loops;
         }
         
