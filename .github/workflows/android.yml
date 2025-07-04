@@ -1,12 +1,12 @@
 name: Android CI/CD
 
 on:
+  # Executa apenas quando uma nova tag de versão é criada
   push:
-    branches: [ "main" ]
     tags:
       - 'v*'
-  pull_request:
-    branches: [ "main" ]
+  # Permite execução manual para testes
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -39,7 +39,7 @@ jobs:
       
     - name: Check if Release APK exists
       run: |
-        if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+        if [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
           echo "Release APK found"
           echo "RELEASE_APK_EXISTS=true" >> $GITHUB_ENV
         else
@@ -52,7 +52,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ToneForge-Release
-        path: app/build/outputs/apk/release/app-release.apk
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
         
     - name: Upload Debug APK as Release
       if: env.RELEASE_APK_EXISTS == 'false'
@@ -70,21 +70,32 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Sempre executa quando o job build termina (já que só executa em tags)
     
     steps:
     - name: Download Release APK
       uses: actions/download-artifact@v4
       with:
         name: ToneForge-Release
+        path: .
         
     - name: List downloaded files
       run: ls -la
       
+    - name: Renomear APK para nome amigável
+      run: |
+        if [ -f "app-release-unsigned.apk" ]; then
+          mv app-release-unsigned.apk ToneForge.apk
+        elif [ -f "app-debug.apk" ]; then
+          mv app-debug.apk ToneForge.apk
+        else
+          echo "Nenhum APK encontrado!" && exit 1
+        fi
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: app-debug.apk
+        files: ToneForge.apk
         generate_release_notes: true
         draft: false
         prerelease: false

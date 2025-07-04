@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    id("org.sonarqube")
 }
 
 android {
@@ -61,33 +60,3 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 }
 
-// Task para gerar relatório de cobertura
-tasks.register("jacocoTestReport", JacocoReport::class) {
-    dependsOn("testDebugUnitTest")
-    
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-    }
-    
-    val fileFilter = listOf(
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*"
-    )
-    
-    val debugTree = fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
-        exclude(fileFilter)
-    }
-    
-    val mainSrc = "${project.projectDir}/src/main/java"
-    
-    sourceDirectories.setFrom(files(mainSrc))
-    classDirectories.setFrom(files(debugTree))
-    executionData.setFrom(fileTree(layout.buildDirectory.get().asFile) {
-        include("/jacoco/testDebugUnitTest.exec")
-    })
-}
