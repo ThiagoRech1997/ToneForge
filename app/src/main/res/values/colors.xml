@@ -25,7 +25,7 @@
     <color name="effect_enabled_bg">#1A4CAF50</color> <!-- Background verde transparente -->
     <color name="effect_disabled_bg">#1A757575</color> <!-- Background cinza transparente -->
     
-    <!-- Cores da interface Lava Me -->
+    <!-- Cores da interface Lava Me - Inspirado no design .tsx -->
     <color name="lava_blue">#FF3B82F6</color>
     <color name="lava_purple">#FF8B5CF6</color>
     <color name="lava_green">#FF10B981</color>
@@ -35,15 +35,36 @@
     <color name="lava_cyan">#FF06B6D4</color>
     <color name="lava_yellow">#FFEAB308</color>
     <color name="lava_gray">#FF6B7280</color>
+    <color name="lava_indigo">#FF4F46E5</color>
     
-    <!-- Cores de fundo -->
-    <color name="lava_dark_bg">#FF111827</color>
-    <color name="lava_card_bg">#FF1F2937</color>
-    <color name="lava_header_bg">#FF374151</color>
-    <color name="lava_status_bg">#FF374151</color>
+    <!-- Cores de fundo - Inspirado no design .tsx escuro -->
+    <color name="lava_dark_bg">#FF111827</color>        <!-- Fundo principal escuro -->
+    <color name="lava_card_bg">#FF1F2937</color>         <!-- Cards e containers -->
+    <color name="lava_header_bg">#FF1F2937</color>       <!-- Header e barras -->
+    <color name="lava_status_bg">#FF1F2937</color>       <!-- Status bar -->
+    <color name="lava_button_bg">#FF374151</color>       <!-- Botões normais -->
+    <color name="lava_button_pressed">#FF1F2937</color>  <!-- Botões pressionados -->
     
-    <!-- Cores de texto -->
-    <color name="lava_text_primary">#FFFFFFFF</color>
-    <color name="lava_text_secondary">#FF9CA3AF</color>
-    <color name="lava_text_accent">#FF60A5FA</color>
+    <!-- Cores de texto - Inspirado no design .tsx -->
+    <color name="lava_text_primary">#FFFFFFFF</color>    <!-- Texto principal branco -->
+    <color name="lava_text_secondary">#FF9CA3AF</color>  <!-- Texto secundário cinza -->
+    <color name="lava_text_accent">#FF60A5FA</color>     <!-- Texto de destaque azul -->
+    <color name="lava_text_disabled">#FF6B7280</color>   <!-- Texto desabilitado -->
+    
+    <!-- Cores para efeitos por categoria - Inspirado no design .tsx -->
+    <color name="effect_distortion">#FFDC2626</color>    <!-- Vermelho para distorção -->
+    <color name="effect_modulation">#FF2563EB</color>    <!-- Azul para modulação -->
+    <color name="effect_time">#FF059669</color>          <!-- Verde para time effects -->
+    <color name="effect_filter">#FFCA8A04</color>        <!-- Amarelo para filtros -->
+    <color name="effect_dynamics">#FF7C3AED</color>      <!-- Roxo para dynamics -->
+    <color name="effect_ambient">#FF4F46E5</color>       <!-- Índigo para ambient -->
+    
+    <!-- Cores para barras de progresso e sliders -->
+    <color name="progress_track">#FF374151</color>       <!-- Track do progresso -->
+    <color name="progress_thumb">#FFFFFFFF</color>       <!-- Thumb do slider -->
+    
+    <!-- Cores para switch/toggle -->
+    <color name="switch_track_off">#FF6B7280</color>     <!-- Track do switch off -->
+    <color name="switch_track_on">#FF10B981</color>      <!-- Track do switch on -->
+    <color name="switch_thumb">#FFFFFFFF</color>         <!-- Thumb do switch -->
 </resources>

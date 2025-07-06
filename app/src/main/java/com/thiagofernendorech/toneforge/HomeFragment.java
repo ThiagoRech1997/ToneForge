@@ -9,10 +9,15 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 public class HomeFragment extends Fragment {
+    
+    private boolean useLavaDesign = true; // Flag para controlar qual layout usar
+    
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_home, container, false);
+        // Escolher layout baseado na flag
+        int layoutId = useLavaDesign ? R.layout.fragment_home_lava : R.layout.fragment_home;
+        View view = inflater.inflate(layoutId, container, false);
 
         // Navegação para cada função
         view.findViewById(R.id.btnTuner).setOnClickListener(v -> {
@@ -50,14 +55,24 @@ public class HomeFragment extends Fragment {
             ((MainActivity) getActivity()).updateHeaderTitle("Configurações");
         });
         
-        view.findViewById(R.id.btnWifi).setOnClickListener(v -> {
-            // Implementar funcionalidade Wi-Fi
-        });
-        
-        view.findViewById(R.id.btnVolume).setOnClickListener(v -> {
-            // Implementar controle de volume
-        });
+        // Botões específicos do layout Lava
+        if (useLavaDesign) {
+            view.findViewById(R.id.btnWifi).setOnClickListener(v -> {
+                // Implementar funcionalidade Wi-Fi
+                ((MainActivity) getActivity()).showWifiStatusDialog();
+            });
+            
+            view.findViewById(R.id.btnVolume).setOnClickListener(v -> {
+                // Implementar controle de volume
+                ((MainActivity) getActivity()).showVolumeControlDialog();
+            });
+        }
 
         return view;
+    }
+    
+    // Método para alternar entre os designs
+    public void setUseLavaDesign(boolean useLavaDesign) {
+        this.useLavaDesign = useLavaDesign;
     }
 } 

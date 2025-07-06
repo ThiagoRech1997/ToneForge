@@ -1,81 +1,335 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/lava_dark_bg">
+    android:background="@color/lava_dark_bg"
+    android:fillViewport="true">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Card de Efeito Reverb -->
+        <!-- Título -->
+        <TextView
+            android:id="@+id/effectsTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Efeitos"
+            android:textColor="@color/lava_text_primary"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Descrição -->
+        <TextView
+            android:id="@+id/effectsDescription"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Categorias de Efeitos"
+            android:textColor="@color/lava_text_secondary"
+            android:textSize="14sp"
+            android:gravity="center"
+            app:layout_constraintTop_toBottomOf="@id/effectsTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/effectsSubDescription"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Toque em uma categoria para explorar"
+            android:textColor="@color/lava_text_disabled"
+            android:textSize="12sp"
+            android:gravity="center"
+            app:layout_constraintTop_toBottomOf="@id/effectsDescription"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Categorias de Efeitos -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:id="@+id/categoriesContainer"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/effect_card_background"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp">
+            app:layout_constraintTop_toBottomOf="@id/effectsSubDescription"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
+            <!-- Primeira linha -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="12dp">
+                android:gravity="center"
+                android:layout_marginBottom="16dp">
 
-                <TextView
+                <LinearLayout
+                    android:id="@+id/btnDistortion"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="120dp"
                     android:layout_weight="1"
-                    android:text="Reverb"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/lava_text_primary"/>
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/modern_card_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginEnd="8dp"
+                    android:backgroundTint="@color/effect_distortion">
 
-                <Switch
-                    android:id="@+id/switchReverb"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    style="@style/LavaSwitch"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎸"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Distortion"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Overdrive, Fuzz, Metal"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btnModulation"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/modern_card_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="@color/effect_modulation">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🌊"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Modulation"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chorus, Flanger, Phaser"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center" />
+                </LinearLayout>
             </LinearLayout>
 
+            <!-- Segunda linha -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                android:gravity="center"
+                android:layout_marginBottom="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="60%"
-                    android:textSize="12sp"
-                    android:textColor="@color/lava_text_secondary"/>
+                <LinearLayout
+                    android:id="@+id/btnTime"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/modern_card_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginEnd="8dp"
+                    android:backgroundTint="@color/effect_time">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏰"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Time"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Delay, Reverb, Echo"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btnFilter"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/modern_card_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="@color/effect_filter">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎛️"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Filter"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Wah, EQ, Envelope"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center" />
+                </LinearLayout>
             </LinearLayout>
 
-            <SeekBar
-                android:id="@+id/seekReverb"
+            <!-- Terceira linha -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="60"
-                android:progressTint="@color/lava_purple"
-                android:thumbTint="@color/lava_purple"/>
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
+                    android:id="@+id/btnDynamics"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/modern_card_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginEnd="8dp"
+                    android:backgroundTint="@color/effect_dynamics">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📊"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Dynamics"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Compressor, Gate, Limiter"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btnAmbient"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/modern_card_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="@color/effect_ambient">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✨"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ambient"
+                        android:textColor="@color/lava_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pad, Shimmer, Drone"
+                        android:textColor="@color/lava_text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Card de Efeito Delay -->
+        <!-- Chain de Efeitos Ativo -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:id="@+id/activeChainContainer"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/effect_card_background"
+            android:background="@color/lava_card_bg"
             android:padding="16dp"
-            android:layout_marginBottom="12dp">
+            app:layout_constraintTop_toBottomOf="@id/categoriesContainer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -88,159 +342,62 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Delay"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/lava_text_primary"/>
+                    android:text="Chain de Efeitos Ativo"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                <Switch
-                    android:id="@+id/switchDelay"
+                <Button
+                    android:id="@+id/btnEditChain"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checked="false"
-                    style="@style/LavaSwitch"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="40%"
+                    android:text="Editar"
+                    android:textColor="@color/lava_purple"
                     android:textSize="12sp"
-                    android:textColor="@color/lava_text_secondary"/>
+                    android:background="@android:color/transparent"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp" />
             </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekDelay"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="40"
-                android:progressTint="@color/lava_purple"
-                android:thumbTint="@color/lava_purple"/>
-        </LinearLayout>
-
-        <!-- Card de Efeito Chorus -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/effect_card_background"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="12dp">
+                android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
+                    android:text="Overdrive"
+                    android:textColor="@color/lava_text_primary"
+                    android:textSize="12sp"
+                    android:background="@color/effect_distortion"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="Chorus"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/lava_text_primary"/>
-
-                <Switch
-                    android:id="@+id/switchChorus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    style="@style/LavaSwitch"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="30%"
+                    android:textColor="@color/lava_text_primary"
                     android:textSize="12sp"
-                    android:textColor="@color/lava_text_secondary"/>
-            </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekChorus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="30"
-                android:progressTint="@color/lava_purple"
-                android:thumbTint="@color/lava_purple"/>
-        </LinearLayout>
-
-        <!-- Card de Efeito Distortion -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/effect_card_background"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="12dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Distortion"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/lava_text_primary"/>
-
-                <Switch
-                    android:id="@+id/switchDistortion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="false"
-                    style="@style/LavaSwitch"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                    android:background="@color/effect_modulation"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:layout_marginEnd="8dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="80%"
+                    android:text="Delay"
+                    android:textColor="@color/lava_text_primary"
                     android:textSize="12sp"
-                    android:textColor="@color/lava_text_secondary"/>
+                    android:background="@color/effect_time"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp" />
             </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekDistortion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="80"
-                android:progressTint="@color/lava_purple"
-                android:thumbTint="@color/lava_purple"/>
         </LinearLayout>
-
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView> 

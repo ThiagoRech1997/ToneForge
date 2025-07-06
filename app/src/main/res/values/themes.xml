@@ -18,7 +18,25 @@
         <item name="android:navigationBarColor">@color/lava_dark_bg</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <!-- Integração orgânica com o sistema -->
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:fitsSystemWindows">false</item>
         <item name="windowNoTitle">true</item>
         <!-- Customize your theme here. -->
+    </style>
+    
+    <!-- Estilo para botões modernos -->
+    <style name="LavaButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/round_button_background</item>
+        <item name="android:textColor">@color/lava_text_primary</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="rippleColor">@color/lava_text_secondary</item>
+    </style>
+    
+    <!-- Estilo para progress bars modernas -->
+    <style name="LavaProgressBar" parent="Widget.AppCompat.ProgressBar.Horizontal">
+        <item name="android:progressDrawable">@drawable/modern_progress_bar</item>
+        <item name="android:minHeight">8dp</item>
+        <item name="android:maxHeight">8dp</item>
     </style>
 </resources>
