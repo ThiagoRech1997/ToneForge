@@ -5,7 +5,8 @@
     android:layout_height="220dp"
     android:layout_margin="8dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="8dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/lava_card_bg"
     android:id="@+id/pedalCard">
 
     <LinearLayout
@@ -13,7 +14,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="12dp"
-        android:background="@drawable/pedal_background"
+        android:background="@color/lava_card_bg"
         android:gravity="center_horizontal">
 
         <!-- LED de Status -->
@@ -31,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="OVERDRIVE"
-            android:textColor="@color/white"
+            android:textColor="@color/lava_text_primary"
             android:textSize="10sp"
             android:textStyle="bold"
             android:letterSpacing="0.1"
@@ -58,7 +59,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="LEVEL"
-                    android:textColor="@color/white"
+                    android:textColor="@color/lava_text_secondary"
                     android:textSize="8sp"
                     android:textStyle="bold" />
 
@@ -94,7 +95,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="TONE"
-                        android:textColor="@color/white"
+                        android:textColor="@color/lava_text_secondary"
                         android:textSize="6sp"
                         android:textStyle="bold" />
 
@@ -120,7 +121,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="MIX"
-                        android:textColor="@color/white"
+                        android:textColor="@color/lava_text_secondary"
                         android:textSize="6sp"
                         android:textStyle="bold" />
 
@@ -149,15 +150,15 @@
                 android:id="@+id/pedalSwitch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:thumb="@drawable/pedal_switch_thumb"
-                android:track="@drawable/pedal_switch_track"
+                android:thumb="@drawable/modern_switch_thumb"
+                android:track="@drawable/modern_switch_track"
                 android:checked="true" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="ON"
-                android:textColor="@color/white"
+                android:textColor="@color/lava_text_secondary"
                 android:textSize="8sp"
                 android:textStyle="bold"
                 android:layout_marginTop="2dp" />
