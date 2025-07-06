@@ -2579,4 +2579,12 @@ public class EffectsFragment extends Fragment {
             .setNegativeButton(getString(R.string.automation_delete_confirm_no), null)
             .show();
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("Efeitos");
+        }
+    }
 } 

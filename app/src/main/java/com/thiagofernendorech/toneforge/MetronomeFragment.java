@@ -232,4 +232,12 @@ public class MetronomeFragment extends Fragment {
         super.onDestroyView();
         stopBeatAnimation();
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("Metrônomo");
+        }
+    }
 } 

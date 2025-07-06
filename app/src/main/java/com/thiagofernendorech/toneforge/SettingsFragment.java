@@ -131,6 +131,9 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("Configurações");
+        }
         // Atualizar switch conforme estado real do serviço ao voltar para a tela
         if (switchAudioBackground != null) {
             boolean isServiceRunning = AudioBackgroundService.isServiceRunning(requireContext());

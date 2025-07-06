@@ -57,4 +57,12 @@ public class RecorderFragment extends Fragment {
 
         return view;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("Gravador");
+        }
+    }
 } 

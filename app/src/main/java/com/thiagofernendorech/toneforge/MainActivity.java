@@ -133,6 +133,12 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
         transaction.replace(R.id.fragmentContainer, fragment);
+        
+        // Adicionar à pilha de navegação apenas se não for o HomeFragment
+        if (!(fragment instanceof HomeFragment)) {
+            transaction.addToBackStack(null);
+        }
+        
         transaction.commit();
     }
     
@@ -439,5 +445,66 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
     private void openPowerSettings() {
         Intent intent = new Intent(android.provider.Settings.ACTION_BATTERY_SAVER_SETTINGS);
         startActivity(intent);
+    }
+    
+    @Override
+    public void onBackPressed() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        
+        if (fragmentManager.getBackStackEntryCount() > 0) {
+            fragmentManager.popBackStack();
+            fragmentManager.addOnBackStackChangedListener(new FragmentManager.OnBackStackChangedListener() {
+                @Override
+                public void onBackStackChanged() {
+                    Fragment currentFragment = fragmentManager.findFragmentById(R.id.fragmentContainer);
+                    updateHeaderTitleByFragment(currentFragment);
+                    fragmentManager.removeOnBackStackChangedListener(this);
+                }
+            });
+        } else {
+            Fragment currentFragment = fragmentManager.findFragmentById(R.id.fragmentContainer);
+            if (currentFragment instanceof HomeFragment) {
+                updateHeaderTitle("ToneForge");
+                showExitConfirmationDialog();
+            } else {
+                loadFragment(new HomeFragment());
+                updateHeaderTitle("ToneForge");
+            }
+        }
+    }
+    
+    private void updateHeaderTitleByFragment(Fragment fragment) {
+        if (fragment instanceof HomeFragment) {
+            updateHeaderTitle("ToneForge");
+        } else if (fragment instanceof EffectsFragment) {
+            updateHeaderTitle("Efeitos");
+        } else if (fragment instanceof TunerFragment) {
+            updateHeaderTitle("Afinador");
+        } else if (fragment instanceof LooperFragment) {
+            updateHeaderTitle("Looper");
+        } else if (fragment instanceof MetronomeFragment) {
+            updateHeaderTitle("Metrônomo");
+        } else if (fragment instanceof LearningFragment) {
+            updateHeaderTitle("Aprendizado");
+        } else if (fragment instanceof RecorderFragment) {
+            updateHeaderTitle("Gravador");
+        } else if (fragment instanceof SettingsFragment) {
+            updateHeaderTitle("Configurações");
+        }
+    }
+    
+    private void showExitConfirmationDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("Sair do ToneForge")
+            .setMessage("Deseja realmente sair do aplicativo?")
+            .setPositiveButton("Sair", (dialog, which) -> {
+                // Salvar estado antes de sair
+                if (stateRecoveryManager != null) {
+                    stateRecoveryManager.saveCurrentState();
+                }
+                finish();
+            })
+            .setNegativeButton("Cancelar", null)
+            .show();
     }
 }

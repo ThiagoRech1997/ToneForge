@@ -674,4 +674,12 @@ public class LearningFragment extends Fragment {
         // Salvar progresso
         saveProgress();
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("Aprendizado");
+        }
+    }
 } 

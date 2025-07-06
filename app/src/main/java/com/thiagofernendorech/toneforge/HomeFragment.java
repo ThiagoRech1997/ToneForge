@@ -75,4 +75,12 @@ public class HomeFragment extends Fragment {
     public void setUseLavaDesign(boolean useLavaDesign) {
         this.useLavaDesign = useLavaDesign;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("ToneForge");
+        }
+    }
 } 

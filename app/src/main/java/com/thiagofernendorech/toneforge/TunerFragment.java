@@ -170,4 +170,12 @@ public class TunerFragment extends Fragment {
         }
         AudioEngine.stopTuner();
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).updateHeaderTitle("Afinador");
+        }
+    }
 } 
