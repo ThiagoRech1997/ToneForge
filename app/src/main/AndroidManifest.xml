@@ -51,6 +51,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PedalDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ToneForge" />
+
         <!-- ForegroundService para áudio em background -->
         <service
             android:name=".AudioBackgroundService"

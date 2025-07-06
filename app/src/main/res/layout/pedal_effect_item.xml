@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="160dp"
+    android:layout_height="220dp"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="8dp"
+    android:id="@+id/pedalCard">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/pedal_background"
+        android:gravity="center_horizontal">
+
+        <!-- LED de Status -->
+        <ImageView
+            android:id="@+id/pedalLed"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginBottom="8dp"
+            android:src="@drawable/ic_led_off"
+            android:contentDescription="Status LED" />
+
+        <!-- Nome do Efeito -->
+        <TextView
+            android:id="@+id/pedalName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OVERDRIVE"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Área dos Knobs -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Knob Principal -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/knobLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LEVEL"
+                    android:textColor="@color/white"
+                    android:textSize="8sp"
+                    android:textStyle="bold" />
+
+                <SeekBar
+                    android:id="@+id/pedalMainKnob"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_margin="4dp"
+                    android:background="@drawable/knob_background"
+                    android:progressDrawable="@drawable/knob_progress"
+                    android:thumb="@drawable/knob_thumb"
+                    android:max="100"
+                    android:progress="50" />
+            </LinearLayout>
+
+            <!-- Knobs Secundários (quando necessário) -->
+            <LinearLayout
+                android:id="@+id/secondaryKnobsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TONE"
+                        android:textColor="@color/white"
+                        android:textSize="6sp"
+                        android:textStyle="bold" />
+
+                    <SeekBar
+                        android:id="@+id/pedalSecondaryKnob1"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/knob_small_background"
+                        android:progressDrawable="@drawable/knob_small_progress"
+                        android:thumb="@drawable/knob_small_thumb"
+                        android:max="100"
+                        android:progress="50" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="MIX"
+                        android:textColor="@color/white"
+                        android:textSize="6sp"
+                        android:textStyle="bold" />
+
+                    <SeekBar
+                        android:id="@+id/pedalSecondaryKnob2"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/knob_small_background"
+                        android:progressDrawable="@drawable/knob_small_progress"
+                        android:thumb="@drawable/knob_small_thumb"
+                        android:max="100"
+                        android:progress="50" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Switch On/Off -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginTop="8dp">
+
+            <Switch
+                android:id="@+id/pedalSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumb="@drawable/pedal_switch_thumb"
+                android:track="@drawable/pedal_switch_track"
+                android:checked="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ON"
+                android:textColor="@color/white"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Ícone do Tipo de Efeito -->
+        <ImageView
+            android:id="@+id/pedalIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginTop="4dp"
+            android:src="@drawable/ic_graphic_eq"
+            android:contentDescription="Tipo de efeito"
+            android:alpha="0.7" />
+
+        <!-- Área de Drag Handle -->
+        <View
+            android:id="@+id/dragHandle"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/drag_handle_background" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView> 

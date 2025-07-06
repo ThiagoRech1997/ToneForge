@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sombra base -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="135"
+                android:startColor="#1A1A1A"
+                android:endColor="#0A0A0A" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    
+    <!-- Camada metálica -->
+    <item android:top="2dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="45"
+                android:startColor="#404040"
+                android:centerColor="#2A2A2A"
+                android:endColor="#1A1A1A" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    
+    <!-- Brilho superior -->
+    <item android:top="4dp" android:left="4dp" android:right="4dp" android:bottom="16dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="90"
+                android:startColor="#60FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</layer-list> 

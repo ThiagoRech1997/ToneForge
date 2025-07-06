@@ -28,6 +28,16 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Home"/>
 
+        <ImageButton
+            android:id="@+id/btnPedalboard"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_graphic_eq"
+            android:tint="@color/lava_purple"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Pedaleira"
+            android:layout_marginStart="8dp"/>
+
         <TextView
             android:id="@+id/headerTitle"
             android:layout_width="0dp"

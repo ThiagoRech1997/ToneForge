@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/pedalboard_background">
+
+    <!-- Título da Pedaleira -->
+    <TextView
+        android:id="@+id/pedalboardTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="🎸 Minha Pedaleira"
+        android:textColor="@color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Botões de Controle -->
+    <LinearLayout
+        android:id="@+id/pedalboardControls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/pedalboardTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnResetPedalboard"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="🔄 Reset"
+            android:textSize="12sp"
+            android:background="@drawable/pedalboard_button_background"
+            android:textColor="@color/white"
+            android:layout_marginEnd="8dp"
+            android:minWidth="80dp" />
+
+        <Button
+            android:id="@+id/btnSavePreset"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="💾 Salvar"
+            android:textSize="12sp"
+            android:background="@drawable/pedalboard_button_background"
+            android:textColor="@color/white"
+            android:layout_marginEnd="8dp"
+            android:minWidth="80dp" />
+
+        <Button
+            android:id="@+id/btnLoadPreset"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="📂 Carregar"
+            android:textSize="12sp"
+            android:background="@drawable/pedalboard_button_background"
+            android:textColor="@color/white"
+            android:layout_marginEnd="8dp"
+            android:minWidth="80dp" />
+
+        <Button
+            android:id="@+id/btnAddEffect"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="➕ Adicionar"
+            android:textSize="12sp"
+            android:background="@drawable/pedalboard_button_background"
+            android:textColor="@color/white"
+            android:minWidth="80dp" />
+    </LinearLayout>
+
+    <!-- Status da Pedaleira -->
+    <TextView
+        android:id="@+id/pedalboardStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="🟢 Pipeline Ativo - Processando em Tempo Real"
+        android:textColor="@color/green"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:padding="8dp"
+        android:background="@drawable/status_background"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/pedalboardControls"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Área Principal da Pedaleira -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/pedalboardScrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/pedalboardStatus"
+        app:layout_constraintBottom_toTopOf="@id/pedalboardFooter"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Seção de Pedais -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Arraste os pedais para reordenar"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:alpha="0.7"
+                android:layout_marginBottom="8dp"
+                android:drawableStart="@drawable/ic_rotate_left"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical" />
+
+            <!-- RecyclerView dos Pedais -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/pedalboardRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:clipToPadding="false"
+                android:paddingBottom="16dp" />
+
+            <!-- Visualização da Cadeia de Sinal -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔗 Cadeia de Sinal"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/signalChainContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp"
+                    android:gravity="center_vertical" />
+            </HorizontalScrollView>
+
+            <!-- Informações de Performance -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/pedalboard_info_background"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pedais Ativos"
+                        android:textColor="@color/white"
+                        android:textSize="10sp"
+                        android:alpha="0.7" />
+
+                    <TextView
+                        android:id="@+id/activePedalsCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="3"
+                        android:textColor="@color/green"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CPU Usage"
+                        android:textColor="@color/white"
+                        android:textSize="10sp"
+                        android:alpha="0.7" />
+
+                    <TextView
+                        android:id="@+id/cpuUsage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="25%"
+                        android:textColor="@color/green"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Latência"
+                        android:textColor="@color/white"
+                        android:textSize="10sp"
+                        android:alpha="0.7" />
+
+                    <TextView
+                        android:id="@+id/latencyInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="4ms"
+                        android:textColor="@color/green"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Rodapé com Informações -->
+    <LinearLayout
+        android:id="@+id/pedalboardFooter"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/pedalboard_footer_background"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="ToneForge Pedalboard v1.0"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:alpha="0.7" />
+
+        <TextView
+            android:id="@+id/presetInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Preset: Rock Lead"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:alpha="0.7" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout> 

@@ -135,6 +135,12 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
             updateHeaderTitle("ToneForge");
         });
         
+        // Botão Pedaleira (nova interface)
+        findViewById(R.id.btnPedalboard).setOnClickListener(v -> {
+            loadFragment(new PedalboardFragment());
+            updateHeaderTitle("🎸 Pedaleira");
+        });
+        
         // Botão Power - Sistema de Power Management
         btnPower.setOnClickListener(v -> {
             showPowerOptionsDialog();
@@ -508,6 +514,8 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
             updateHeaderTitle("ToneForge");
         } else if (fragment instanceof EffectsFragment || fragment instanceof EffectsFragmentRefactored) {
             updateHeaderTitle("Efeitos");
+        } else if (fragment instanceof PedalboardFragment) {
+            updateHeaderTitle("🎸 Pedaleira");
         } else if (fragment instanceof TunerFragment || fragment instanceof TunerFragmentRefactored) {
             updateHeaderTitle("Afinador");
         } else if (fragment instanceof LooperFragment || fragment instanceof LooperFragmentRefactored) {

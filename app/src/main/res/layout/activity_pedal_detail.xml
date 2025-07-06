@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/pedal_detail_background">
+
+    <!-- Header com navegação -->
+    <LinearLayout
+        android:id="@+id/pedalDetailHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="@drawable/pedal_detail_header_gradient"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/btnBackToPedalboard"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="#FFFFFF"
+            android:background="@drawable/circle_button_background"
+            android:padding="6dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+
+            <TextView
+                android:id="@+id/pedalDetailTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GAIN BOOST"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1" />
+
+            <TextView
+                android:id="@+id/pedalDetailSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Overdrive / Distortion"
+                android:textColor="#80FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnPresets"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_presets"
+            android:tint="#FFFFFF"
+            android:background="@drawable/circle_button_background"
+            android:padding="6dp"
+            android:layout_marginEnd="8dp" />
+
+        <ImageView
+            android:id="@+id/btnAdvanced"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_advanced_settings"
+            android:tint="#FFFFFF"
+            android:background="@drawable/circle_button_background"
+            android:padding="6dp" />
+    </LinearLayout>
+
+    <!-- Área central do pedal -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/pedalDetailHeader"
+        app:layout_constraintBottom_toTopOf="@id/pedalDetailFooter"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:gravity="center_horizontal">
+
+            <!-- Visualização do pedal realista -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="280dp"
+                android:layout_height="400dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="12dp"
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
+                    android:id="@+id/pedalVisualContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:background="@drawable/realistic_pedal_background"
+                    android:padding="24dp"
+                    android:gravity="center_horizontal">
+
+                    <!-- LEDs de status -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="16dp">
+
+                        <View
+                            android:id="@+id/powerLed"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/led_power_active"
+                            android:layout_marginEnd="8dp" />
+
+                        <View
+                            android:id="@+id/clippingLed"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/led_clipping_inactive" />
+                    </LinearLayout>
+
+                    <!-- Nome do pedal -->
+                    <TextView
+                        android:id="@+id/pedalVisualName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="GAIN"
+                        android:textColor="#FFFFFF"
+                        android:textSize="32sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.2"
+                        android:layout_marginBottom="20dp"
+                        android:shadowColor="#000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="4" />
+
+                    <!-- Knobs principais -->
+                    <LinearLayout
+                        android:id="@+id/knobsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="24dp">
+
+                        <!-- Knob 1 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <com.thiagofernendorech.toneforge.ui.widgets.RealisticKnob
+                                android:id="@+id/knobMain"
+                                android:layout_width="80dp"
+                                android:layout_height="80dp"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/knobMainLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="GAIN"
+                                android:textColor="#FFFFFF"
+                                android:textSize="10sp"
+                                android:textStyle="bold"
+                                android:shadowColor="#000000"
+                                android:shadowRadius="2" />
+                        </LinearLayout>
+
+                        <!-- Knob 2 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <com.thiagofernendorech.toneforge.ui.widgets.RealisticKnob
+                                android:id="@+id/knobSecondary1"
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/knobSecondary1Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="TONE"
+                                android:textColor="#FFFFFF"
+                                android:textSize="9sp"
+                                android:textStyle="bold"
+                                android:shadowColor="#000000"
+                                android:shadowRadius="2" />
+                        </LinearLayout>
+
+                        <!-- Knob 3 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <com.thiagofernendorech.toneforge.ui.widgets.RealisticKnob
+                                android:id="@+id/knobSecondary2"
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/knobSecondary2Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="LEVEL"
+                                android:textColor="#FFFFFF"
+                                android:textSize="9sp"
+                                android:textStyle="bold"
+                                android:shadowColor="#000000"
+                                android:shadowRadius="2" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Switch principal -->
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/pedalMainSwitch"
+                        android:layout_width="60dp"
+                        android:layout_height="40dp"
+                        android:thumb="@drawable/realistic_switch_thumb"
+                        android:track="@drawable/realistic_switch_track"
+                        android:layout_marginTop="16dp" />
+
+                    <!-- Ícone do tipo -->
+                    <ImageView
+                        android:id="@+id/pedalTypeIcon"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_distortion_wave"
+                        android:tint="#80FFFFFF"
+                        android:layout_marginTop="12dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Controles avançados -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#1A1A1A"
+                app:cardElevation="4dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚙️ Controles Avançados"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Controles específicos do efeito -->
+                    <LinearLayout
+                        android:id="@+id/advancedControlsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Presets rápidos -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#1A1A1A"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎚️ Presets Rápidos"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnPresetClean"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:text="CLEAN"
+                            android:textSize="10sp"
+                            android:background="@drawable/preset_button_background"
+                            android:textColor="#FFFFFF"
+                            android:layout_marginEnd="4dp" />
+
+                        <Button
+                            android:id="@+id/btnPresetCrunch"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:text="CRUNCH"
+                            android:textSize="10sp"
+                            android:background="@drawable/preset_button_background"
+                            android:textColor="#FFFFFF"
+                            android:layout_marginHorizontal="2dp" />
+
+                        <Button
+                            android:id="@+id/btnPresetHeavy"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:text="HEAVY"
+                            android:textSize="10sp"
+                            android:background="@drawable/preset_button_background"
+                            android:textColor="#FFFFFF"
+                            android:layout_marginStart="4dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Footer com informações -->
+    <LinearLayout
+        android:id="@+id/pedalDetailFooter"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/pedal_detail_footer_gradient"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Posição na Cadeia"
+                android:textColor="#80FFFFFF"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/pedalPositionInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2º pedal (Distortion)"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CPU: "
+                android:textColor="#80FFFFFF"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/pedalCpuUsage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12%"
+                android:textColor="#00FF88"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout> 
