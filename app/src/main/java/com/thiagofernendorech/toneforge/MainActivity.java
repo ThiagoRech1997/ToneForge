@@ -28,6 +28,19 @@ import android.widget.SeekBar;
 import android.view.WindowManager;
 import android.graphics.Color;
 
+// Nova arquitetura
+import com.thiagofernendorech.toneforge.ui.navigation.NavigationController;
+import com.thiagofernendorech.toneforge.data.repository.AudioRepository;
+import com.thiagofernendorech.toneforge.ui.fragments.home.HomeFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.tuner.TunerFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.metronome.MetronomeFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.recorder.RecorderFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.looplibrary.LoopLibraryFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.learning.LearningFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.settings.SettingsFragmentRefactored;
+
 public class MainActivity extends AppCompatActivity implements PermissionManager.PermissionCallback {
     
     private StateRecoveryManager stateRecoveryManager;
@@ -37,6 +50,10 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
     private ImageView btnWifi;
     private ImageView btnVolume;
     private ImageView btnPower;
+    
+    // Nova arquitetura
+    private NavigationController navigationController;
+    private AudioRepository audioRepository;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +83,11 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         stateRecoveryManager = StateRecoveryManager.getInstance(this);
         latencyManager = LatencyManager.getInstance(this);
         
+        // Inicializar nova arquitetura
+        navigationController = NavigationController.getInstance();
+        navigationController.init(this);
+        audioRepository = AudioRepository.getInstance(this);
+        
         // Setup navegação
         setupNavigation();
         
@@ -89,8 +111,8 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         // Recuperar estado salvo
         stateRecoveryManager.restoreState();
         
-        // Carregar fragment inicial
-        loadFragment(new HomeFragment());
+        // Carregar fragment inicial (nova arquitetura)
+        loadFragment(new HomeFragmentRefactored());
         
         // Iniciar timer para atualização de status
         startStatusUpdateTimer();
@@ -107,9 +129,9 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
     }
     
     private void setupNavigation() {
-        // Botão Home
+        // Botão Home (nova arquitetura)
         findViewById(R.id.btnHome).setOnClickListener(v -> {
-            loadFragment(new HomeFragment());
+            loadFragment(new HomeFragmentRefactored());
             updateHeaderTitle("ToneForge");
         });
         
@@ -135,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         transaction.replace(R.id.fragmentContainer, fragment);
         
         // Adicionar à pilha de navegação apenas se não for o HomeFragment
-        if (!(fragment instanceof HomeFragment)) {
+        if (!(fragment instanceof HomeFragment || fragment instanceof HomeFragmentRefactored)) {
             transaction.addToBackStack(null);
         }
         
@@ -241,6 +263,14 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
         if (timeUpdateTimer != null) {
             timeUpdateTimer.cancel();
             timeUpdateTimer = null;
+        }
+        
+        // Limpar nova arquitetura
+        if (navigationController != null) {
+            navigationController.clear();
+        }
+        if (audioRepository != null) {
+            audioRepository.cleanup();
         }
     }
     
@@ -463,24 +493,24 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
             });
         } else {
             Fragment currentFragment = fragmentManager.findFragmentById(R.id.fragmentContainer);
-            if (currentFragment instanceof HomeFragment) {
+            if (currentFragment instanceof HomeFragment || currentFragment instanceof HomeFragmentRefactored) {
                 updateHeaderTitle("ToneForge");
                 showExitConfirmationDialog();
             } else {
-                loadFragment(new HomeFragment());
+                loadFragment(new HomeFragmentRefactored());
                 updateHeaderTitle("ToneForge");
             }
         }
     }
     
     private void updateHeaderTitleByFragment(Fragment fragment) {
-        if (fragment instanceof HomeFragment) {
+        if (fragment instanceof HomeFragment || fragment instanceof HomeFragmentRefactored) {
             updateHeaderTitle("ToneForge");
-        } else if (fragment instanceof EffectsFragment) {
+        } else if (fragment instanceof EffectsFragment || fragment instanceof EffectsFragmentRefactored) {
             updateHeaderTitle("Efeitos");
-        } else if (fragment instanceof TunerFragment) {
+        } else if (fragment instanceof TunerFragment || fragment instanceof TunerFragmentRefactored) {
             updateHeaderTitle("Afinador");
-        } else if (fragment instanceof LooperFragment) {
+        } else if (fragment instanceof LooperFragment || fragment instanceof LooperFragmentRefactored) {
             updateHeaderTitle("Looper");
         } else if (fragment instanceof MetronomeFragment) {
             updateHeaderTitle("Metrônomo");
@@ -488,8 +518,10 @@ public class MainActivity extends AppCompatActivity implements PermissionManager
             updateHeaderTitle("Aprendizado");
         } else if (fragment instanceof RecorderFragment) {
             updateHeaderTitle("Gravador");
-        } else if (fragment instanceof SettingsFragment) {
+        } else if (fragment instanceof SettingsFragmentRefactored) {
             updateHeaderTitle("Configurações");
+        } else if (fragment instanceof LoopLibraryFragmentRefactored) {
+            updateHeaderTitle("Biblioteca de Loops");
         }
     }
     

@@ -289,6 +289,20 @@ public class ToneForgeMidiManager {
     }
     
     /**
+     * Desativa modo de aprendizado
+     */
+    public void stopLearnMode() {
+        learnMode = LEARN_MODE_OFF;
+        pendingParameter = null;
+        
+        if (learnListener != null) {
+            learnListener.onLearnModeChanged(learnMode);
+        }
+        
+        Log.d(TAG, "Modo de aprendizado desativado");
+    }
+    
+    /**
      * Cria mapeamento MIDI
      */
     public void createMapping(String parameter, int messageType, int channel, int controller) {

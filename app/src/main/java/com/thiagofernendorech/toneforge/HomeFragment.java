@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsFragmentRefactored;
 
 public class HomeFragment extends Fragment {
     
@@ -26,12 +27,12 @@ public class HomeFragment extends Fragment {
         });
         
         view.findViewById(R.id.btnEffects).setOnClickListener(v -> {
-            ((MainActivity) getActivity()).loadFragment(new EffectsFragment());
+            ((MainActivity) getActivity()).loadFragment(new EffectsFragmentRefactored());
             ((MainActivity) getActivity()).updateHeaderTitle("Efeitos");
         });
         
         view.findViewById(R.id.btnLooper).setOnClickListener(v -> {
-            ((MainActivity) getActivity()).loadFragment(new LooperFragment());
+            ((MainActivity) getActivity()).loadFragment(new com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored());
             ((MainActivity) getActivity()).updateHeaderTitle("Looper");
         });
         
@@ -51,7 +52,7 @@ public class HomeFragment extends Fragment {
         });
         
         view.findViewById(R.id.btnSettings).setOnClickListener(v -> {
-            ((MainActivity) getActivity()).loadFragment(new SettingsFragment());
+            ((MainActivity) getActivity()).loadFragment(new com.thiagofernendorech.toneforge.ui.fragments.settings.SettingsFragmentRefactored());
             ((MainActivity) getActivity()).updateHeaderTitle("Configurações");
         });
         

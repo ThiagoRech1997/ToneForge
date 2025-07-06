@@ -8,6 +8,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsFragmentRefactored;
 
 public class EffectsLavaFragment extends Fragment {
     
@@ -58,8 +59,8 @@ public class EffectsLavaFragment extends Fragment {
         args.putString("categoryName", categoryName);
         args.putString("categoryType", categoryType);
         
-        // Navegar para fragment de categoria específica ou para EffectsFragment normal
-        EffectsFragment effectsFragment = new EffectsFragment();
+                    // Navegar para fragment de categoria específica ou para EffectsFragmentRefactored
+            EffectsFragmentRefactored effectsFragment = new EffectsFragmentRefactored();
         effectsFragment.setArguments(args);
         
         ((MainActivity) getActivity()).loadFragment(effectsFragment);
