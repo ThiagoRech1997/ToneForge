@@ -16,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.cardview.widget.CardView;
 import java.util.List;
 
 /**
@@ -28,16 +29,16 @@ public class PedalboardFragment extends Fragment implements PedalboardAdapter.Pe
     private PedalboardAdapter pedalboardAdapter;
     private List<PedalEffect> pedalEffects;
     
-    private TextView pedalboardStatus;
+    private CardView pedalboardStatus;
+    private TextView pipelineStatusText;
     private TextView activePedalsCount;
     private TextView cpuUsage;
     private TextView latencyInfo;
     private TextView presetInfo;
     
-    private Button btnResetPedalboard;
-    private Button btnSavePreset;
-    private Button btnLoadPreset;
-    private Button btnAddEffect;
+    private LinearLayout btnResetPedalboard;
+    private LinearLayout btnSavePreset;
+    private LinearLayout btnAddEffect;
     
     private LinearLayout signalChainContainer;
     
@@ -61,7 +62,8 @@ public class PedalboardFragment extends Fragment implements PedalboardAdapter.Pe
     
     private void initializeViews(View view) {
         pedalboardRecyclerView = view.findViewById(R.id.pedalboardRecyclerView);
-        pedalboardStatus = view.findViewById(R.id.pedalboardStatus);
+        pedalboardStatus = view.findViewById(R.id.pedalboardStatusCard);
+        pipelineStatusText = view.findViewById(R.id.pipelineStatusText);
         activePedalsCount = view.findViewById(R.id.activePedalsCount);
         cpuUsage = view.findViewById(R.id.cpuUsage);
         latencyInfo = view.findViewById(R.id.latencyInfo);
@@ -69,7 +71,6 @@ public class PedalboardFragment extends Fragment implements PedalboardAdapter.Pe
         
         btnResetPedalboard = view.findViewById(R.id.btnResetPedalboard);
         btnSavePreset = view.findViewById(R.id.btnSavePreset);
-        btnLoadPreset = view.findViewById(R.id.btnLoadPreset);
         btnAddEffect = view.findViewById(R.id.btnAddEffect);
         
         signalChainContainer = view.findViewById(R.id.signalChainContainer);
@@ -118,7 +119,6 @@ public class PedalboardFragment extends Fragment implements PedalboardAdapter.Pe
     private void setupButtons() {
         btnResetPedalboard.setOnClickListener(v -> resetPedalboard());
         btnSavePreset.setOnClickListener(v -> saveCurrentPreset());
-        btnLoadPreset.setOnClickListener(v -> loadPreset());
         btnAddEffect.setOnClickListener(v -> addNewEffect());
         
         // Configurar tooltips
@@ -132,10 +132,7 @@ public class PedalboardFragment extends Fragment implements PedalboardAdapter.Pe
             return true;
         });
         
-        btnLoadPreset.setOnLongClickListener(v -> {
-            showTooltip("Carrega um preset salvo");
-            return true;
-        });
+
         
         btnAddEffect.setOnLongClickListener(v -> {
             showTooltip("Adiciona um novo efeito à pedaleira");
@@ -437,11 +434,25 @@ public class PedalboardFragment extends Fragment implements PedalboardAdapter.Pe
         
         // Atualizar status geral
         if (AudioEngine.isAudioPipelineRunning()) {
-            pedalboardStatus.setText("🟢 Pipeline Ativo - Processando em Tempo Real");
-            pedalboardStatus.setTextColor(getResources().getColor(R.color.green));
+            // Encontrar o primeiro TextView dentro do LinearLayout
+            if (pedalboardStatus.getChildCount() > 0) {
+                View firstChild = pedalboardStatus.getChildAt(1); // O segundo filho é o TextView
+                if (firstChild instanceof TextView) {
+                    TextView statusText = (TextView) firstChild;
+                    statusText.setText("🟢 Pipeline Ativo - Processando em Tempo Real");
+                    statusText.setTextColor(getResources().getColor(R.color.lava_green));
+                }
+            }
         } else {
-            pedalboardStatus.setText("🔴 Pipeline Inativo");
-            pedalboardStatus.setTextColor(getResources().getColor(R.color.red));
+            // Encontrar o primeiro TextView dentro do LinearLayout
+            if (pedalboardStatus.getChildCount() > 0) {
+                View firstChild = pedalboardStatus.getChildAt(1); // O segundo filho é o TextView
+                if (firstChild instanceof TextView) {
+                    TextView statusText = (TextView) firstChild;
+                    statusText.setText("🔴 Pipeline Inativo");
+                    statusText.setTextColor(getResources().getColor(R.color.lava_red));
+                }
+            }
         }
     }
     

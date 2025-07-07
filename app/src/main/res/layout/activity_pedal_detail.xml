@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/pedal_detail_background">
+    android:background="@color/lava_dark_bg">
 
     <!-- Header com navegação -->
     <LinearLayout
@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
-        android:background="@drawable/pedal_detail_header_gradient"
+        android:background="@color/lava_header_bg"
         android:gravity="center_vertical"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -23,7 +23,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_arrow_back"
-            android:tint="#FFFFFF"
+            android:tint="@color/lava_text_primary"
             android:background="@drawable/circle_button_background"
             android:padding="6dp" />
 
@@ -39,7 +39,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GAIN BOOST"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/lava_text_primary"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1" />
@@ -49,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Overdrive / Distortion"
-                android:textColor="#80FFFFFF"
+                android:textColor="@color/lava_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -58,7 +58,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_presets"
-            android:tint="#FFFFFF"
+            android:tint="@color/lava_text_primary"
             android:background="@drawable/circle_button_background"
             android:padding="6dp"
             android:layout_marginEnd="8dp" />
@@ -68,7 +68,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_advanced_settings"
-            android:tint="#FFFFFF"
+            android:tint="@color/lava_text_primary"
             android:background="@drawable/circle_button_background"
             android:padding="6dp" />
     </LinearLayout>
@@ -96,6 +96,7 @@
                 android:layout_height="400dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="12dp"
+                app:cardBackgroundColor="@color/lava_card_bg"
                 android:layout_marginBottom="32dp">
 
                 <LinearLayout
@@ -103,7 +104,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
-                    android:background="@drawable/realistic_pedal_background"
+                    android:background="@color/lava_card_bg"
                     android:padding="24dp"
                     android:gravity="center_horizontal">
 
@@ -257,9 +258,9 @@
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#1A1A1A"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="@color/lava_card_bg"
+                app:cardElevation="8dp"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
@@ -272,7 +273,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="⚙️ Controles Avançados"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/lava_text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="16dp" />
@@ -290,9 +291,9 @@
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#1A1A1A"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="@color/lava_card_bg"
+                app:cardElevation="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -304,7 +305,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎚️ Presets Rápidos"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/lava_text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="16dp" />
@@ -322,7 +323,7 @@
                             android:text="CLEAN"
                             android:textSize="10sp"
                             android:background="@drawable/preset_button_background"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/lava_text_primary"
                             android:layout_marginEnd="4dp" />
 
                         <Button
@@ -333,7 +334,7 @@
                             android:text="CRUNCH"
                             android:textSize="10sp"
                             android:background="@drawable/preset_button_background"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/lava_text_primary"
                             android:layout_marginHorizontal="2dp" />
 
                         <Button
@@ -344,7 +345,7 @@
                             android:text="HEAVY"
                             android:textSize="10sp"
                             android:background="@drawable/preset_button_background"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/lava_text_primary"
                             android:layout_marginStart="4dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -358,7 +359,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/pedal_detail_footer_gradient"
+        android:background="@color/lava_header_bg"
         android:padding="12dp"
         android:gravity="center_vertical"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -375,7 +376,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Posição na Cadeia"
-                android:textColor="#80FFFFFF"
+                android:textColor="@color/lava_text_secondary"
                 android:textSize="9sp" />
 
             <TextView
@@ -383,7 +384,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="2º pedal (Distortion)"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/lava_text_primary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -398,7 +399,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CPU: "
-                android:textColor="#80FFFFFF"
+                android:textColor="@color/lava_text_secondary"
                 android:textSize="9sp" />
 
             <TextView
@@ -406,7 +407,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="12%"
-                android:textColor="#00FF88"
+                android:textColor="@color/lava_green"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
