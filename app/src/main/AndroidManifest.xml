@@ -54,7 +54,8 @@
         <activity
             android:name=".PedalDetailActivity"
             android:exported="false"
-            android:theme="@style/Theme.ToneForge" />
+            android:theme="@style/Theme.ToneForge"
+            android:label="" />
 
         <!-- ForegroundService para áudio em background -->
         <service
