@@ -11,66 +11,69 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="@color/lava_header_bg"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:background="@drawable/header_background"
         android:gravity="center_vertical"
+        android:elevation="4dp"
+        android:minHeight="56dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <ImageView
+        <ImageButton
             android:id="@+id/btnBackToPedalboard"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_arrow_back"
             android:tint="@color/lava_text_primary"
-            android:background="@drawable/circle_button_background"
-            android:padding="6dp" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Voltar" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/pedalDetailTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="16dp">
+            android:text="GAIN"
+            android:textColor="@color/lava_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginStart="8dp" />
 
-            <TextView
-                android:id="@+id/pedalDetailTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="GAIN BOOST"
-                android:textColor="@color/lava_text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.1" />
+        <TextView
+            android:id="@+id/pedalDetailSubtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Overdrive / Distortion"
+            android:textColor="@color/lava_text_secondary"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="2dp" />
 
-            <TextView
-                android:id="@+id/pedalDetailSubtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Overdrive / Distortion"
-                android:textColor="@color/lava_text_secondary"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <ImageView
+        <ImageButton
             android:id="@+id/btnPresets"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_presets"
             android:tint="@color/lava_text_primary"
-            android:background="@drawable/circle_button_background"
-            android:padding="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Presets"
             android:layout_marginEnd="8dp" />
 
-        <ImageView
+        <ImageButton
             android:id="@+id/btnAdvanced"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_advanced_settings"
             android:tint="@color/lava_text_primary"
-            android:background="@drawable/circle_button_background"
-            android:padding="6dp" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Configurações" />
     </LinearLayout>
 
     <!-- Área central do pedal -->
