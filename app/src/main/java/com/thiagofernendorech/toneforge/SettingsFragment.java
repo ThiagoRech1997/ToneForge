@@ -176,9 +176,6 @@ public class SettingsFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         updateLatencyUI();
-                        Toast.makeText(requireContext(), 
-                            getString(R.string.latency_pipeline_restarting), 
-                            Toast.LENGTH_SHORT).show();
                     });
                 }
             }

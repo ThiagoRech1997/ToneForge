@@ -90,7 +90,6 @@ public class StateRecoveryManager {
             
             editor.apply();
             Log.d(TAG, "Estado salvo com sucesso");
-            Toast.makeText(context, context.getString(R.string.state_saved), Toast.LENGTH_SHORT).show();
             
         } catch (Exception e) {
             Log.e(TAG, "Erro ao salvar estado: " + e.getMessage());
@@ -186,17 +185,10 @@ public class StateRecoveryManager {
                 AudioBackgroundService.startService(context);
             }
             
-            // Atualizar notificação se o serviço estiver rodando
-            if (AudioBackgroundService.isServiceRunning(context)) {
-                AudioBackgroundService.updateNotification(context);
-            }
-            
             Log.d(TAG, "Recuperação de estado concluída com sucesso");
-            Toast.makeText(context, context.getString(R.string.state_restored), Toast.LENGTH_SHORT).show();
             
         } catch (Exception e) {
             Log.e(TAG, "Erro ao restaurar estado: " + e.getMessage());
-            Toast.makeText(context, context.getString(R.string.state_recovery_failed), Toast.LENGTH_SHORT).show();
         } finally {
             isRecovering = false;
         }

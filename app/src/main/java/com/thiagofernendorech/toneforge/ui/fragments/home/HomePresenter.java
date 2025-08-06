@@ -3,34 +3,29 @@ package com.thiagofernendorech.toneforge.ui.fragments.home;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+
+import com.thiagofernendorech.toneforge.data.repository.AudioRepository;
 import com.thiagofernendorech.toneforge.ui.base.BasePresenter;
 import com.thiagofernendorech.toneforge.ui.navigation.NavigationController;
-import com.thiagofernendorech.toneforge.data.repository.AudioRepository;
+import com.thiagofernendorech.toneforge.PipelineManager;
 import com.thiagofernendorech.toneforge.domain.models.AudioState;
 
 /**
- * Presenter para o HomeFragment
- * Gerencia a lógica de negócio e comunicação com a View
+ * Presenter para o HomeFragment seguindo o padrão MVP
+ * Versão otimizada sem atualizações automáticas
  */
 public class HomePresenter extends BasePresenter<HomeContract.View> implements HomeContract.Presenter {
-    
+
     private NavigationController navigationController;
     private AudioRepository audioRepository;
     private Context context;
-    
-    // Handler para atualizações periódicas
-    private Handler updateHandler;
-    private Runnable updateRunnable;
-    private static final int UPDATE_INTERVAL_MS = 5000; // 5 segundos
-    
-    // Estado atual
-    private boolean isUpdating = false;
     
     /**
      * Construtor do HomePresenter
@@ -42,18 +37,6 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
         this.context = context.getApplicationContext();
         this.navigationController = navigationController;
         this.audioRepository = audioRepository;
-        
-        // Inicializar handler para atualizações
-        this.updateHandler = new Handler(Looper.getMainLooper());
-        this.updateRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (isUpdating && isViewAttached()) {
-                    updateSystemStatus();
-                    updateHandler.postDelayed(this, UPDATE_INTERVAL_MS);
-                }
-            }
-        };
     }
     
     // === Implementação da interface BasePresenter ===
@@ -113,6 +96,8 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
     
     @Override
     public void onWifiClicked() {
+        // Atualizar status Wi-Fi apenas quando solicitado
+        updateWifiStatus();
         ifViewAttached(HomeContract.View::showWifiDialog);
     }
     
@@ -123,6 +108,8 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
     
     @Override
     public void onPowerClicked() {
+        // Atualizar status da bateria apenas quando solicitado
+        updateBatteryStatus();
         ifViewAttached(HomeContract.View::showPowerDialog);
     }
     
@@ -131,35 +118,24 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
         // Atualizar título
         ifViewAttached(view -> view.updateTitle("ToneForge"));
         
-        // Fazer uma atualização inicial
+        // Fazer uma atualização inicial (apenas uma vez)
         updateSystemStatus();
-        
-        // Iniciar atualizações periódicas
-        startPeriodicUpdates();
     }
     
     @Override
     public void onViewPaused() {
-        // Parar atualizações para economizar recursos
-        stopPeriodicUpdates();
+        // REMOVIDO: Parar atualizações (não há mais atualizações automáticas)
     }
     
     @Override
     public void onViewResumed() {
-        // Retomar atualizações
+        // Atualizar status apenas uma vez ao resumir
         updateSystemStatus();
-        startPeriodicUpdates();
     }
     
     @Override
     public void onViewDestroyed() {
-        // Parar todas as atualizações
-        stopPeriodicUpdates();
-        
-        // Limpar handler
-        if (updateHandler != null) {
-            updateHandler.removeCallbacks(updateRunnable);
-        }
+        // REMOVIDO: Parar atualizações e limpar handler (não há mais)
     }
     
     @Override
@@ -181,27 +157,7 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
     // === Métodos privados ===
     
     /**
-     * Inicia atualizações periódicas
-     */
-    private void startPeriodicUpdates() {
-        if (!isUpdating) {
-            isUpdating = true;
-            updateHandler.post(updateRunnable);
-        }
-    }
-    
-    /**
-     * Para atualizações periódicas
-     */
-    private void stopPeriodicUpdates() {
-        isUpdating = false;
-        if (updateHandler != null) {
-            updateHandler.removeCallbacks(updateRunnable);
-        }
-    }
-    
-    /**
-     * Atualiza o status da conexão Wi-Fi
+     * Atualiza o status da conexão Wi-Fi (apenas quando solicitado)
      */
     private void updateWifiStatus() {
         try {
@@ -221,7 +177,7 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
     }
     
     /**
-     * Atualiza o status da bateria
+     * Atualiza o status da bateria (apenas quando solicitado)
      */
     private void updateBatteryStatus() {
         try {
@@ -229,60 +185,74 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
             Intent batteryStatus = context.registerReceiver(null, ifilter);
             
             if (batteryStatus != null) {
-                // Nível da bateria
                 int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
                 int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-                int batteryPct = (int) ((level * 100.0f) / scale);
                 
-                // Status de carregamento
-                int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-                boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                                   status == BatteryManager.BATTERY_STATUS_FULL;
-                
-                ifViewAttached(view -> view.updateBatteryStatus(batteryPct, isCharging));
+                if (scale > 0) {
+                    int batteryPct = (int)(level * 100f / scale);
+                    boolean isCharging = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1) == 
+                                       BatteryManager.BATTERY_STATUS_CHARGING;
+                    
+                    ifViewAttached(view -> view.updateBatteryStatus(batteryPct, isCharging));
+                }
             }
         } catch (Exception e) {
-            // Erro ao obter status da bateria - usar valores padrão
-            ifViewAttached(view -> view.updateBatteryStatus(50, false));
+            // Erro ao obter status da bateria
+            ifViewAttached(view -> view.updateBatteryStatus(50, false)); // Valor padrão
         }
     }
     
     /**
-     * Atualiza o estado do áudio
+     * Atualiza o estado do áudio (apenas quando solicitado)
      */
     private void updateAudioStatus() {
         try {
-            AudioState audioState = audioRepository.getCurrentAudioState();
+            PipelineManager pipelineManager = PipelineManager.getInstance();
+            boolean isRunning = pipelineManager.isRunning();
+            boolean hasError = pipelineManager.isError();
+            
+            // Criar um AudioState adequado baseado no status atual
+            AudioState audioState = new AudioState();
+            audioState.setPipelineRunning(isRunning);
+            audioState.setPipelinePaused(pipelineManager.isPaused());
+            
+            // Não modificar a descrição diretamente, o método getStatusDescription() 
+            // já calcula automaticamente baseado no estado
+            
             ifViewAttached(view -> view.updateAudioState(audioState));
+            
         } catch (Exception e) {
-            // Erro ao obter estado do áudio - usar estado padrão
-            AudioState defaultState = new AudioState();
-            ifViewAttached(view -> view.updateAudioState(defaultState));
+            // Erro ao obter status do áudio - criar um estado padrão (pipeline parado)
+            AudioState errorState = new AudioState();
+            errorState.setPipelineRunning(false);
+            errorState.setPipelinePaused(false);
+            
+            ifViewAttached(view -> view.updateAudioState(errorState));
         }
     }
     
-    /**
-     * Verifica se o Wi-Fi está ativo
-     * @return true se Wi-Fi está ativo
-     */
+    // === Métodos de utilidade (mantidos para compatibilidade) ===
+    
     public boolean isWifiEnabled() {
         try {
-            WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-            return wifiManager != null && wifiManager.isWifiEnabled();
+            ConnectivityManager connectivityManager = 
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                
+            if (connectivityManager != null) {
+                NetworkInfo wifiInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                return wifiInfo != null && wifiInfo.isConnected();
+            }
         } catch (Exception e) {
-            return false;
+            // Erro ao verificar Wi-Fi
         }
+        return false;
     }
     
-    /**
-     * Verifica se há conexão com a internet
-     * @return true se há conexão
-     */
     public boolean hasInternetConnection() {
         try {
             ConnectivityManager connectivityManager = 
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            
+                
             if (connectivityManager != null) {
                 NetworkInfo activeNetwork = connectivityManager.getActiveNetworkInfo();
                 return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
@@ -293,33 +263,17 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
         return false;
     }
     
-    /**
-     * Obtém informações resumidas do sistema
-     * @return string com informações do sistema
-     */
     public String getSystemInfo() {
         StringBuilder info = new StringBuilder();
         
-        // Status Wi-Fi
-        if (isWifiEnabled()) {
-            info.append("Wi-Fi: Ativo");
-        } else {
-            info.append("Wi-Fi: Inativo");
-        }
+        info.append("Android: ").append(Build.VERSION.RELEASE).append("\n");
+        info.append("API Level: ").append(Build.VERSION.SDK_INT).append("\n");
+        info.append("Modelo: ").append(Build.MODEL).append("\n");
+        info.append("Fabricante: ").append(Build.MANUFACTURER).append("\n");
         
-        // Status Internet
-        if (hasInternetConnection()) {
-            info.append(" | Internet: Conectado");
-        } else {
-            info.append(" | Internet: Desconectado");
-        }
-        
-        // Status do pipeline de áudio
-        if (audioRepository.isAudioPipelineRunning()) {
-            info.append(" | Áudio: Ativo");
-        } else {
-            info.append(" | Áudio: Inativo");
-        }
+        // Informações de conectividade
+        info.append("Wi-Fi: ").append(isWifiEnabled() ? "Habilitado" : "Desabilitado").append("\n");
+        info.append("Internet: ").append(hasInternetConnection() ? "Conectado" : "Desconectado");
         
         return info.toString();
     }

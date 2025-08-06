@@ -639,417 +639,97 @@ void setReverbType(int type) {
 
 float processSample(float input) {
     float output = input;
-    float dry = input;
-    for (const std::string& effect : effectOrder) {
-        if (effect == "Ganho") {
-            if (gainEnabled) output *= currentGain;
-        } else if (effect == "Chorus") {
-            if (chorusEnabled) {
-                chorusBuffer[chorusBufferIndex] = output;
-                float lfo = (sinf(chorusPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
-                float delaySamples = chorusDepth * chorusSampleRate * lfo;
-                int readIdx = chorusBufferIndex - (int)delaySamples;
-                if (readIdx < 0) readIdx += chorusBufferSize;
-                float delayed = chorusBuffer[readIdx % chorusBufferSize];
-                output = (1.0f - chorusMix) * output + chorusMix * delayed;
-                chorusBufferIndex = (chorusBufferIndex + 1) % chorusBufferSize;
-                chorusPhase += chorusRate / (float)chorusSampleRate;
-                if (chorusPhase > 1.0f) chorusPhase -= 1.0f;
-            }
-        } else if (effect == "Flanger") {
-            if (flangerEnabled) {
-                // Flanger: delay modulado por LFO + feedback
-                flangerBuffer[flangerBufferIndex] = output + flangerFeedback * flangerBuffer[flangerBufferIndex];
-                float lfo = (sinf(flangerPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
-                float delaySamples = 1.0f + flangerDepth * flangerSampleRate * lfo; // mínimo 1 sample
-                int readIdx = flangerBufferIndex - (int)delaySamples;
-                if (readIdx < 0) readIdx += flangerBufferSize;
-                float delayed = flangerBuffer[readIdx % flangerBufferSize];
-                output = (1.0f - flangerMix) * output + flangerMix * delayed;
-                flangerBufferIndex = (flangerBufferIndex + 1) % flangerBufferSize;
-                flangerPhase += flangerRate / (float)flangerSampleRate;
-                if (flangerPhase > 1.0f) flangerPhase -= 1.0f;
-            }
-        } else if (effect == "Phaser") {
-            if (phaserEnabled) {
-                // Phaser: filtros passa-tudo em série com modulação
-                float lfo = sinf(phaserPhase * 2.0f * 3.14159265f);
-                float modDepth = phaserDepth * 0.5f; // 0-0.5 para evitar instabilidade
-                
-                // Aplicar filtros passa-tudo em série (4 estágios)
-                float filtered = output;
-                for (int stage = 0; stage < 4; ++stage) {
-                    float freq = 200.0f + 2000.0f * (stage / 3.0f); // 200Hz a 2kHz
-                    freq *= (1.0f + modDepth * lfo); // Modular a frequência
-                    
-                    // Filtro passa-tudo simples
-                    float w0 = 2.0f * 3.14159265f * freq / phaserSampleRate;
-                    float alpha = sinf(w0) * 0.5f;
-                    float b0 = 1.0f - alpha;
-                    float b1 = -2.0f * cosf(w0);
-                    float b2 = 1.0f + alpha;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    // Aplicar filtro (implementação simplificada)
-                    static float x1[4] = {0}, x2[4] = {0}, y1[4] = {0}, y2[4] = {0};
-                    float y = b0 * filtered + b1 * x1[stage] + b2 * x2[stage] 
-                             - a1 * y1[stage] - a2 * y2[stage];
-                    x2[stage] = x1[stage];
-                    x1[stage] = filtered;
-                    y2[stage] = y1[stage];
-                    y1[stage] = y;
-                    filtered = y;
-                }
-                
-                // Aplicar feedback
-                phaserBuffer[phaserBufferIndex] = filtered + phaserFeedback * phaserBuffer[phaserBufferIndex];
-                float wet = phaserBuffer[phaserBufferIndex];
-                
-                // Mix dry/wet
-                output = (1.0f - phaserMix) * output + phaserMix * wet;
-                
-                // Atualizar buffer e fase
-                phaserBufferIndex = (phaserBufferIndex + 1) % phaserBufferSize;
-                phaserPhase += phaserRate / (float)phaserSampleRate;
-                if (phaserPhase > 1.0f) phaserPhase -= 1.0f;
-            }
-        } else if (effect == "EQ") {
-            if (eqEnabled) {
-                // Equalizer: 3 filtros passa-banda (low, mid, high)
-                float filtered = output;
-                
-                // Filtro passa-baixa (graves - 60Hz)
-                if (eqLowGain != 0.0f) {
-                    float freq = 60.0f;
-                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
-                    float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
-                    float b0 = (1.0f - cosf(w0)) / 2.0f;
-                    float b1 = 1.0f - cosf(w0);
-                    float b2 = (1.0f - cosf(w0)) / 2.0f;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    float y = b0 * filtered + b1 * eqLowX1 + b2 * eqLowX2 - a1 * eqLowY1 - a2 * eqLowY2;
-                    eqLowX2 = eqLowX1; eqLowX1 = filtered;
-                    eqLowY2 = eqLowY1; eqLowY1 = y;
-                    
-                    // Aplicar ganho
-                    float lowBand = y * (eqLowGain > 0 ? (1.0f + eqLowGain) : (1.0f / (1.0f - eqLowGain)));
-                    filtered = filtered + (lowBand - y);
-                }
-                
-                // Filtro passa-banda (médios - 1kHz)
-                if (eqMidGain != 0.0f) {
-                    float freq = 1000.0f;
-                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
-                    float alpha = sinf(w0) / (2.0f * 0.707f);
-                    float b0 = alpha;
-                    float b1 = 0.0f;
-                    float b2 = -alpha;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    float y = b0 * filtered + b1 * eqMidX1 + b2 * eqMidX2 - a1 * eqMidY1 - a2 * eqMidY2;
-                    eqMidX2 = eqMidX1; eqMidX1 = filtered;
-                    eqMidY2 = eqMidY1; eqMidY1 = y;
-                    
-                    // Aplicar ganho
-                    float midBand = y * (eqMidGain > 0 ? (1.0f + eqMidGain) : (1.0f / (1.0f - eqMidGain)));
-                    filtered = filtered + (midBand - y);
-                }
-                
-                // Filtro passa-alta (agudos - 8kHz)
-                if (eqHighGain != 0.0f) {
-                    float freq = 8000.0f;
-                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
-                    float alpha = sinf(w0) / (2.0f * 0.707f);
-                    float b0 = (1.0f + cosf(w0)) / 2.0f;
-                    float b1 = -(1.0f + cosf(w0));
-                    float b2 = (1.0f + cosf(w0)) / 2.0f;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    float y = b0 * filtered + b1 * eqHighX1 + b2 * eqHighX2 - a1 * eqHighY1 - a2 * eqHighY2;
-                    eqHighX2 = eqHighX1; eqHighX1 = filtered;
-                    eqHighY2 = eqHighY1; eqHighY1 = y;
-                    
-                    // Aplicar ganho
-                    float highBand = y * (eqHighGain > 0 ? (1.0f + eqHighGain) : (1.0f / (1.0f - eqHighGain)));
-                    filtered = filtered + (highBand - y);
-                }
-                
-                // Mix dry/wet
-                output = (1.0f - eqMix) * output + eqMix * filtered;
-            }
-        } else if (effect == "Distorção") {
-            if (distortionEnabled && distortionAmount > 0.0f) {
-                float distorted = output;
-                float drive = 1.0f + distortionAmount * 10.0f;
-                switch (distortionType) {
-                    case 0: // Soft Clip
-                        distorted = tanh(distorted * drive) / tanh(drive);
-                        break;
-                    case 1: // Hard Clip
-                        distorted = std::max(-1.0f, std::min(1.0f, distorted * drive));
-                        break;
-                    case 2: // Fuzz
-                        distorted = sinf(distorted * drive);
-                        break;
-                    case 3: // Overdrive
-                        if (distorted > 0)
-                            distorted = 1.0f - expf(-distorted * drive);
-                        else
-                            distorted = -1.0f + expf(distorted * drive);
-                        break;
-                }
-                output = (1.0f - distortionMix) * output + distortionMix * distorted;
-            }
-        } else if (effect == "Delay") {
-            if (delayEnabled && delayTime > 0.0f && delayBufferSize > 0) {
-                float delayedSample = delayBuffer[delayBufferIndex];
-                float wet = output + delayedSample * delayFeedback;
-                output = (1.0f - delayMix) * output + delayMix * wet;
-                delayBuffer[delayBufferIndex] = wet;
-                delayBufferIndex = (delayBufferIndex + 1) % delayBufferSize;
-            }
-        } else if (effect == "Reverb") {
-            if (reverbEnabled && reverbRoomSize > 0.0f) {
-                float wet = 0.0f;
-                switch (reverbType) {
-                    case 0: // Hall
-                        wet = reverbBuffer[reverbIndex];
-                        break;
-                    case 1: // Plate
-                        wet = 0.6f * reverbBuffer[reverbIndex] + 0.4f * reverbBuffer[(reverbIndex + REVERB_BUFFER_SIZE/2) % REVERB_BUFFER_SIZE];
-                        break;
-                    case 2: // Spring
-                        wet = sinf(reverbBuffer[reverbIndex]) * 0.7f + 0.3f * reverbBuffer[(reverbIndex + REVERB_BUFFER_SIZE/4) % REVERB_BUFFER_SIZE];
-                        break;
-                }
-                // Mix dry/wet
-                output = (1.0f - reverbMix) * output + reverbMix * wet;
-                reverbBuffer[reverbIndex] = output + reverbRoomSize * reverbBuffer[reverbIndex];
-                reverbIndex = (reverbIndex + 1) % REVERB_BUFFER_SIZE;
-            }
-        } else if (effect == "Compressor") {
-            if (compressorEnabled) {
-                // Compressor: detector de envelope + controle de ganho
-                float inputLevel = fabs(output);
-                float thresholdLinear = powf(10.0f, compressorThreshold / 20.0f);
-                
-                // Detector de envelope
-                float attackCoeff = expf(-1.0f / (compressorAttack * 0.001f * compressorSampleRate));
-                float releaseCoeff = expf(-1.0f / (compressorRelease * 0.001f * compressorSampleRate));
-                
-                if (inputLevel > compressorEnvelope) {
-                    compressorEnvelope = attackCoeff * compressorEnvelope + (1.0f - attackCoeff) * inputLevel;
-                } else {
-                    compressorEnvelope = releaseCoeff * compressorEnvelope + (1.0f - releaseCoeff) * inputLevel;
-                }
-                
-                // Calcular redução de ganho
-                float gainReduction = 1.0f;
-                if (compressorEnvelope > thresholdLinear) {
-                    float overThreshold = compressorEnvelope / thresholdLinear;
-                    float dbOver = 20.0f * log10f(overThreshold);
-                    float dbReduction = dbOver * (1.0f - 1.0f / compressorRatio);
-                    gainReduction = powf(10.0f, -dbReduction / 20.0f);
-                }
-                
-                // Aplicar compressão
-                float compressed = output * gainReduction;
-                
-                // Mix dry/wet
-                output = (1.0f - compressorMix) * output + compressorMix * compressed;
-            }
-        }
-    }
-    // Somar metrônomo
-    output += getMetronomeSample();
-    // Looper: gravação
-    if (looperRecording && looperWriteIndex < LOOPER_MAX_SAMPLES) {
-        looperTracks[currentTrack].buffer[looperWriteIndex++] = output;
-        looperTracks[currentTrack].active = true;
-        
-        // Log a cada 10000 samples para debug
-        if (looperWriteIndex % 10000 == 0) {
-            printf("looperRecording: gravados %d samples na track %d\n", looperWriteIndex, currentTrack);
-        }
+    
+    // Aplicar efeitos apenas se estiverem habilitados
+    if (gainEnabled) {
+        output *= currentGain;
     }
     
-    // Looper: reprodução de múltiplas faixas
-    if (looperPlaying) {
-        float looperOutput = 0.0f;
-        bool hasSoloedTrack = false;
+    if (chorusEnabled) {
+        chorusBuffer[chorusBufferIndex] = output;
+        float lfo = (sinf(chorusPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
+        float delaySamples = chorusDepth * chorusSampleRate * lfo;
+        int readIdx = chorusBufferIndex - (int)delaySamples;
+        if (readIdx < 0) readIdx += chorusBufferSize;
+        float delayed = chorusBuffer[readIdx % chorusBufferSize];
+        output = (1.0f - chorusMix) * output + chorusMix * delayed;
+        chorusBufferIndex = (chorusBufferIndex + 1) % chorusBufferSize;
+        chorusPhase += chorusRate / (float)chorusSampleRate;
+        if (chorusPhase > 1.0f) chorusPhase -= 1.0f;
+    }
+    
+    if (flangerEnabled) {
+        // Flanger: delay modulado por LFO + feedback
+        flangerBuffer[flangerBufferIndex] = output + flangerFeedback * flangerBuffer[flangerBufferIndex];
+        float lfo = (sinf(flangerPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
+        float delaySamples = 1.0f + flangerDepth * flangerSampleRate * lfo; // mínimo 1 sample
+        int readIdx = flangerBufferIndex - (int)delaySamples;
+        if (readIdx < 0) readIdx += flangerBufferSize;
+        float delayed = flangerBuffer[readIdx % flangerBufferSize];
+        output = (1.0f - flangerMix) * output + flangerMix * delayed;
+        flangerBufferIndex = (flangerBufferIndex + 1) % flangerBufferSize;
+        flangerPhase += flangerRate / (float)flangerSampleRate;
+        if (flangerPhase > 1.0f) flangerPhase -= 1.0f;
+    }
+    
+    if (phaserEnabled) {
+        // Phaser: filtros passa-tudo em série com modulação
+        float lfo = sinf(phaserPhase * 2.0f * 3.14159265f);
+        float modDepth = phaserDepth * 0.5f; // 0-0.5 para evitar instabilidade
         
-        // Verificar se há alguma faixa em solo
-        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-            if (looperTracks[i].soloed && looperTracks[i].active) {
-                hasSoloedTrack = true;
-                break;
-            }
+        // Aplicar filtros passa-tudo em série (4 estágios)
+        float filtered = output;
+        for (int stage = 0; stage < 4; ++stage) {
+            float freq = 200.0f + 2000.0f * (stage / 3.0f); // 200Hz a 2kHz
+            freq *= (1.0f + modDepth * lfo); // Modular a frequência
+            
+            // Filtro passa-tudo simples
+            float w0 = 2.0f * 3.14159265f * freq / phaserSampleRate;
+            float alpha = sinf(w0) * 0.5f;
+            float b0 = 1.0f - alpha;
+            float b1 = -2.0f * cosf(w0);
+            float b2 = 1.0f + alpha;
+            float a0 = 1.0f + alpha;
+            float a1 = -2.0f * cosf(w0);
+            float a2 = 1.0f - alpha;
+            
+            // Normalizar
+            b0 /= a0; b1 /= a0; b2 /= a0;
+            a1 /= a0; a2 /= a0; a0 = 1.0f;
+            
+            // Aplicar filtro (implementação simplificada)
+            static float x1[4] = {0}, x2[4] = {0}, y1[4] = {0}, y2[4] = {0};
+            float y = b0 * filtered + b1 * x1[stage] + b2 * x2[stage] 
+                     - a1 * y1[stage] - a2 * y2[stage];
+            x2[stage] = x1[stage];
+            x1[stage] = filtered;
+            y2[stage] = y1[stage];
+            y1[stage] = y;
+            filtered = y;
         }
         
-        // Aplicar stutter se ativado
-        bool shouldPlayStutter = true;
-        if (looperStutter) {
-            looperStutterPhase += looperStutterRate / looperSampleRate;
-            if (looperStutterPhase >= 1.0f) {
-                looperStutterPhase -= 1.0f;
-            }
-            shouldPlayStutter = (looperStutterPhase < 0.5f); // 50% duty cycle
-        }
+        // Aplicar feedback
+        phaserBuffer[phaserBufferIndex] = filtered + phaserFeedback * phaserBuffer[phaserBufferIndex];
+        float wet = phaserBuffer[phaserBufferIndex];
         
-        if (shouldPlayStutter) {
-            // Calcular posição de leitura com speed, reverse e slicing
-            int readPos = looperReadIndex;
-            
-            // Aplicar slicing se ativado
-            if (looperSlicingEnabled && numSlicePoints > 0) {
-                // Calcular qual slice estamos reproduzindo
-                int totalSliceLength = sliceLength * numSlicePoints;
-                int sliceIndex = (looperReadIndex / sliceLength) % numSlicePoints;
-                int sliceOffset = looperReadIndex % sliceLength;
-                
-                // Usar a ordem definida para os slices
-                int actualSliceIndex = sliceOrder[sliceIndex];
-                readPos = slicePoints[actualSliceIndex] + sliceOffset;
-            } else {
-                // Comportamento normal sem slicing
-                if (looperReverse) {
-                    // Reprodução reversa
-                    int maxLength = 0;
-                    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-                        if (looperTracks[i].active && looperTracks[i].length > maxLength) {
-                            maxLength = looperTracks[i].length;
-                        }
-                    }
-                    if (maxLength > 0) {
-                        readPos = maxLength - 1 - looperReadIndex;
-                    }
-                }
-            }
-            
-            // Aplicar speed (interpolação linear simples)
-            float speedPos = readPos * looperSpeed;
-            int pos1 = (int)speedPos;
-            int pos2 = pos1 + 1;
-            float frac = speedPos - pos1;
-            
-            // Reproduzir faixas
-            for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-                if (looperTracks[i].active && looperTracks[i].length > 0) {
-                    // Verificar se deve reproduzir esta faixa
-                    bool shouldPlay = true;
-                    if (hasSoloedTrack) {
-                        shouldPlay = looperTracks[i].soloed;
-                    } else {
-                        shouldPlay = !looperTracks[i].muted;
-                    }
-                    
-                    if (shouldPlay) {
-                        float trackSample = 0.0f;
-                        
-                        // Interpolação linear para speed
-                        if (pos1 < looperTracks[i].length && pos2 < looperTracks[i].length) {
-                            float sample1 = looperTracks[i].buffer[pos1];
-                            float sample2 = looperTracks[i].buffer[pos2];
-                            trackSample = sample1 + frac * (sample2 - sample1);
-                        } else if (pos1 < looperTracks[i].length) {
-                            trackSample = looperTracks[i].buffer[pos1];
-                        }
-                        
-                        // Aplicar pitch shift (simplificado - apenas mudança de velocidade)
-                        if (looperPitchShift != 0.0f) {
-                            // Para uma implementação mais avançada, seria necessário um pitch shifter
-                            // Por enquanto, apenas aplicamos uma pequena modulação
-                            float pitchMod = 1.0f + (looperPitchShift / 12.0f) * 0.1f;
-                            trackSample *= pitchMod;
-                        }
-                        
-                        trackSample *= looperTracks[i].volume;
-                        looperOutput += trackSample;
-                    }
-                }
-            }
-        }
+        // Mix dry/wet
+        output = (1.0f - phaserMix) * output + phaserMix * wet;
         
-        // === APLICAR EFEITOS AVANÇADOS DO LOOPER (FASE 5) ===
-        float processedLooperOutput = looperOutput;
+        // Atualizar buffer e fase
+        phaserBufferIndex = (phaserBufferIndex + 1) % phaserBufferSize;
+        phaserPhase += phaserRate / (float)phaserSampleRate;
+        if (phaserPhase > 1.0f) phaserPhase -= 1.0f;
+    }
+    
+    if (eqEnabled) {
+        // Equalizer: 3 filtros passa-banda (low, mid, high)
+        float filtered = output;
         
-        // 1. Compressão automática
-        if (looperAutoCompressionEnabled && processedLooperOutput != 0.0f) {
-            float inputLevel = fabs(processedLooperOutput);
-            float thresholdLinear = powf(10.0f, looperCompressionThreshold / 20.0f);
-            
-            // Detector de envelope
-            float attackCoeff = expf(-1.0f / (looperCompressionAttack * 0.001f * looperSampleRate));
-            float releaseCoeff = expf(-1.0f / (looperCompressionRelease * 0.001f * looperSampleRate));
-            
-            if (inputLevel > looperCompressionEnvelope) {
-                looperCompressionEnvelope = attackCoeff * looperCompressionEnvelope + (1.0f - attackCoeff) * inputLevel;
-            } else {
-                looperCompressionEnvelope = releaseCoeff * looperCompressionEnvelope + (1.0f - releaseCoeff) * inputLevel;
-            }
-            
-            // Calcular redução de ganho
-            float gainReduction = 1.0f;
-            if (looperCompressionEnvelope > thresholdLinear) {
-                float overThreshold = looperCompressionEnvelope / thresholdLinear;
-                float dbOver = 20.0f * log10f(overThreshold);
-                float dbReduction = dbOver * (1.0f - 1.0f / looperCompressionRatio);
-                gainReduction = powf(10.0f, -dbReduction / 20.0f);
-            }
-            
-            processedLooperOutput *= gainReduction;
-        }
-        
-        // 2. Normalização automática
-        if (looperAutoNormalizationEnabled) {
-            // Detectar pico durante a reprodução
-            float currentPeak = fabs(processedLooperOutput);
-            if (currentPeak > looperPeakLevel) {
-                looperPeakLevel = currentPeak;
-            }
-            
-            // Aplicar normalização se necessário
-            if (looperPeakLevel > 0.0f) {
-                float targetLinear = powf(10.0f, looperNormalizationTarget / 20.0f);
-                looperNormalizationGain = targetLinear / looperPeakLevel;
-                looperNormalizationGain = std::min(looperNormalizationGain, 1.0f); // Não amplificar
-            }
-            
-            processedLooperOutput *= looperNormalizationGain;
-        }
-        
-        // 3. Filtros
-        if (looperLowPassEnabled) {
-            // Filtro passa-baixa (Butterworth de 2ª ordem)
-            float freq = looperLowPassFrequency;
-            float w0 = 2.0f * 3.14159265f * freq / looperSampleRate;
+        // Filtro passa-baixa (graves - 60Hz)
+        if (eqLowGain != 0.0f) {
+            float freq = 60.0f;
+            float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
             float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
-            
             float b0 = (1.0f - cosf(w0)) / 2.0f;
             float b1 = 1.0f - cosf(w0);
             float b2 = (1.0f - cosf(w0)) / 2.0f;
@@ -1061,19 +741,45 @@ float processSample(float input) {
             b0 /= a0; b1 /= a0; b2 /= a0;
             a1 /= a0; a2 /= a0; a0 = 1.0f;
             
-            float y = b0 * processedLooperOutput + b1 * looperLowPassX1 + b2 * looperLowPassX2 
-                     - a1 * looperLowPassY1 - a2 * looperLowPassY2;
-            looperLowPassX2 = looperLowPassX1; looperLowPassX1 = processedLooperOutput;
-            looperLowPassY2 = looperLowPassY1; looperLowPassY1 = y;
-            processedLooperOutput = y;
+            float y = b0 * filtered + b1 * eqLowX1 + b2 * eqLowX2 - a1 * eqLowY1 - a2 * eqLowY2;
+            eqLowX2 = eqLowX1; eqLowX1 = filtered;
+            eqLowY2 = eqLowY1; eqLowY1 = y;
+            
+            // Aplicar ganho
+            float lowBand = y * (eqLowGain > 0 ? (1.0f + eqLowGain) : (1.0f / (1.0f - eqLowGain)));
+            filtered = filtered + (lowBand - y);
         }
         
-        if (looperHighPassEnabled) {
-            // Filtro passa-alta (Butterworth de 2ª ordem)
-            float freq = looperHighPassFrequency;
-            float w0 = 2.0f * 3.14159265f * freq / looperSampleRate;
-            float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
+        // Filtro passa-banda (médios - 1kHz)
+        if (eqMidGain != 0.0f) {
+            float freq = 1000.0f;
+            float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
+            float alpha = sinf(w0) / (2.0f * 0.707f);
+            float b0 = alpha;
+            float b1 = 0.0f;
+            float b2 = -alpha;
+            float a0 = 1.0f + alpha;
+            float a1 = -2.0f * cosf(w0);
+            float a2 = 1.0f - alpha;
             
+            // Normalizar
+            b0 /= a0; b1 /= a0; b2 /= a0;
+            a1 /= a0; a2 /= a0; a0 = 1.0f;
+            
+            float y = b0 * filtered + b1 * eqMidX1 + b2 * eqMidX2 - a1 * eqMidY1 - a2 * eqMidY2;
+            eqMidX2 = eqMidX1; eqMidX1 = filtered;
+            eqMidY2 = eqMidY1; eqMidY1 = y;
+            
+            // Aplicar ganho
+            float midBand = y * (eqMidGain > 0 ? (1.0f + eqMidGain) : (1.0f / (1.0f - eqMidGain)));
+            filtered = filtered + (midBand - y);
+        }
+        
+        // Filtro passa-alta (agudos - 8kHz)
+        if (eqHighGain != 0.0f) {
+            float freq = 8000.0f;
+            float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
+            float alpha = sinf(w0) / (2.0f * 0.707f);
             float b0 = (1.0f + cosf(w0)) / 2.0f;
             float b1 = -(1.0f + cosf(w0));
             float b2 = (1.0f + cosf(w0)) / 2.0f;
@@ -1085,68 +791,66 @@ float processSample(float input) {
             b0 /= a0; b1 /= a0; b2 /= a0;
             a1 /= a0; a2 /= a0; a0 = 1.0f;
             
-            float y = b0 * processedLooperOutput + b1 * looperHighPassX1 + b2 * looperHighPassX2 
-                     - a1 * looperHighPassY1 - a2 * looperHighPassY2;
-            looperHighPassX2 = looperHighPassX1; looperHighPassX1 = processedLooperOutput;
-            looperHighPassY2 = looperHighPassY1; looperHighPassY1 = y;
-            processedLooperOutput = y;
-        }
-        
-        // 4. Reverb de cauda
-        if (looperReverbTailEnabled) {
-            float reverbTail = looperReverbTailBuffer[looperReverbTailIndex];
-            processedLooperOutput = (1.0f - looperReverbTailMix) * processedLooperOutput + 
-                                   looperReverbTailMix * reverbTail;
+            float y = b0 * filtered + b1 * eqHighX1 + b2 * eqHighX2 - a1 * eqHighY1 - a2 * eqHighY2;
+            eqHighX2 = eqHighX1; eqHighX1 = filtered;
+            eqHighY2 = eqHighY1; eqHighY1 = y;
             
-            // Atualizar buffer de reverb
-            looperReverbTailBuffer[looperReverbTailIndex] = processedLooperOutput * looperReverbTailDecayCoeff;
-            looperReverbTailIndex = (looperReverbTailIndex + 1) % looperReverbTailSize;
+            // Aplicar ganho
+            float highBand = y * (eqHighGain > 0 ? (1.0f + eqHighGain) : (1.0f / (1.0f - eqHighGain)));
+            filtered = filtered + (highBand - y);
         }
         
-        // === APLICAR EFEITOS DA FASE 6 ===
-        
-        // 5. Fade In/Out automático
-        if (looperAutoFadeInEnabled && looperFadeInCounter < looperFadeInSamples) {
-            float fadeFactor = (float)looperFadeInCounter / looperFadeInSamples;
-            processedLooperOutput *= fadeFactor;
-            looperFadeInCounter++;
-        }
-        
-        if (looperAutoFadeOutEnabled && looperFadeOutCounter > 0) {
-            float fadeFactor = (float)looperFadeOutCounter / looperFadeOutSamples;
-            processedLooperOutput *= fadeFactor;
-            looperFadeOutCounter--;
-        }
-        
-        output += processedLooperOutput;
-        looperReadIndex++;
-        
-        // Resetar posição de leitura quando chegar ao fim do loop
-        int maxLength = 0;
-        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-            if (looperTracks[i].active && looperTracks[i].length > maxLength) {
-                maxLength = looperTracks[i].length;
-            }
-        }
-        
-        if (maxLength > 0) {
-            if (looperSlicingEnabled && numSlicePoints > 0) {
-                // Com slicing: resetar quando completar todos os slices
-                int totalSliceLength = sliceLength * numSlicePoints;
-                if (looperReadIndex >= totalSliceLength) {
-                    looperReadIndex = 0;
-                }
-            } else {
-                // Sem slicing: resetar quando chegar ao fim do loop
-                if (looperReadIndex >= maxLength) {
-                    looperReadIndex = 0;
-                }
-            }
-        }
+        // Mix dry/wet
+        output = (1.0f - eqMix) * output + eqMix * filtered;
     }
-    // Limitar para evitar clipping
-    if (output > 1.0f) output = 1.0f;
-    if (output < -1.0f) output = -1.0f;
+    
+    if (distortionEnabled && distortionAmount > 0.0f) {
+        float distorted = output;
+        float drive = 1.0f + distortionAmount * 10.0f;
+        switch (distortionType) {
+            case 0: // Soft Clip
+                distorted = tanh(distorted * drive) / tanh(drive);
+                break;
+            case 1: // Hard Clip
+                distorted = std::max(-1.0f, std::min(1.0f, distorted * drive));
+                break;
+            case 2: // Fuzz
+                distorted = sinf(distorted * drive);
+                break;
+            case 3: // Overdrive
+                if (distorted > 0)
+                    distorted = 1.0f - expf(-distorted * drive);
+                else
+                    distorted = -1.0f + expf(distorted * drive);
+                break;
+        }
+        output = (1.0f - distortionMix) * output + distortionMix * distorted;
+    }
+    
+    if (delayEnabled && delayTime > 0.0f && delayBufferSize > 0) {
+        float delayedSample = delayBuffer[delayBufferIndex];
+        float wet = output + delayedSample * delayFeedback;
+        output = (1.0f - delayMix) * output + delayMix * wet;
+        delayBuffer[delayBufferIndex] = wet;
+        delayBufferIndex = (delayBufferIndex + 1) % delayBufferSize;
+    }
+    
+    if (reverbEnabled && reverbRoomSize > 0.0f) {
+        float wet = 0.0f;
+        switch (reverbType) {
+            case 0: // Hall
+                wet = output * reverbRoomSize * 0.3f;
+                break;
+            case 1: // Plate
+                wet = output * reverbRoomSize * 0.4f;
+                break;
+            case 2: // Spring
+                wet = output * reverbRoomSize * 0.5f;
+                break;
+        }
+        output = (1.0f - reverbMix) * output + reverbMix * wet;
+    }
+    
     return output;
 }
 
@@ -1173,13 +877,29 @@ void downsample(const float* input, float* output, int numSamples) {
 }
 
 void processBuffer(float* input, float* output, int numSamples) {
+    // Verificação rápida para evitar processamento desnecessário
+    if (input == nullptr || output == nullptr || numSamples <= 0) {
+        return;
+    }
+    
+    // Verificar se há efeitos ativos para evitar processamento desnecessário
+    bool hasActiveEffects = gainEnabled || distortionEnabled || delayEnabled || 
+                           reverbEnabled || chorusEnabled || flangerEnabled || 
+                           phaserEnabled || eqEnabled || compressorEnabled;
+    
+    if (!hasActiveEffects) {
+        // Se não há efeitos ativos, apenas copiar o buffer
+        memcpy(output, input, numSamples * sizeof(float));
+        return;
+    }
+    
     if (!oversamplingEnabled || oversamplingFactor <= 1) {
         // Processamento normal sem oversampling
         for (int i = 0; i < numSamples; ++i) {
             output[i] = processSample(input[i]);
         }
     } else {
-        // Processamento com oversampling
+        // Processamento com oversampling otimizado
         int oversampledSize = numSamples * oversamplingFactor;
         
         // Garantir que os buffers tenham tamanho suficiente

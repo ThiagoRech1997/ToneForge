@@ -32,41 +32,43 @@ public class LoopExportUtil {
             try {
                 // Obter mix do loop do nativo (JNI)
                 float[] mix = AudioEngine.getLooperMix();
-                android.util.Log.d("LoopExportUtil", "Mix obtido. Tamanho: " + (mix != null ? mix.length : 0));
+                LogManager.verbose("LoopExportUtil", "Mix obtido. Tamanho: " + (mix != null ? mix.length : 0));
                 
                 if (mix == null || mix.length == 0) {
-                    android.util.Log.e("LoopExportUtil", "Mix é null ou vazio!");
+                    LogManager.e("LoopExportUtil", "Mix é null ou vazio!");
                     return false;
                 }
                 
                 int sampleRate = 48000; // fixo por enquanto
                 String fileName = "loop_" + new Date().getTime() + ".wav";
                 File outFile = new File(context.getFilesDir(), fileName);
-                android.util.Log.d("LoopExportUtil", "Salvando WAV em: " + outFile.getAbsolutePath());
+                LogManager.verbose("LoopExportUtil", "Salvando WAV em: " + outFile.getAbsolutePath());
                 
                 writeWavFile(mix, sampleRate, outFile);
                 
                 // Verificar se o arquivo foi criado
                 if (outFile.exists()) {
-                    android.util.Log.d("LoopExportUtil", "Arquivo criado com sucesso. Tamanho: " + outFile.length() + " bytes");
+                    LogManager.i("LoopExportUtil", "Arquivo criado com sucesso. Tamanho: " + outFile.length() + " bytes");
                     
-                    // Listar todos os arquivos na pasta para debug
-                    File filesDir = context.getFilesDir();
-                    File[] allFiles = filesDir.listFiles();
-                    android.util.Log.d("LoopExportUtil", "Arquivos na pasta após salvar: " + (allFiles != null ? allFiles.length : 0));
-                    if (allFiles != null) {
-                        for (File f : allFiles) {
-                            android.util.Log.d("LoopExportUtil", "  - " + f.getName() + " (" + f.length() + " bytes)");
+                    // Listar todos os arquivos na pasta para debug (apenas verbose)
+                    if (LogManager.getInstance(context).isVerboseLogging()) {
+                        File filesDir = context.getFilesDir();
+                        File[] allFiles = filesDir.listFiles();
+                        LogManager.verbose("LoopExportUtil", "Arquivos na pasta após salvar: " + (allFiles != null ? allFiles.length : 0));
+                        if (allFiles != null) {
+                            for (File f : allFiles) {
+                                LogManager.verbose("LoopExportUtil", "  - " + f.getName() + " (" + f.length() + " bytes)");
+                            }
                         }
                     }
                 } else {
-                    android.util.Log.e("LoopExportUtil", "Arquivo não foi criado!");
+                    LogManager.e("LoopExportUtil", "Arquivo não foi criado!");
                     return false;
                 }
                 
                 return true;
             } catch (Exception e) {
-                android.util.Log.e("LoopExportUtil", "Erro ao salvar WAV: " + e.getMessage());
+                LogManager.e("LoopExportUtil", "Erro ao salvar WAV: " + e.getMessage());
                 e.printStackTrace();
                 return false;
             }

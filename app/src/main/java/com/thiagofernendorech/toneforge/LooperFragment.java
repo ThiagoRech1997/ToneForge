@@ -442,7 +442,7 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             // - Pular para uma posição específica no loop
             // - Marcar pontos de interesse
             // - Editar trechos específicos
-            android.util.Log.d("LooperFragment", "Waveform clicada na posição: " + position);
+            LogManager.verbose("LooperFragment", "Waveform clicada na posição: " + position);
         });
     }
     
@@ -453,21 +453,21 @@ public class LooperFragment extends Fragment implements LooperTrackAdapter.OnTra
             looperRandomizeSlicesButton.setEnabled(isChecked);
             looperReverseSlicesButton.setEnabled(isChecked);
             updateSlicesInfo();
-            android.util.Log.d("LooperFragment", "Slicing: " + (isChecked ? "ON" : "OFF"));
+            LogManager.verbose("LooperFragment", "Slicing: " + (isChecked ? "ON" : "OFF"));
         });
         
         // Botão para randomizar slices
         looperRandomizeSlicesButton.setOnClickListener(v -> {
             AudioEngine.randomizeLooperSlices();
             updateSlicesInfo();
-            android.util.Log.d("LooperFragment", "Slices randomizados");
+            LogManager.verbose("LooperFragment", "Slices randomizados");
         });
         
         // Botão para reverter ordem dos slices
         looperReverseSlicesButton.setOnClickListener(v -> {
             AudioEngine.reverseLooperSlices();
             updateSlicesInfo();
-            android.util.Log.d("LooperFragment", "Ordem dos slices revertida");
+            LogManager.verbose("LooperFragment", "Ordem dos slices revertida");
         });
     }
     

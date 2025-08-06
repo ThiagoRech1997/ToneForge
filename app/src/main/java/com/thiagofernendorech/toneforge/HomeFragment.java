@@ -60,12 +60,12 @@ public class HomeFragment extends Fragment {
         if (useLavaDesign) {
             view.findViewById(R.id.btnWifi).setOnClickListener(v -> {
                 // Implementar funcionalidade Wi-Fi
-                ((MainActivity) getActivity()).showWifiStatusDialog();
+                // Implementação movida para SystemStatusController
             });
             
             view.findViewById(R.id.btnVolume).setOnClickListener(v -> {
                 // Implementar controle de volume
-                ((MainActivity) getActivity()).showVolumeControlDialog();
+                // Implementação movida para SystemStatusController
             });
         }
 

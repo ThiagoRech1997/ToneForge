@@ -5,9 +5,20 @@ import android.util.Log;
 
 public class AudioEngine {
     public static final int SAMPLE_RATE = 48000; // Taxa de amostragem padrão
+    private static boolean nativeLibraryLoaded = false;
     
     static {
-        System.loadLibrary("toneforge");
+        try {
+            System.loadLibrary("toneforge");
+            nativeLibraryLoaded = true;
+            Log.d("AudioEngine", "Biblioteca nativa carregada com sucesso");
+        } catch (UnsatisfiedLinkError e) {
+            Log.e("AudioEngine", "Erro ao carregar biblioteca nativa: " + e.getMessage());
+            nativeLibraryLoaded = false;
+        } catch (Exception e) {
+            Log.e("AudioEngine", "Erro inesperado ao carregar biblioteca: " + e.getMessage());
+            nativeLibraryLoaded = false;
+        }
     }
 
     private static AudioEngine instance;
@@ -15,6 +26,10 @@ public class AudioEngine {
     private boolean isOversamplingEnabled = false;
     private int oversamplingFactor = 1;
     private LatencyManager latencyManager;
+    
+    // Controle de throttling de logs
+    private static long lastLogTime = 0;
+    private static final long LOG_THROTTLE_INTERVAL = 3000; // 3 segundos
 
     private AudioEngine() {
         // Construtor privado para singleton
@@ -27,41 +42,63 @@ public class AudioEngine {
         return instance;
     }
 
+    /**
+     * Verifica se a biblioteca nativa foi carregada corretamente
+     */
+    public static boolean isNativeLibraryLoaded() {
+        return nativeLibraryLoaded;
+    }
+
     public void initialize(Context context) {
         if (isInitialized) {
             return;
         }
         
-        // Inicializar LatencyManager
-        latencyManager = LatencyManager.getInstance(context);
+        if (!nativeLibraryLoaded) {
+            Log.w("AudioEngine", "Biblioteca nativa não carregada - modo fallback ativo");
+            isInitialized = true; // Marcar como inicializado mesmo sem biblioteca nativa
+            return;
+        }
         
-        // Aplicar configurações de latência
-        applyLatencySettings();
-        
-        // Inicializar motor de áudio nativo
-        initAudioEngine();
-        isInitialized = true;
-        Log.d("AudioEngine", "AudioEngine inicializado com configurações de latência");
+        try {
+            // Inicializar LatencyManager
+            latencyManager = LatencyManager.getInstance(context);
+            
+            // Aplicar configurações de latência
+            applyLatencySettings();
+            
+            // Inicializar motor de áudio nativo
+            initAudioEngine();
+            isInitialized = true;
+            logThrottled("AudioEngine", "AudioEngine inicializado com configurações de latência");
+        } catch (Exception e) {
+            Log.e("AudioEngine", "Erro ao inicializar AudioEngine: " + e.getMessage());
+            isInitialized = true; // Marcar como inicializado para evitar tentativas repetidas
+        }
     }
     
     private void applyLatencySettings() {
-        if (latencyManager != null) {
-            // Aplicar oversampling baseado no modo de latência
-            if (latencyManager.isAutoOversamplingEnabled()) {
-                setOversamplingEnabled(true);
-                setOversamplingFactor(latencyManager.getOversamplingFactor());
-            } else {
-                setOversamplingEnabled(false);
+        if (latencyManager != null && nativeLibraryLoaded) {
+            try {
+                // Aplicar oversampling baseado no modo de latência
+                if (latencyManager.isAutoOversamplingEnabled()) {
+                    setOversamplingEnabled(true);
+                    setOversamplingFactor(latencyManager.getOversamplingFactor());
+                } else {
+                    setOversamplingEnabled(false);
+                }
+                
+                logThrottled("AudioEngine", "Configurações de latência aplicadas - " +
+                      "Modo: " + latencyManager.getModeName(latencyManager.getCurrentMode()) + 
+                      ", Oversampling: " + (isOversamplingEnabled ? "Sim (" + oversamplingFactor + "x)" : "Não"));
+            } catch (Exception e) {
+                Log.e("AudioEngine", "Erro ao aplicar configurações de latência: " + e.getMessage());
             }
-            
-            Log.d("AudioEngine", "Configurações de latência aplicadas - " +
-                  "Modo: " + latencyManager.getModeName(latencyManager.getCurrentMode()) + 
-                  ", Oversampling: " + (isOversamplingEnabled ? "Sim (" + oversamplingFactor + "x)" : "Não"));
         }
     }
     
     public void updateLatencySettings() {
-        if (latencyManager != null) {
+        if (latencyManager != null && nativeLibraryLoaded) {
             applyLatencySettings();
         }
     }
@@ -82,27 +119,154 @@ public class AudioEngine {
     // Garante que o pipeline de áudio está ativo
     public static void startPipelineIfNeeded() {
         if (!isAudioPipelineRunning()) {
-            Log.d("AudioEngine", "Pipeline de áudio não estava ativo. Iniciando...");
+            logThrottled("AudioEngine", "Pipeline de áudio não estava ativo. Iniciando...");
             startAudioPipeline();
         } else {
-            Log.d("AudioEngine", "Pipeline de áudio já está ativo.");
+            logThrottled("AudioEngine", "Pipeline de áudio já está ativo.");
+        }
+    }
+    
+    private static void logThrottled(String tag, String message) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastLogTime > LOG_THROTTLE_INTERVAL) {
+            Log.d(tag, message);
+            lastLogTime = currentTime;
         }
     }
 
-    // Métodos JNI existentes
-    public static native void setGainEnabled(boolean enabled);
-    public static native void setGainLevel(float level);
-    public static native void setDistortionEnabled(boolean enabled);
-    public static native void setDistortionLevel(float level);
-    public static native void setDelayEnabled(boolean enabled);
-    public static native void setDelayLevel(float level);
-    public static native void setReverbEnabled(boolean enabled);
-    public static native void setReverbLevel(float level);
+    // Métodos JNI existentes - com verificação de biblioteca carregada
+    public static void setGainEnabled(boolean enabled) {
+        if (nativeLibraryLoaded) {
+            try {
+                setGainEnabledNative(enabled);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setGainEnabled: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setGainLevel(float level) {
+        if (nativeLibraryLoaded) {
+            try {
+                setGainLevelNative(level);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setGainLevel: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setDistortionEnabled(boolean enabled) {
+        if (nativeLibraryLoaded) {
+            try {
+                setDistortionEnabledNative(enabled);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setDistortionEnabled: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setDistortionLevel(float level) {
+        if (nativeLibraryLoaded) {
+            try {
+                setDistortionLevelNative(level);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setDistortionLevel: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setDelayEnabled(boolean enabled) {
+        if (nativeLibraryLoaded) {
+            try {
+                setDelayEnabledNative(enabled);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setDelayEnabled: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setDelayLevel(float level) {
+        if (nativeLibraryLoaded) {
+            try {
+                setDelayLevelNative(level);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setDelayLevel: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setReverbEnabled(boolean enabled) {
+        if (nativeLibraryLoaded) {
+            try {
+                setReverbEnabledNative(enabled);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setReverbEnabled: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void setReverbLevel(float level) {
+        if (nativeLibraryLoaded) {
+            try {
+                setReverbLevelNative(level);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar setReverbLevel: " + e.getMessage());
+            }
+        }
+    }
 
     // Novos métodos JNI para processamento de áudio
-    public static native void processBuffer(float[] input, float[] output, int numSamples);
-    public static native void initAudioEngine();
-    public static native void cleanupAudioEngine();
+    public static void processBuffer(float[] input, float[] output, int numSamples) {
+        if (nativeLibraryLoaded) {
+            try {
+                processBufferNative(input, output, numSamples);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar processBuffer: " + e.getMessage());
+                // Fallback: copiar entrada para saída
+                if (input != null && output != null && numSamples > 0) {
+                    System.arraycopy(input, 0, output, 0, Math.min(numSamples, Math.min(input.length, output.length)));
+                }
+            }
+        } else {
+            // Fallback: copiar entrada para saída sem processamento
+            if (input != null && output != null && numSamples > 0) {
+                System.arraycopy(input, 0, output, 0, Math.min(numSamples, Math.min(input.length, output.length)));
+            }
+        }
+    }
+    
+    public static void initAudioEngine() {
+        if (nativeLibraryLoaded) {
+            try {
+                initAudioEngineNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar initAudioEngine: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static void cleanupAudioEngine() {
+        if (nativeLibraryLoaded) {
+            try {
+                cleanupAudioEngineNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar cleanupAudioEngine: " + e.getMessage());
+            }
+        }
+    }
+
+    // Declarações dos métodos nativos (com sufixo Native para diferenciação)
+    private static native void setGainEnabledNative(boolean enabled);
+    private static native void setGainLevelNative(float level);
+    private static native void setDistortionEnabledNative(boolean enabled);
+    private static native void setDistortionLevelNative(float level);
+    private static native void setDelayEnabledNative(boolean enabled);
+    private static native void setDelayLevelNative(float level);
+    private static native void setReverbEnabledNative(boolean enabled);
+    private static native void setReverbLevelNative(float level);
+    private static native void processBufferNative(float[] input, float[] output, int numSamples);
+    private static native void initAudioEngineNative();
+    private static native void cleanupAudioEngineNative();
 
     // Looper
     public static native void startLooperRecording();

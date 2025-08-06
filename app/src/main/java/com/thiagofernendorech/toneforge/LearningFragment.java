@@ -413,13 +413,21 @@ public class LearningFragment extends Fragment {
         exerciseTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
+                // Verificar se o fragment ainda está ativo
+                if (!isAdded() || !isVisible() || !isExerciseActive) {
+                    exerciseTimer.cancel();
+                    return;
+                }
+                
                 exerciseTimeLeft--;
                 
                 if (exerciseTimeLeft <= 0) {
-                    // Tempo esgotado
-                    runOnUiThread(() -> {
-                        exerciseTimeExpired();
-                    });
+                    // Tempo esgotado - VERIFICAR se pode mostrar Toast
+                    if (getContext() != null && isAdded()) {
+                        runOnUiThread(() -> {
+                            exerciseTimeExpired();
+                        });
+                    }
                     exerciseTimer.cancel();
                 } else {
                     runOnUiThread(() -> {
@@ -431,14 +439,22 @@ public class LearningFragment extends Fragment {
     }
     
     private void updateExerciseTimer() {
-        exerciseProgress.setText("Tempo: " + exerciseTimeLeft + "s");
-        exerciseProgressBar.setProgress((60 - exerciseTimeLeft) * 100 / 60);
+        // Verificar se as views ainda existem
+        if (exerciseProgress != null && exerciseProgressBar != null) {
+            exerciseProgress.setText("Tempo: " + exerciseTimeLeft + "s");
+            exerciseProgressBar.setProgress((60 - exerciseTimeLeft) * 100 / 60);
+        }
     }
     
     private void exerciseTimeExpired() {
-        Toast.makeText(getContext(), "Tempo esgotado! Tente novamente.", Toast.LENGTH_SHORT).show();
+        // Só mostrar Toast se realmente necessário e se o contexto existe
+        if (getContext() != null && isAdded() && isExerciseActive) {
+            Toast.makeText(getContext(), "Tempo esgotado! Tente novamente.", Toast.LENGTH_SHORT).show();
+        }
         isExerciseActive = false;
-        exerciseProgress.setText("Tempo esgotado");
+        if (exerciseProgress != null) {
+            exerciseProgress.setText("Tempo esgotado");
+        }
     }
     
     private void completeExercise() {
@@ -663,16 +679,36 @@ public class LearningFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         
-        // Parar timers e efeitos
+        // Cancelar todos os timers para evitar vazamentos e Toasts órfãos
+        if (exerciseTimer != null) {
+            exerciseTimer.cancel();
+            exerciseTimer = null;
+        }
+        
+        // Parar todos os estados ativos
+        isExerciseActive = false;
+        isPracticeActive = false;
+        isChallengeActive = false;
+        
+        // Parar efeitos de áudio
+        stopExerciseEffects();
+        
+        // Salvar progresso
+        saveProgress();
+    }
+    
+    @Override
+    public void onPause() {
+        super.onPause();
+        
+        // Cancelar timer quando o fragment não está visível
         if (exerciseTimer != null) {
             exerciseTimer.cancel();
         }
         
-        stopExerciseEffects();
-        AudioEngine.stopMetronome();
-        
-        // Salvar progresso
-        saveProgress();
+        // Parar estados ativos para evitar Toasts em background
+        isExerciseActive = false;
+        isPracticeActive = false;
     }
 
     @Override

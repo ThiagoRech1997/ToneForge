@@ -293,7 +293,7 @@ public class AutomationManager {
             automation.addEvent(event);
         }
         
-        Log.d(TAG, "Evento registrado: " + parameter + " = " + value + " em " + timestamp + "ms");
+        LogManager.verbose(TAG, "Evento registrado: " + parameter + " = " + value + " em " + timestamp + "ms");
     }
     
     /**

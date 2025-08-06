@@ -25,6 +25,9 @@ public class SettingsPresenter extends BasePresenter<SettingsContract.View> impl
     private static final String KEY_AUTO_SAVE = "auto_save_enabled";
     private static final String KEY_AUDIO_BACKGROUND = "audio_background_enabled";
     private static final String KEY_MIDI_ENABLED = "midi_enabled";
+    private static final String KEY_VERBOSE_LOGGING = "verbose_logging_enabled";
+    private static final String KEY_DEBUG_LOGGING = "debug_logging_enabled";
+    private static final String KEY_LOG_LEVEL = "log_level";
 
     private Context context;
     private SharedPreferences prefs;
@@ -81,6 +84,9 @@ public class SettingsPresenter extends BasePresenter<SettingsContract.View> impl
         
         // Carregar configurações MIDI
         updateMidiUI();
+        
+        // Carregar configurações de log
+        updateLogUI();
     }
 
     @Override
@@ -228,6 +234,9 @@ public class SettingsPresenter extends BasePresenter<SettingsContract.View> impl
         
         // Atualizar configurações MIDI
         updateMidiUI();
+        
+        // Atualizar configurações de log
+        updateLogUI();
     }
 
     /**
@@ -334,5 +343,88 @@ public class SettingsPresenter extends BasePresenter<SettingsContract.View> impl
 
         view.setMidiEnabled(isEnabled);
         view.updateMidiStatus(status, deviceInfo);
+    }
+    
+    /**
+     * Atualiza a UI com as configurações de log atuais
+     */
+    private void updateLogUI() {
+        if (!isViewAttached()) return;
+        SettingsContract.View view = getView();
+        
+        // Carregar configurações de log
+        boolean verboseLogging = prefs.getBoolean(KEY_VERBOSE_LOGGING, false);
+        boolean debugLogging = prefs.getBoolean(KEY_DEBUG_LOGGING, false);
+        int logLevel = prefs.getInt(KEY_LOG_LEVEL, com.thiagofernendorech.toneforge.LogManager.LEVEL_INFO);
+        
+        // Atualizar UI
+        view.setVerboseLoggingEnabled(verboseLogging);
+        view.setDebugLoggingEnabled(debugLogging);
+        view.setLogLevel(logLevel);
+    }
+    
+    @Override
+    public void setVerboseLogging(boolean enabled) {
+        if (!isViewAttached()) return;
+        
+        SettingsContract.View view = getView();
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(KEY_VERBOSE_LOGGING, enabled);
+        editor.apply();
+        
+        // Aplicar configuração no LogManager
+        com.thiagofernendorech.toneforge.LogManager.getInstance(context).setVerboseLogging(enabled);
+        
+        view.setVerboseLoggingEnabled(enabled);
+        view.showMessage(enabled ? "Logging verboso ativado" : "Logging verboso desativado");
+    }
+    
+    @Override
+    public void setDebugLogging(boolean enabled) {
+        if (!isViewAttached()) return;
+        
+        SettingsContract.View view = getView();
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(KEY_DEBUG_LOGGING, enabled);
+        editor.apply();
+        
+        // Aplicar configuração no LogManager
+        int newLevel = enabled ? com.thiagofernendorech.toneforge.LogManager.LEVEL_DEBUG : com.thiagofernendorech.toneforge.LogManager.LEVEL_INFO;
+        com.thiagofernendorech.toneforge.LogManager.getInstance(context).setLogLevel(newLevel);
+        
+        view.setDebugLoggingEnabled(enabled);
+        view.setLogLevel(newLevel);
+        view.showMessage(enabled ? "Logging de debug ativado" : "Logging de debug desativado");
+    }
+    
+    @Override
+    public void setLogLevel(int level) {
+        if (!isViewAttached()) return;
+        
+        SettingsContract.View view = getView();
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(KEY_LOG_LEVEL, level);
+        editor.apply();
+        
+        // Aplicar configuração no LogManager
+        com.thiagofernendorech.toneforge.LogManager.getInstance(context).setLogLevel(level);
+        
+        view.setLogLevel(level);
+        view.showMessage("Nível de log alterado para: " + getLogLevelName(level));
+    }
+    
+    private String getLogLevelName(int level) {
+        switch (level) {
+            case com.thiagofernendorech.toneforge.LogManager.LEVEL_ERROR:
+                return "Erro";
+            case com.thiagofernendorech.toneforge.LogManager.LEVEL_WARN:
+                return "Aviso";
+            case com.thiagofernendorech.toneforge.LogManager.LEVEL_INFO:
+                return "Informação";
+            case com.thiagofernendorech.toneforge.LogManager.LEVEL_DEBUG:
+                return "Debug";
+            default:
+                return "Desconhecido";
+        }
     }
 } 

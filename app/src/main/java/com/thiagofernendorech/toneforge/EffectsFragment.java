@@ -105,7 +105,7 @@ public class EffectsFragment extends Fragment {
         switchGain.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setGainEnabled(isChecked);
             AudioStateManager.updateEffectState("gain", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
             recordAutomationEvent("gain_enabled", isChecked ? 1.0f : 0.0f, "ui");
@@ -140,7 +140,7 @@ public class EffectsFragment extends Fragment {
         switchDistortion.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDistortionEnabled(isChecked);
             AudioStateManager.updateEffectState("distortion", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
             recordAutomationEvent("distortion_enabled", isChecked ? 1.0f : 0.0f, "ui");
@@ -180,7 +180,7 @@ public class EffectsFragment extends Fragment {
         switchDelay.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setDelayEnabled(isChecked);
             AudioStateManager.updateEffectState("delay", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
             recordAutomationEvent("delay_enabled", isChecked ? 1.0f : 0.0f, "ui");
@@ -280,7 +280,7 @@ public class EffectsFragment extends Fragment {
         switchReverb.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setReverbEnabled(isChecked);
             AudioStateManager.updateEffectState("reverb", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             updateStatus();
             if (getView() != null) updateBypassIndicators(getView());
             recordAutomationEvent("reverb_enabled", isChecked ? 1.0f : 0.0f, "ui");
@@ -394,7 +394,7 @@ public class EffectsFragment extends Fragment {
         switchChorus.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setChorusEnabled(isChecked);
             AudioStateManager.updateEffectState("chorus", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekChorusDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -436,7 +436,7 @@ public class EffectsFragment extends Fragment {
         switchFlanger.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setFlangerEnabled(isChecked);
             AudioStateManager.updateEffectState("flanger", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekFlangerDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -487,7 +487,7 @@ public class EffectsFragment extends Fragment {
         switchPhaser.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setPhaserEnabled(isChecked);
             AudioStateManager.updateEffectState("phaser", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekPhaserDepth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -538,7 +538,7 @@ public class EffectsFragment extends Fragment {
         switchEQ.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setEQEnabled(isChecked);
             AudioStateManager.updateEffectState("eq", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekEQLow.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -591,7 +591,7 @@ public class EffectsFragment extends Fragment {
         switchCompressor.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setCompressorEnabled(isChecked);
             AudioStateManager.updateEffectState("compressor", isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             if (getView() != null) updateBypassIndicators(getView());
         });
         seekCompressorThreshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -765,7 +765,7 @@ public class EffectsFragment extends Fragment {
         switchOversampling.setOnCheckedChangeListener((buttonView, isChecked) -> {
             AudioEngine.setOversamplingEnabled(isChecked);
             AudioStateManager.getInstance(requireContext()).setOversamplingEnabled(isChecked);
-            AudioBackgroundService.updateNotification(requireContext());
+            
             prefs.edit().putBoolean("oversampling_enabled", isChecked).apply();
             updateOversamplingQualityText(oversamplingQualityText, isChecked, oversamplingFactor);
         });
@@ -776,7 +776,7 @@ public class EffectsFragment extends Fragment {
                 int factor = position + 1; // 1x, 2x, 4x, 8x
                 AudioEngine.setOversamplingFactor(factor);
                 AudioStateManager.getInstance(requireContext()).setOversamplingFactor(factor);
-                AudioBackgroundService.updateNotification(requireContext());
+                
                 prefs.edit().putInt("oversampling_factor", factor).apply();
                 updateOversamplingQualityText(oversamplingQualityText, oversamplingEnabled, factor);
             }

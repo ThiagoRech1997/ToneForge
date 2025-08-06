@@ -26,6 +26,7 @@ public class PipelineManager {
     private static final int STATE_RUNNING = 2;
     private static final int STATE_ERROR = 3;
     private static final int STATE_RECOVERING = 4;
+    private static final int STATE_IDLE = 5; // Novo estado para quando não há atividade
     
     // Componentes do pipeline
     private AudioRecord audioRecord;
@@ -42,12 +43,33 @@ public class PipelineManager {
     private final AtomicBoolean shouldRun = new AtomicBoolean(false);
     private final AtomicBoolean isRecovering = new AtomicBoolean(false);
     
-    // Estatísticas e monitoramento
+    // Sistema de ativação sob demanda
+    private volatile boolean hasActiveEffects = false;
+    private volatile boolean isRecording = false;
+    private volatile boolean isLooping = false;
+    private volatile boolean isPlaying = false;
+    private volatile boolean hasUserActivity = false;
+    private long lastActivityTime = 0;
+    private static final long ACTIVITY_TIMEOUT = 30000; // 30 segundos sem atividade
+    
+    // Estatísticas e monitoramento (só quando necessário)
     private long startTime;
     private long totalSamplesProcessed;
     private long errorCount;
     private long lastErrorTime;
     private String lastErrorMessage;
+    
+    // Controle de throttling de logs
+    private long lastLogTime = 0;
+    private static final long LOG_THROTTLE_INTERVAL = 5000; // 5 segundos
+    private long lastHealthCheckTime = 0;
+    private static final long HEALTH_CHECK_INTERVAL = 1000; // 1 segundo
+    
+    // Controle de recuperação mais inteligente
+    private int recoveryAttempts = 0;
+    private static final int MAX_RECOVERY_ATTEMPTS = 2; // Reduzido de 3 para 2
+    private static final long RECOVERY_COOLDOWN = 15000; // Aumentado para 15 segundos
+    private long lastRecoveryTime = 0;
     
     // Callbacks
     private PipelineCallback callback;
@@ -83,12 +105,13 @@ public class PipelineManager {
     public void initialize(Context context) {
         latencyManager = LatencyManager.getInstance(context);
         
-        // Configurar listener para mudanças de latência
+        // Configurar listener mais inteligente para mudanças de latência
         latencyManager.setLatencyChangeListener(new LatencyManager.LatencyChangeListener() {
             @Override
             public void onLatencyModeChanged(int newMode) {
-                if (isRunning) {
-                    Log.d("PipelineManager", "Reiniciando pipeline devido a mudança de latência");
+                // Só reiniciar se o pipeline estiver realmente ativo e necessário
+                if (isRunning && isActivityRequired()) {
+                    Log.d(TAG, "Aplicando nova configuração de latência");
                     restartPipeline();
                 }
             }
@@ -109,13 +132,132 @@ public class PipelineManager {
         this.callback = callback;
     }
     
+    /**
+     * Verifica se há atividade que justifica manter o pipeline ativo
+     */
+    private boolean isActivityRequired() {
+        return hasActiveEffects || isRecording || isLooping || isPlaying || hasUserActivity;
+    }
+    
+    /**
+     * Notifica que há efeitos ativos
+     */
+    public void setEffectsActive(boolean active) {
+        boolean wasRequired = isActivityRequired();
+        hasActiveEffects = active;
+        updateActivityStatus();
+        
+        if (!wasRequired && isActivityRequired()) {
+            Log.d(TAG, "Efeitos ativados - iniciando pipeline");
+            startPipelineIfNeeded();
+        } else if (wasRequired && !isActivityRequired()) {
+            Log.d(TAG, "Nenhuma atividade detectada - parando pipeline");
+            stopPipelineIfNotNeeded();
+        }
+    }
+    
+    /**
+     * Notifica que há gravação ativa
+     */
+    public void setRecordingActive(boolean active) {
+        boolean wasRequired = isActivityRequired();
+        isRecording = active;
+        updateActivityStatus();
+        
+        if (!wasRequired && isActivityRequired()) {
+            Log.d(TAG, "Gravação iniciada - iniciando pipeline");
+            startPipelineIfNeeded();
+        } else if (wasRequired && !isActivityRequired()) {
+            stopPipelineIfNotNeeded();
+        }
+    }
+    
+    /**
+     * Notifica que há looping ativo
+     */
+    public void setLoopingActive(boolean active) {
+        boolean wasRequired = isActivityRequired();
+        isLooping = active;
+        updateActivityStatus();
+        
+        if (!wasRequired && isActivityRequired()) {
+            Log.d(TAG, "Looping iniciado - iniciando pipeline");
+            startPipelineIfNeeded();
+        } else if (wasRequired && !isActivityRequired()) {
+            stopPipelineIfNotNeeded();
+        }
+    }
+    
+    /**
+     * Notifica que há reprodução ativa
+     */
+    public void setPlayingActive(boolean active) {
+        boolean wasRequired = isActivityRequired();
+        isPlaying = active;
+        updateActivityStatus();
+        
+        if (!wasRequired && isActivityRequired()) {
+            Log.d(TAG, "Reprodução iniciada - iniciando pipeline");
+            startPipelineIfNeeded();
+        } else if (wasRequired && !isActivityRequired()) {
+            stopPipelineIfNotNeeded();
+        }
+    }
+    
+    /**
+     * Notifica atividade do usuário (interação com controles)
+     */
+    public void notifyUserActivity() {
+        hasUserActivity = true;
+        updateActivityStatus();
+        
+        if (!isActivityRequired()) {
+            startPipelineIfNeeded();
+        }
+        
+        // Agendar verificação de timeout
+        uiHandler.removeCallbacks(activityTimeoutRunnable);
+        uiHandler.postDelayed(activityTimeoutRunnable, ACTIVITY_TIMEOUT);
+    }
+    
+    private final Runnable activityTimeoutRunnable = new Runnable() {
+        @Override
+        public void run() {
+            // Verificar se ainda há atividade do usuário
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastActivityTime > ACTIVITY_TIMEOUT) {
+                hasUserActivity = false;
+                Log.d(TAG, "Timeout de atividade do usuário");
+                if (!isActivityRequired()) {
+                    stopPipelineIfNotNeeded();
+                }
+            }
+        }
+    };
+    
+    private void updateActivityStatus() {
+        lastActivityTime = System.currentTimeMillis();
+    }
+    
+    private void startPipelineIfNeeded() {
+        if (!isRunning && isActivityRequired()) {
+            startPipeline();
+        }
+    }
+    
+    private void stopPipelineIfNotNeeded() {
+        if (isRunning && !isActivityRequired()) {
+            Log.d(TAG, "Parando pipeline - nenhuma atividade necessária");
+            stopPipeline();
+        }
+    }
+    
     public synchronized boolean startPipeline() {
         if (currentState == STATE_RUNNING || currentState == STATE_STARTING) {
-            Log.d(TAG, "Pipeline já está rodando ou iniciando");
             return true;
         }
         
-        Log.d(TAG, "Iniciando pipeline de áudio");
+        Log.d(TAG, "Iniciando pipeline de áudio sob demanda");
         setState(STATE_STARTING);
         
         try {
@@ -136,6 +278,7 @@ public class PipelineManager {
             startTime = System.currentTimeMillis();
             totalSamplesProcessed = 0;
             errorCount = 0;
+            recoveryAttempts = 0;
             
             Log.d(TAG, "Pipeline iniciado com sucesso");
             return true;
@@ -147,8 +290,12 @@ public class PipelineManager {
             lastErrorTime = System.currentTimeMillis();
             errorCount++;
             
-            // Tentar recuperação automática
-            scheduleRecovery();
+            // Tentar recuperação apenas se ainda há atividade necessária
+            if (isActivityRequired() && recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
+                scheduleRecovery();
+            } else {
+                Log.e(TAG, "Pipeline não será recuperado - sem atividade necessária ou muitas tentativas");
+            }
             return false;
         }
     }
@@ -160,6 +307,9 @@ public class PipelineManager {
         setState(STATE_STOPPED);
         isRunning = false;
         isPaused = false;
+        
+        // Cancelar timeout de atividade
+        uiHandler.removeCallbacks(activityTimeoutRunnable);
         
         // Parar thread
         if (audioThread != null) {
@@ -186,8 +336,8 @@ public class PipelineManager {
     }
     
     public void restartPipeline() {
-        if (isRunning) {
-            Log.d("PipelineManager", "Reiniciando pipeline com novas configurações de latência");
+        if (isRunning && isActivityRequired()) {
+            Log.d(TAG, "Reiniciando pipeline com novas configurações");
             
             // Parar pipeline atual
             stopPipeline();
@@ -199,8 +349,10 @@ public class PipelineManager {
                 Thread.currentThread().interrupt();
             }
             
-            // Reiniciar com novas configurações
-            startPipeline();
+            // Reiniciar apenas se ainda necessário
+            if (isActivityRequired()) {
+                startPipeline();
+            }
         }
     }
     
@@ -276,16 +428,19 @@ public class PipelineManager {
         shouldRun.set(true);
         
         audioThread = new Thread(() -> {
-            Log.d(TAG, "Thread de áudio iniciada");
+            LogManager.i(TAG, "Thread de áudio iniciada");
             
             while (shouldRun.get() && !Thread.currentThread().isInterrupted()) {
                 try {
-                    // Verificar se os componentes estão funcionando
-                    if (audioRecord == null || audioTrack == null || 
-                        audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING ||
-                        audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
-                        
-                        Log.w(TAG, "Componentes de áudio em estado inválido, tentando recuperar");
+                    // Verificar se ainda há atividade necessária
+                    if (!isActivityRequired()) {
+                        Log.d(TAG, "Nenhuma atividade necessária - finalizando thread");
+                        break;
+                    }
+                    
+                    // Verificar saúde dos componentes apenas ocasionalmente
+                    if (Math.random() < 0.001 && !isHealthy()) { // 0.1% chance de verificar
+                        LogManager.w(TAG, "Componentes de áudio em estado inválido");
                         handleAudioError();
                         continue;
                     }
@@ -306,12 +461,12 @@ public class PipelineManager {
                     }
                     
                 } catch (Exception e) {
-                    Log.e(TAG, "Erro no loop de áudio", e);
+                    LogManager.e(TAG, "Erro no loop de áudio", e);
                     handleAudioError();
                 }
             }
             
-            Log.d(TAG, "Thread de áudio finalizada");
+            LogManager.i(TAG, "Thread de áudio finalizada");
         });
         
         audioThread.setPriority(Thread.MAX_PRIORITY);
@@ -325,7 +480,13 @@ public class PipelineManager {
         
         if (currentState == STATE_RUNNING) {
             setState(STATE_ERROR);
-            scheduleRecovery();
+            // Só tentar recuperar se ainda há atividade necessária
+            if (isActivityRequired()) {
+                scheduleRecovery();
+            } else {
+                Log.d(TAG, "Erro no pipeline mas nenhuma atividade necessária - não recuperando");
+                stopPipeline();
+            }
         }
     }
     
@@ -334,17 +495,46 @@ public class PipelineManager {
             return; // Já está tentando recuperar
         }
         
+        long currentTime = System.currentTimeMillis();
+        
+        // Verificar se não excedeu o limite de tentativas
+        if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
+            Log.e(TAG, "Máximo de tentativas de recuperação excedido. Pipeline permanecerá parado.");
+            return;
+        }
+        
+        // Verificar se ainda há atividade necessária
+        if (!isActivityRequired()) {
+            Log.d(TAG, "Nenhuma atividade necessária - cancelando recuperação");
+            return;
+        }
+        
+        // Verificar cooldown entre tentativas
+        if (currentTime - lastRecoveryTime < RECOVERY_COOLDOWN) {
+            Log.d(TAG, "Aguardando cooldown antes da próxima tentativa de recuperação");
+            return;
+        }
+        
         isRecovering.set(true);
+        recoveryAttempts++;
+        lastRecoveryTime = currentTime;
+        
         uiHandler.postDelayed(() -> {
-            Log.d(TAG, "Tentando recuperação automática do pipeline");
+            Log.d(TAG, "Tentativa de recuperação " + recoveryAttempts + "/" + MAX_RECOVERY_ATTEMPTS);
             setState(STATE_RECOVERING);
             
             try {
-                restartPipeline();
-                Log.d(TAG, "Recuperação bem-sucedida");
-                setState(STATE_RUNNING);
-                if (callback != null) {
-                    callback.onPipelineRecovered();
+                if (isActivityRequired()) {
+                    restartPipeline();
+                    Log.d(TAG, "Recuperação bem-sucedida");
+                    setState(STATE_RUNNING);
+                    recoveryAttempts = 0; // Reset contador em caso de sucesso
+                    if (callback != null) {
+                        callback.onPipelineRecovered();
+                    }
+                } else {
+                    Log.d(TAG, "Recuperação cancelada - sem atividade necessária");
+                    setState(STATE_STOPPED);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Falha na recuperação: " + e.getMessage());
@@ -381,21 +571,24 @@ public class PipelineManager {
         int oldState = currentState;
         currentState = newState;
         
-        Log.d(TAG, "Estado do pipeline: " + getStateName(oldState) + " -> " + getStateName(newState));
-        
-        if (callback != null) {
-            callback.onPipelineStateChanged(oldState, newState);
+        // Só logar mudanças significativas de estado
+        if (oldState != newState) {
+            LogManager.verbose(TAG, "Estado do pipeline: " + getStateName(oldState) + " -> " + getStateName(newState));
             
-            switch (newState) {
-                case STATE_RUNNING:
-                    callback.onPipelineStarted();
-                    break;
-                case STATE_STOPPED:
-                    callback.onPipelineStopped();
-                    break;
-                case STATE_ERROR:
-                    callback.onPipelineError(lastErrorMessage);
-                    break;
+            if (callback != null) {
+                callback.onPipelineStateChanged(oldState, newState);
+                
+                switch (newState) {
+                    case STATE_RUNNING:
+                        callback.onPipelineStarted();
+                        break;
+                    case STATE_STOPPED:
+                        callback.onPipelineStopped();
+                        break;
+                    case STATE_ERROR:
+                        callback.onPipelineError(lastErrorMessage);
+                        break;
+                }
             }
         }
     }
@@ -407,6 +600,7 @@ public class PipelineManager {
             case STATE_RUNNING: return "RUNNING";
             case STATE_ERROR: return "ERROR";
             case STATE_RECOVERING: return "RECOVERING";
+            case STATE_IDLE: return "IDLE";
             default: return "UNKNOWN";
         }
     }
