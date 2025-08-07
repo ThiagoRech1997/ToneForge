@@ -37,16 +37,20 @@ public class LoopShareUtil {
                 Intent chooser = Intent.createChooser(shareIntent, "Compartilhar Loop");
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 
-                // Conceder permissões temporárias para todos os apps que podem receber o intent
-                android.content.pm.PackageManager pm = context.getPackageManager();
-                java.util.List<android.content.pm.ResolveInfo> resInfoList = pm.queryIntentActivities(shareIntent, 0);
-                for (android.content.pm.ResolveInfo resolveInfo : resInfoList) {
-                    String packageName = resolveInfo.activityInfo.packageName;
-                    context.grantUriPermission(packageName, fileUri, 
+                // Conceder permissão apenas ao pacote escolhido
+                android.content.pm.ResolveInfo chosenApp =
+                    context.getPackageManager().resolveActivity(shareIntent, 0);
+                if (chosenApp != null) {
+                    String packageName = chosenApp.activityInfo.packageName;
+                    context.grantUriPermission(packageName, fileUri,
                         android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 }
-                
+
                 context.startActivity(chooser);
+
+                // Revogar permissão após o compartilhamento
+                context.revokeUriPermission(fileUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } else {
                 android.widget.Toast.makeText(context, "Nenhum app disponível para compartilhamento", android.widget.Toast.LENGTH_SHORT).show();
             }
@@ -93,16 +97,20 @@ public class LoopShareUtil {
                 Intent chooser = Intent.createChooser(shareIntent, "Compartilhar Loop");
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 
-                // Conceder permissões temporárias para todos os apps que podem receber o intent
-                android.content.pm.PackageManager pm = context.getPackageManager();
-                java.util.List<android.content.pm.ResolveInfo> resInfoList = pm.queryIntentActivities(shareIntent, 0);
-                for (android.content.pm.ResolveInfo resolveInfo : resInfoList) {
-                    String packageName = resolveInfo.activityInfo.packageName;
-                    context.grantUriPermission(packageName, fileUri, 
+                // Conceder permissão apenas ao pacote escolhido
+                android.content.pm.ResolveInfo chosenApp =
+                    context.getPackageManager().resolveActivity(shareIntent, 0);
+                if (chosenApp != null) {
+                    String packageName = chosenApp.activityInfo.packageName;
+                    context.grantUriPermission(packageName, fileUri,
                         android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 }
-                
+
                 context.startActivity(chooser);
+
+                // Revogar permissão após o compartilhamento
+                context.revokeUriPermission(fileUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } else {
                 android.widget.Toast.makeText(context, "Nenhum app disponível para compartilhamento", android.widget.Toast.LENGTH_SHORT).show();
             }
