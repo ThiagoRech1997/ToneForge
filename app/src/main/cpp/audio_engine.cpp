@@ -7,6 +7,7 @@
 #include <vector>
 #include <mutex>
 #include <string>
+#include <algorithm>
 
 // Mutexes para proteção thread-safe
 static std::mutex audioEngineMutex;
@@ -956,12 +957,24 @@ void downsample(const float* input, float* output, int numSamples) {
     }
 }
 
-void processBuffer(float* input, float* output, int numSamples) {
-    // Verificação rápida para evitar processamento desnecessário
+void processBuffer(float* input, float* output, int numSamples, int inputLength, int outputLength) {
+    // Verificar parâmetros básicos
     if (input == nullptr || output == nullptr || numSamples <= 0) {
-        printf("processBuffer: Parâmetros inválidos - input: %p, output: %p, numSamples: %d\n", 
+        printf("processBuffer: Parâmetros inválidos - input: %p, output: %p, numSamples: %d\n",
                input, output, numSamples);
         return;
+    }
+
+    // Ajustar numSamples se os buffers forem menores que o necessário
+    if (inputLength < numSamples || outputLength < numSamples) {
+        int available = std::min(inputLength, outputLength);
+        if (available <= 0) {
+            printf("processBuffer: Buffers insuficientes - inputLen: %d, outputLen: %d\n", inputLength, outputLength);
+            return;
+        }
+        printf("processBuffer: Ajustando numSamples de %d para %d devido ao tamanho dos buffers\n",
+               numSamples, available);
+        numSamples = available;
     }
     
     // Verificar se há efeitos ativos para evitar processamento desnecessário
