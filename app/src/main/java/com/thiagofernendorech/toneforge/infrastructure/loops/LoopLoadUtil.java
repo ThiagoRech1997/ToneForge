@@ -107,15 +107,45 @@ public class LoopLoadUtil {
     }
 
     private static final int MAX_WAV_DATA_SIZE = 10 * 1024 * 1024; // 10 MB
+    private static final int MIN_WAV_DATA_SIZE = 1024; // 1 KB mínimo
+    private static final int MAX_SAMPLE_RATE = 192000; // 192 kHz máximo
+    private static final int MIN_SAMPLE_RATE = 8000; // 8 kHz mínimo
+    private static final int MAX_CHANNELS = 2; // Estéreo máximo
+    private static final int MIN_CHANNELS = 1; // Mono mínimo
+    private static final int MAX_BITS_PER_SAMPLE = 32; // 32 bits máximo
+    private static final int MIN_BITS_PER_SAMPLE = 8; // 8 bits mínimo
 
     // Lê um arquivo WAV e retorna os dados de áudio como array de float
+    // SECURITY: Implementa validações robustas para prevenir crashes e ataques
     private static float[] readWavFile(File file) throws IOException {
+        // SECURITY: Validar arquivo antes de processar
+        if (file == null) {
+            throw new IOException("Arquivo WAV é null");
+        }
+        
+        if (!file.exists()) {
+            throw new IOException("Arquivo WAV não existe: " + file.getPath());
+        }
+        
+        if (!file.canRead()) {
+            throw new IOException("Arquivo WAV não pode ser lido: " + file.getPath());
+        }
+        
+        long fileSize = file.length();
+        if (fileSize <= 44) { // Header WAV mínimo é 44 bytes
+            throw new IOException("Arquivo WAV muito pequeno: " + fileSize + " bytes");
+        }
+        
+        if (fileSize > MAX_WAV_DATA_SIZE + 44) { // 44 bytes para header
+            throw new IOException("Arquivo WAV muito grande: " + fileSize + " bytes (máximo: " + (MAX_WAV_DATA_SIZE + 44) + ")");
+        }
+        
         try (FileInputStream fis = new FileInputStream(file)) {
             // Ler header WAV
             byte[] header = new byte[44];
             int headerRead = fis.read(header);
             if (headerRead != header.length) {
-                throw new IOException("Falha ao ler cabeçalho WAV");
+                throw new IOException("Falha ao ler cabeçalho WAV: " + headerRead + " de " + header.length + " bytes");
             }
 
             // Verificar se é um arquivo WAV válido
@@ -126,45 +156,139 @@ public class LoopLoadUtil {
             String wave = new String(header, 8, 4);
 
             if (!riff.equals("RIFF") || !wave.equals("WAVE")) {
-                throw new IOException("Arquivo não é um WAV válido");
+                throw new IOException("Arquivo não é um WAV válido (RIFF: " + riff + ", WAVE: " + wave + ")");
             }
 
-            // Extrair informações do header
+            // SECURITY: Extrair e validar informações do header
             int sampleRate = buffer.getInt(24);
-            int numChannels = buffer.getShort(22);
-            int bitsPerSample = buffer.getShort(34);
+            int numChannels = buffer.getShort(22) & 0xFFFF; // Converter para unsigned
+            int bitsPerSample = buffer.getShort(34) & 0xFFFF; // Converter para unsigned
             int dataSize = buffer.getInt(40);
 
-            if (dataSize <= 0 || dataSize > MAX_WAV_DATA_SIZE || dataSize > file.length() - header.length) {
-                throw new IOException("Tamanho de dados WAV inválido: " + dataSize);
+            // SECURITY: Validações robustas dos parâmetros WAV
+            if (sampleRate < MIN_SAMPLE_RATE || sampleRate > MAX_SAMPLE_RATE) {
+                throw new IOException("Taxa de amostragem inválida: " + sampleRate + " Hz (deve estar entre " + MIN_SAMPLE_RATE + " e " + MAX_SAMPLE_RATE + ")");
+            }
+            
+            if (numChannels < MIN_CHANNELS || numChannels > MAX_CHANNELS) {
+                throw new IOException("Número de canais inválido: " + numChannels + " (deve estar entre " + MIN_CHANNELS + " e " + MAX_CHANNELS + ")");
+            }
+            
+            if (bitsPerSample < MIN_BITS_PER_SAMPLE || bitsPerSample > MAX_BITS_PER_SAMPLE) {
+                throw new IOException("Bits por amostra inválidos: " + bitsPerSample + " (deve estar entre " + MIN_BITS_PER_SAMPLE + " e " + MAX_BITS_PER_SAMPLE + ")");
+            }
+            
+            if (dataSize <= 0) {
+                throw new IOException("Tamanho de dados WAV inválido: " + dataSize + " bytes");
+            }
+            
+            if (dataSize > MAX_WAV_DATA_SIZE) {
+                throw new IOException("Tamanho de dados WAV muito grande: " + dataSize + " bytes (máximo: " + MAX_WAV_DATA_SIZE + ")");
+            }
+            
+            if (dataSize > fileSize - header.length) {
+                throw new IOException("Tamanho de dados WAV excede o tamanho do arquivo: " + dataSize + " > " + (fileSize - header.length));
+            }
+            
+            if (dataSize < MIN_WAV_DATA_SIZE) {
+                throw new IOException("Tamanho de dados WAV muito pequeno: " + dataSize + " bytes (mínimo: " + MIN_WAV_DATA_SIZE + ")");
+            }
+
+            // SECURITY: Calcular tamanho esperado e validar
+            int bytesPerSample = bitsPerSample / 8;
+            int expectedDataSize = (int) (fileSize - header.length);
+            
+            if (dataSize > expectedDataSize) {
+                throw new IOException("Tamanho de dados WAV inconsistente: " + dataSize + " > " + expectedDataSize);
             }
 
             // Ler dados de áudio
             byte[] audioBytes = new byte[dataSize];
             int totalRead = 0;
-            while (totalRead < dataSize) {
+            int attempts = 0;
+            final int maxAttempts = 1000; // Prevenir loop infinito
+            
+            while (totalRead < dataSize && attempts < maxAttempts) {
                 int bytesRead = fis.read(audioBytes, totalRead, dataSize - totalRead);
-                if (bytesRead == -1) break;
+                if (bytesRead == -1) {
+                    break; // EOF
+                }
+                if (bytesRead == 0) {
+                    attempts++; // Prevenir loop infinito
+                    continue;
+                }
                 totalRead += bytesRead;
             }
 
             if (totalRead != dataSize) {
-                throw new IOException("Leitura de dados de áudio incompleta: " + totalRead + " de " + dataSize);
+                throw new IOException("Leitura de dados de áudio incompleta: " + totalRead + " de " + dataSize + " bytes");
+            }
+
+            // SECURITY: Validar que todos os bytes foram lidos corretamente
+            if (totalRead <= 0) {
+                throw new IOException("Nenhum dado de áudio foi lido");
             }
 
             // Converter para float
-            int numSamples = dataSize / (bitsPerSample / 8);
+            int numSamples = dataSize / bytesPerSample;
+            
+            // SECURITY: Validar número de amostras
+            if (numSamples <= 0) {
+                throw new IOException("Número de amostras inválido: " + numSamples);
+            }
+            
+            if (numSamples > MAX_WAV_DATA_SIZE / bytesPerSample) {
+                throw new IOException("Número de amostras muito grande: " + numSamples);
+            }
+            
             float[] audioData = new float[numSamples];
 
             ByteBuffer audioBuffer = ByteBuffer.wrap(audioBytes);
             audioBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
+            // SECURITY: Converter amostras com validação
             for (int i = 0; i < numSamples; i++) {
-                short sample = audioBuffer.getShort();
-                audioData[i] = sample / 32767.0f; // Normalizar para [-1, 1]
+                if (audioBuffer.remaining() < bytesPerSample) {
+                    throw new IOException("Buffer insuficiente para ler amostra " + i);
+                }
+                
+                short sample;
+                if (bitsPerSample == 16) {
+                    sample = audioBuffer.getShort();
+                } else if (bitsPerSample == 8) {
+                    sample = (short) ((audioBuffer.get() & 0xFF) << 8);
+                } else if (bitsPerSample == 24) {
+                    // Ler 24 bits como 3 bytes
+                    byte b1 = audioBuffer.get();
+                    byte b2 = audioBuffer.get();
+                    byte b3 = audioBuffer.get();
+                    sample = (short) ((b3 << 16) | ((b2 & 0xFF) << 8) | (b1 & 0xFF));
+                } else {
+                    // Para outros formatos, usar 16 bits
+                    sample = audioBuffer.getShort();
+                }
+                
+                // Normalizar para [-1, 1]
+                audioData[i] = sample / 32767.0f;
+                
+                // SECURITY: Validar se o valor está dentro dos limites esperados
+                if (Float.isNaN(audioData[i]) || Float.isInfinite(audioData[i])) {
+                    throw new IOException("Valor de áudio inválido na amostra " + i + ": " + audioData[i]);
+                }
             }
 
+            // SECURITY: Log de sucesso para auditoria
+            android.util.Log.d("LoopLoadUtil", "WAV carregado com sucesso: " + 
+                numSamples + " amostras, " + sampleRate + " Hz, " + 
+                numChannels + " canais, " + bitsPerSample + " bits");
+
             return audioData;
+        } catch (OutOfMemoryError e) {
+            // SECURITY: Capturar erro de memória e fornecer mensagem clara
+            throw new IOException("Memória insuficiente para carregar arquivo WAV: " + e.getMessage());
+        } catch (Exception e) {
+            // SECURITY: Capturar outros erros e fornecer contexto
+            throw new IOException("Erro ao processar arquivo WAV: " + e.getMessage(), e);
         }
     }
 } 
