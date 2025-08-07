@@ -41,7 +41,11 @@ public class LoopExportUtil {
                 
                 int sampleRate = 48000; // fixo por enquanto
                 String fileName = "loop_" + new Date().getTime() + ".wav";
-                File outFile = new File(context.getFilesDir(), fileName);
+                File loopsDir = new File(context.getFilesDir(), "loops");
+                if (!loopsDir.exists()) {
+                    loopsDir.mkdirs();
+                }
+                File outFile = new File(loopsDir, fileName);
                 LogManager.verbose("LoopExportUtil", "Salvando WAV em: " + outFile.getAbsolutePath());
                 
                 writeWavFile(mix, sampleRate, outFile);
@@ -52,7 +56,7 @@ public class LoopExportUtil {
                     
                     // Listar todos os arquivos na pasta para debug (apenas verbose)
                     if (LogManager.getInstance(context).isVerboseLogging()) {
-                        File filesDir = context.getFilesDir();
+                        File filesDir = new File(context.getFilesDir(), "loops");
                         File[] allFiles = filesDir.listFiles();
                         LogManager.verbose("LoopExportUtil", "Arquivos na pasta após salvar: " + (allFiles != null ? allFiles.length : 0));
                         if (allFiles != null) {

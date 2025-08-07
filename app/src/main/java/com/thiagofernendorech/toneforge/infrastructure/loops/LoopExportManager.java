@@ -66,8 +66,12 @@ public class LoopExportManager {
                     ? customName.trim() 
                     : "loop_" + new Date().getTime();
                 exportedFileName = baseName + format.getExtension();
-                
-                File outFile = new File(context.getFilesDir(), exportedFileName);
+
+                File loopsDir = new File(context.getFilesDir(), "loops");
+                if (!loopsDir.exists()) {
+                    loopsDir.mkdirs();
+                }
+                File outFile = new File(loopsDir, exportedFileName);
                 
                 // Exportar baseado no formato
                 switch (format) {

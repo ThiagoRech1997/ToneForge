@@ -72,9 +72,12 @@ public class LoopLibraryManager {
         @Override
         protected List<LoopInfo> doInBackground(Void... voids) {
             List<LoopInfo> loops = new ArrayList<>();
-            File filesDir = context.getFilesDir();
+            File filesDir = new File(context.getFilesDir(), "loops");
+            if (!filesDir.exists()) {
+                filesDir.mkdirs();
+            }
             android.util.Log.d("LoopLibraryManager", "Procurando arquivos em: " + filesDir.getAbsolutePath());
-            
+
             File[] files = filesDir.listFiles();
             android.util.Log.d("LoopLibraryManager", "Total de arquivos encontrados: " + (files != null ? files.length : 0));
             
@@ -145,7 +148,7 @@ public class LoopLibraryManager {
         @Override
         protected Boolean doInBackground(Void... voids) {
             try {
-                File file = new File(context.getFilesDir(), fileName);
+                File file = new File(new File(context.getFilesDir(), "loops"), fileName);
                 return file.delete();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -175,20 +178,20 @@ public class LoopLibraryManager {
         @Override
         protected Boolean doInBackground(Void... voids) {
             try {
-                File oldFile = new File(context.getFilesDir(), oldFileName);
+                File oldFile = new File(new File(context.getFilesDir(), "loops"), oldFileName);
                 if (!oldFile.exists()) {
                     return false;
                 }
                 
                 // Criar novo nome de arquivo baseado no display name
                 String newFileName = createFileNameFromDisplayName(newDisplayName);
-                File newFile = new File(context.getFilesDir(), newFileName);
+                File newFile = new File(new File(context.getFilesDir(), "loops"), newFileName);
                 
                 // Se o arquivo já existe, adicionar sufixo
                 int counter = 1;
                 while (newFile.exists()) {
                     newFileName = createFileNameFromDisplayName(newDisplayName + " (" + counter + ")");
-                    newFile = new File(context.getFilesDir(), newFileName);
+                    newFile = new File(new File(context.getFilesDir(), "loops"), newFileName);
                     counter++;
                 }
                 

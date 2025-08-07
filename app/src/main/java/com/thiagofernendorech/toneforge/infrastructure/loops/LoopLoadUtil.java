@@ -39,9 +39,12 @@ public class LoopLoadUtil {
         @Override
         protected List<String> doInBackground(Void... voids) {
             List<String> fileNames = new ArrayList<>();
-            File filesDir = context.getFilesDir();
+            File filesDir = new File(context.getFilesDir(), "loops");
+            if (!filesDir.exists()) {
+                filesDir.mkdirs();
+            }
             LogManager.verbose("LoopLoadUtil", "Procurando arquivos em: " + filesDir.getAbsolutePath());
-            
+
             File[] files = filesDir.listFiles();
             LogManager.verbose("LoopLoadUtil", "Total de arquivos encontrados: " + (files != null ? files.length : 0));
             
@@ -79,7 +82,7 @@ public class LoopLoadUtil {
         @Override
         protected Boolean doInBackground(Void... voids) {
             try {
-                File file = new File(context.getFilesDir(), fileName);
+                File file = new File(new File(context.getFilesDir(), "loops"), fileName);
                 if (!file.exists()) {
                     return false;
                 }

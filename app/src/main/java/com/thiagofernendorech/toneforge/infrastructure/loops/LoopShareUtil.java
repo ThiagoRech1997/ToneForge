@@ -10,7 +10,8 @@ public class LoopShareUtil {
     
     public static void shareLoop(Context context, String fileName) {
         try {
-            File file = new File(context.getFilesDir(), fileName);
+            File loopsDir = new File(context.getFilesDir(), "loops");
+            File file = new File(loopsDir, fileName);
             if (!file.exists()) {
                 android.widget.Toast.makeText(context, "Arquivo não encontrado", android.widget.Toast.LENGTH_SHORT).show();
                 return;
@@ -60,12 +61,13 @@ public class LoopShareUtil {
     public static void shareLoopFromLibrary(Context context, String fileName) {
         try {
             // Tentar diferentes localizações do arquivo
-            File file = new File(context.getFilesDir(), fileName);
+            File loopsDir = new File(context.getFilesDir(), "loops");
+            File file = new File(loopsDir, fileName);
             if (!file.exists()) {
-                file = new File(context.getCacheDir(), fileName);
+                file = new File(new File(context.getCacheDir(), "loops"), fileName);
             }
             if (!file.exists()) {
-                file = new File(context.getExternalFilesDir(null), fileName);
+                file = new File(new File(context.getExternalFilesDir(null), "loops"), fileName);
             }
             
             if (!file.exists()) {
