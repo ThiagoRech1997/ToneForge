@@ -64,9 +64,26 @@ Java_com_thiagofernendorech_toneforge_MainActivity_processBuffer(
         jfloatArray output,
         jint numSamples) {
 
+    // SECURITY: Validações robustas de parâmetros JNI
+    if (input == nullptr || output == nullptr) {
+        // Log de erro e retorno seguro
+        return;
+    }
+
     jsize inputLen = env->GetArrayLength(input);
     jsize outputLen = env->GetArrayLength(output);
 
+    // SECURITY: Validar tamanhos dos arrays
+    if (inputLen <= 0 || outputLen <= 0) {
+        return;
+    }
+
+    // SECURITY: Validar número de amostras solicitado
+    if (numSamples <= 0) {
+        return;
+    }
+
+    // SECURITY: Limitar o número de amostras ao tamanho disponível
     int available = numSamples;
     if (inputLen < numSamples || outputLen < numSamples) {
         available = std::min(static_cast<int>(inputLen), static_cast<int>(outputLen));
@@ -75,11 +92,25 @@ Java_com_thiagofernendorech_toneforge_MainActivity_processBuffer(
         }
     }
 
+    // SECURITY: Validar ponteiros antes de usar
     jfloat* inputPtr = env->GetFloatArrayElements(input, nullptr);
     jfloat* outputPtr = env->GetFloatArrayElements(output, nullptr);
 
+    if (inputPtr == nullptr || outputPtr == nullptr) {
+        // Limpar recursos em caso de erro
+        if (inputPtr != nullptr) {
+            env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
+        }
+        if (outputPtr != nullptr) {
+            env->ReleaseFloatArrayElements(output, outputPtr, JNI_ABORT);
+        }
+        return;
+    }
+
+    // SECURITY: Processar buffer com validações
     processBuffer(inputPtr, outputPtr, available, static_cast<int>(inputLen), static_cast<int>(outputLen));
 
+    // SECURITY: Liberar recursos de forma segura
     env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
     env->ReleaseFloatArrayElements(output, outputPtr, 0);
 }
@@ -143,9 +174,26 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbLevel(JNIEnv* env, jc
 // Processamento de áudio para AudioEngine
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_processBuffer(JNIEnv* env, jclass clazz, jfloatArray input, jfloatArray output, jint numSamples) {
+    // SECURITY: Validações robustas de parâmetros JNI
+    if (input == nullptr || output == nullptr) {
+        // Log de erro e retorno seguro
+        return;
+    }
+
     jsize inputLen = env->GetArrayLength(input);
     jsize outputLen = env->GetArrayLength(output);
 
+    // SECURITY: Validar tamanhos dos arrays
+    if (inputLen <= 0 || outputLen <= 0) {
+        return;
+    }
+
+    // SECURITY: Validar número de amostras solicitado
+    if (numSamples <= 0) {
+        return;
+    }
+
+    // SECURITY: Limitar o número de amostras ao tamanho disponível
     int available = numSamples;
     if (inputLen < numSamples || outputLen < numSamples) {
         available = std::min(static_cast<int>(inputLen), static_cast<int>(outputLen));
@@ -154,11 +202,25 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_processBuffer(JNIEnv* env, jcl
         }
     }
 
+    // SECURITY: Validar ponteiros antes de usar
     jfloat* inputPtr = env->GetFloatArrayElements(input, nullptr);
     jfloat* outputPtr = env->GetFloatArrayElements(output, nullptr);
 
+    if (inputPtr == nullptr || outputPtr == nullptr) {
+        // Limpar recursos em caso de erro
+        if (inputPtr != nullptr) {
+            env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
+        }
+        if (outputPtr != nullptr) {
+            env->ReleaseFloatArrayElements(output, outputPtr, JNI_ABORT);
+        }
+        return;
+    }
+
+    // SECURITY: Processar buffer com validações
     processBuffer(inputPtr, outputPtr, available, static_cast<int>(inputLen), static_cast<int>(outputLen));
 
+    // SECURITY: Liberar recursos de forma segura
     env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
     env->ReleaseFloatArrayElements(output, outputPtr, 0);
 }
@@ -292,16 +354,60 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbDamping(JNIEnv* env, 
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setEffectOrder(JNIEnv* env, jclass clazz, jobjectArray order) {
-    int count = env->GetArrayLength(order);
-    std::vector<const char*> orderVec(count);
-    for (int i = 0; i < count; ++i) {
-        jstring str = (jstring)env->GetObjectArrayElement(order, i);
-        orderVec[i] = env->GetStringUTFChars(str, nullptr);
+    // SECURITY: Validações robustas de parâmetros JNI
+    if (order == nullptr) {
+        return;
     }
-    setEffectOrder(orderVec.data(), count);
+
+    int count = env->GetArrayLength(order);
+    
+    // SECURITY: Validar tamanho do array
+    if (count <= 0) {
+        return;
+    }
+    
+    // SECURITY: Limitar número máximo de efeitos
+    const int MAX_EFFECTS = 10;
+    if (count > MAX_EFFECTS) {
+        count = MAX_EFFECTS;
+    }
+    
+    std::vector<const char*> orderVec(count);
+    std::vector<jstring> stringRefs(count);
+    
+    try {
+        for (int i = 0; i < count; ++i) {
+            jstring str = (jstring)env->GetObjectArrayElement(order, i);
+            if (str == nullptr) {
+                // Limpar recursos em caso de erro
+                for (int j = 0; j < i; ++j) {
+                    env->ReleaseStringUTFChars(stringRefs[j], orderVec[j]);
+                }
+                return;
+            }
+            stringRefs[i] = str;
+            orderVec[i] = env->GetStringUTFChars(str, nullptr);
+            if (orderVec[i] == nullptr) {
+                // Limpar recursos em caso de erro
+                for (int j = 0; j < i; ++j) {
+                    env->ReleaseStringUTFChars(stringRefs[j], orderVec[j]);
+                }
+                return;
+            }
+        }
+        
+        // SECURITY: Processar ordem de efeitos com validações
+        setEffectOrder(orderVec.data(), count);
+        
+    } catch (...) {
+        // SECURITY: Capturar exceções e limpar recursos
+    }
+    
+    // SECURITY: Liberar recursos de forma segura
     for (int i = 0; i < count; ++i) {
-        jstring str = (jstring)env->GetObjectArrayElement(order, i);
-        env->ReleaseStringUTFChars(str, orderVec[i]);
+        if (stringRefs[i] != nullptr && orderVec[i] != nullptr) {
+            env->ReleaseStringUTFChars(stringRefs[i], orderVec[i]);
+        }
     }
 }
 
@@ -562,11 +668,34 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperMix(JNIEnv* env, jcla
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_loadLooperFromAudio(JNIEnv* env, jclass clazz, jfloatArray audioData) {
+    // SECURITY: Validações robustas de parâmetros JNI
+    if (audioData == nullptr) {
+        return;
+    }
+
     jsize length = env->GetArrayLength(audioData);
+    
+    // SECURITY: Validar tamanho do array
+    if (length <= 0) {
+        return;
+    }
+    
+    // SECURITY: Limitar tamanho máximo para prevenir esgotamento de memória
+    const jsize MAX_AUDIO_LENGTH = 48000 * 60; // 1 minuto a 48kHz
+    if (length > MAX_AUDIO_LENGTH) {
+        length = MAX_AUDIO_LENGTH;
+    }
+    
     jfloat* data = env->GetFloatArrayElements(audioData, nullptr);
     
+    if (data == nullptr) {
+        return;
+    }
+    
+    // SECURITY: Processar dados de áudio com validações
     loadLooperFromAudio(data, length);
     
+    // SECURITY: Liberar recursos de forma segura
     env->ReleaseFloatArrayElements(audioData, data, JNI_ABORT);
 }
 
