@@ -2,33 +2,42 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissões necessárias -->
+    <!-- Permissão para capturar áudio do microfone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Permite ajustar configurações de áudio do dispositivo -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Necessária para execução do serviço em primeiro plano -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Permite reprodução de mídia em serviço em primeiro plano -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Requerida para envio de notificações ao usuário -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    
-    <!-- Permissões adicionais para áudio em background -->
+
+    <!-- Mantém a CPU ativa para reprodução contínua -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Verifica estado da rede para streaming -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Acessa informações de Wi-Fi para otimizar conexões -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Permite alterar configurações de Wi-Fi -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Necessária para acesso à Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
-    
-    <!-- Permissões para compatibilidade com diferentes versões do Android -->
+
+    <!-- Fornece feedback tátil em interações -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+    <!-- Salva arquivos em dispositivos com Android até a versão 9 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+    <!-- Lê arquivos externos em dispositivos com Android até a versão 12 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    
-    <!-- Permissões para exportar/importar presets -->
+
+    <!-- Lê arquivos de áudio para importar presets -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Lê imagens para importar presets -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Lê vídeos para importar presets -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <application
