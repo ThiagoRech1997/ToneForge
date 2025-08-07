@@ -513,4 +513,31 @@ public class AutomationManager {
             Log.e(TAG, "Erro ao salvar automações: " + e.getMessage());
         }
     }
+    
+    /**
+     * Limpa recursos do gerenciador de automação
+     */
+    public void cleanup() {
+        try {
+            // Parar gravação e reprodução se estiverem ativas
+            if (isRecording) {
+                stopRecording();
+            }
+            if (isPlaying) {
+                stopPlayback();
+            }
+            
+            // Salvar automações antes de limpar
+            saveAutomations();
+            
+            // Limpar dados temporários
+            automations.clear();
+            currentPresetName = "";
+            currentAutomationName = "";
+            
+            Log.d(TAG, "AutomationManager limpo");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao limpar AutomationManager: " + e.getMessage());
+        }
+    }
 } 

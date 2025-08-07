@@ -269,4 +269,33 @@ public class AudioAnalyzer {
         isInitialized = false;
         Log.d(TAG, "AudioAnalyzer liberado");
     }
+    
+    /**
+     * Inicia a análise de áudio
+     */
+    public void startAnalysis() {
+        if (visualizer != null && !visualizer.getEnabled()) {
+            visualizer.setEnabled(true);
+            Log.d(TAG, "Análise de áudio iniciada");
+        }
+    }
+    
+    /**
+     * Para a análise de áudio
+     */
+    public void stopAnalysis() {
+        if (visualizer != null && visualizer.getEnabled()) {
+            visualizer.setEnabled(false);
+            Log.d(TAG, "Análise de áudio parada");
+        }
+    }
+    
+    /**
+     * Limpa recursos do analisador
+     */
+    public void cleanup() {
+        release();
+        reset();
+        Log.d(TAG, "AudioAnalyzer limpo");
+    }
 } 

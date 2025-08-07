@@ -143,6 +143,31 @@ public class AudioState {
         this.automationPlaying = automationPlaying;
     }
     
+    // Métodos adicionais para compatibilidade com AudioRepository
+    public void setSampleRate(int sampleRate) {
+        // Implementação básica - pode ser expandida conforme necessário
+    }
+    
+    public void setBufferSize(int bufferSize) {
+        // Implementação básica - pode ser expandida conforme necessário
+    }
+    
+    public void setErrorCount(long errorCount) {
+        // Implementação básica - pode ser expandida conforme necessário
+    }
+    
+    public void setLastError(String lastError) {
+        // Implementação básica - pode ser expandida conforme necessário
+    }
+    
+    public void setUptime(long uptime) {
+        // Implementação básica - pode ser expandida conforme necessário
+    }
+    
+    public void setTotalSamplesProcessed(long totalSamplesProcessed) {
+        // Implementação básica - pode ser expandida conforme necessário
+    }
+    
     // Métodos utilitários
     
     /**

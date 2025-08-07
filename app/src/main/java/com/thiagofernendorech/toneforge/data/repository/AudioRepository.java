@@ -1,6 +1,7 @@
 package com.thiagofernendorech.toneforge.data.repository;
 
 import android.content.Context;
+import android.util.Log;
 import com.thiagofernendorech.toneforge.AudioEngine;
 import com.thiagofernendorech.toneforge.PipelineManager;
 import com.thiagofernendorech.toneforge.AudioStateManager;
@@ -20,6 +21,8 @@ import java.util.ArrayList;
  * Abstrai a complexidade dos managers de áudio e fornece interface unificada
  */
 public class AudioRepository {
+    
+    private static final String TAG = "AudioRepository";
     
     private static AudioRepository instance;
     private Context context;
@@ -55,15 +58,79 @@ public class AudioRepository {
      * Inicializa todos os managers de áudio
      */
     private void initializeManagers() {
-        // Versão simplificada - implementação futura
-        audioEngine = AudioEngine.getInstance();
-        pipelineManager = PipelineManager.getInstance();
-        stateManager = AudioStateManager.getInstance(context);
-        latencyManager = LatencyManager.getInstance(context);
-        audioAnalyzer = new AudioAnalyzer();
-        presetManager = new PresetManager();
-        automationManager = AutomationManager.getInstance(context);
-        midiManager = ToneForgeMidiManager.getInstance(context);
+        try {
+            audioEngine = AudioEngine.getInstance();
+            pipelineManager = PipelineManager.getInstance();
+            stateManager = AudioStateManager.getInstance(context);
+            latencyManager = LatencyManager.getInstance(context);
+            audioAnalyzer = new AudioAnalyzer();
+            presetManager = new PresetManager();
+            automationManager = AutomationManager.getInstance(context);
+            midiManager = ToneForgeMidiManager.getInstance(context);
+            
+            // Inicializar pipeline manager
+            pipelineManager.initialize(context);
+            
+            // Configurar callback para mudanças de estado
+            pipelineManager.setCallback(new PipelineManager.PipelineCallback() {
+                @Override
+                public void onPipelineStarted() {
+                    Log.d(TAG, "Pipeline de áudio iniciado");
+                    updateAudioState();
+                }
+                
+                @Override
+                public void onPipelineStopped() {
+                    Log.d(TAG, "Pipeline de áudio parado");
+                    updateAudioState();
+                }
+                
+                @Override
+                public void onPipelineError(String error) {
+                    Log.e(TAG, "Erro no pipeline de áudio: " + error);
+                    updateAudioState();
+                }
+                
+                @Override
+                public void onPipelineRecovered() {
+                    Log.d(TAG, "Pipeline de áudio recuperado");
+                    updateAudioState();
+                }
+                
+                @Override
+                public void onPipelineStateChanged(int oldState, int newState) {
+                    Log.d(TAG, "Estado do pipeline alterado: " + oldState + " -> " + newState);
+                    updateAudioState();
+                }
+                
+                @Override
+                public void onSampleRateChanged(int newSampleRate) {
+                    Log.d(TAG, "Taxa de amostragem alterada: " + newSampleRate + " Hz");
+                    // Atualizar engine nativo com nova taxa de amostragem
+                    if (AudioEngine.isNativeLibraryLoaded()) {
+                        audioEngine.setSampleRate(newSampleRate);
+                    }
+                    updateAudioState();
+                }
+            });
+            
+            Log.d(TAG, "Managers de áudio inicializados com sucesso");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao inicializar managers de áudio: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Atualiza o estado do áudio
+     */
+    private void updateAudioState() {
+        try {
+            AudioState state = getCurrentAudioState();
+            stateManager.saveCurrentState();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao atualizar estado do áudio: " + e.getMessage(), e);
+        }
     }
     
     // === OPERAÇÕES DE ÁUDIO ===
@@ -73,16 +140,109 @@ public class AudioRepository {
      * @return true se iniciado com sucesso
      */
     public boolean startAudioPipeline() {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Iniciando pipeline de áudio...");
+            
+            // Verificar se a biblioteca nativa está carregada
+            if (!AudioEngine.isNativeLibraryLoaded()) {
+                Log.e(TAG, "Biblioteca nativa não está carregada");
+                return false;
+            }
+            
+            // Verificar se o pipeline já está rodando
+            if (pipelineManager.isRunning()) {
+                Log.d(TAG, "Pipeline já está rodando");
+                return true;
+            }
+            
+            // Inicializar engine de áudio
+            try {
+                audioEngine.initAudioEngine();
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao inicializar engine de áudio: " + e.getMessage(), e);
+                return false;
+            }
+            
+            // Iniciar pipeline com retry
+            boolean success = false;
+            int retryCount = 0;
+            final int MAX_RETRIES = 3;
+            
+            while (!success && retryCount < MAX_RETRIES) {
+                try {
+                    success = pipelineManager.startPipeline();
+                    if (!success) {
+                        retryCount++;
+                        Log.w(TAG, "Tentativa " + retryCount + " de iniciar pipeline falhou");
+                        if (retryCount < MAX_RETRIES) {
+                            Thread.sleep(100 * retryCount); // Backoff exponencial
+                        }
+                    }
+                } catch (Exception e) {
+                    retryCount++;
+                    Log.e(TAG, "Erro na tentativa " + retryCount + ": " + e.getMessage(), e);
+                    if (retryCount < MAX_RETRIES) {
+                        try {
+                            Thread.sleep(100 * retryCount);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (success) {
+                Log.d(TAG, "Pipeline de áudio iniciado com sucesso");
+                updateAudioState();
+            } else {
+                Log.e(TAG, "Falha ao iniciar pipeline após " + MAX_RETRIES + " tentativas");
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar pipeline de áudio: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
      * Para o pipeline de áudio
      */
     public void stopAudioPipeline() {
-        // Versão simplificada - implementação futura
-        // pipelineManager.stopPipeline();
+        try {
+            Log.d(TAG, "Parando pipeline de áudio...");
+            
+            // Verificar se o pipeline está rodando antes de parar
+            if (!pipelineManager.isRunning()) {
+                Log.d(TAG, "Pipeline já estava parado");
+                return;
+            }
+            
+            // Parar pipeline
+            try {
+                pipelineManager.stopPipeline();
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao parar pipeline: " + e.getMessage(), e);
+                // Continuar com a limpeza mesmo se houver erro
+            }
+            
+            // Limpar engine de áudio
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                try {
+                    audioEngine.cleanupAudioEngine();
+                } catch (Exception e) {
+                    Log.e(TAG, "Erro ao limpar engine de áudio: " + e.getMessage(), e);
+                }
+            }
+            
+            Log.d(TAG, "Pipeline de áudio parado");
+            updateAudioState();
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar pipeline de áudio: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -90,24 +250,48 @@ public class AudioRepository {
      * @return true se o pipeline está ativo
      */
     public boolean isAudioPipelineRunning() {
-        // Versão simplificada - implementação futura
-        return false;
+        try {
+            // Verificar se a biblioteca nativa está carregada
+            if (!AudioEngine.isNativeLibraryLoaded()) {
+                Log.d(TAG, "Biblioteca nativa não carregada, pipeline não pode estar rodando");
+                return false;
+            }
+            
+            // Verificar estado do pipeline
+            boolean isRunning = pipelineManager.isRunning();
+            Log.d(TAG, "Estado do pipeline: " + (isRunning ? "rodando" : "parado"));
+            return isRunning;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao verificar estado do pipeline: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
      * Pausa o pipeline de áudio
      */
     public void pauseAudioPipeline() {
-        // Versão simplificada - implementação futura
-        // pipelineManager.pausePipeline();
+        try {
+            Log.d(TAG, "Pausando pipeline de áudio...");
+            pipelineManager.pausePipeline();
+            updateAudioState();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao pausar pipeline de áudio: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Resume o pipeline de áudio
      */
     public void resumeAudioPipeline() {
-        // Versão simplificada - implementação futura
-        // pipelineManager.resumePipeline();
+        try {
+            Log.d(TAG, "Resumindo pipeline de áudio...");
+            pipelineManager.resumePipeline();
+            updateAudioState();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao resumir pipeline de áudio: " + e.getMessage(), e);
+        }
     }
     
     // === PARÂMETROS DE EFEITOS ===
@@ -117,19 +301,40 @@ public class AudioRepository {
      * @param parameters parâmetros a serem aplicados
      */
     public void applyEffectParameters(EffectParameters parameters) {
-        // Versão simplificada - implementação futura
-        // if (parameters.getGain() != null) {
-        //     audioEngine.setGain(parameters.getGain());
-        // }
-        // if (parameters.getDistortion() != null) {
-        //     audioEngine.setDistortion(parameters.getDistortion());
-        // }
-        // if (parameters.getDelayTime() != null && parameters.getDelayFeedback() != null) {
-        //     audioEngine.setDelay(parameters.getDelayTime(), parameters.getDelayFeedback());
-        // }
-        // if (parameters.getReverbRoomSize() != null && parameters.getReverbDamping() != null) {
-        //     audioEngine.setReverb(parameters.getReverbRoomSize(), parameters.getReverbDamping());
-        // }
+        try {
+            if (!AudioEngine.isNativeLibraryLoaded()) {
+                Log.w(TAG, "Biblioteca nativa não carregada - não é possível aplicar parâmetros");
+                return;
+            }
+            
+            if (parameters.getGain() != null) {
+                audioEngine.setGain(parameters.getGain());
+                Log.d(TAG, "Ganho aplicado: " + parameters.getGain());
+            }
+            
+            if (parameters.getDistortion() != null) {
+                audioEngine.setDistortion(parameters.getDistortion());
+                Log.d(TAG, "Distorção aplicada: " + parameters.getDistortion());
+            }
+            
+            if (parameters.getDelayTime() != null && parameters.getDelayFeedback() != null) {
+                audioEngine.setDelay(parameters.getDelayTime(), parameters.getDelayFeedback());
+                Log.d(TAG, "Delay aplicado: tempo=" + parameters.getDelayTime() + 
+                          ", feedback=" + parameters.getDelayFeedback());
+            }
+            
+            if (parameters.getReverbRoomSize() != null && parameters.getReverbDamping() != null) {
+                audioEngine.setReverb(parameters.getReverbRoomSize(), parameters.getReverbDamping());
+                Log.d(TAG, "Reverb aplicado: roomSize=" + parameters.getReverbRoomSize() + 
+                          ", damping=" + parameters.getReverbDamping());
+            }
+            
+            // Atualizar estado
+            updateAudioState();
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao aplicar parâmetros de efeitos: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -139,14 +344,34 @@ public class AudioRepository {
     public EffectParameters getCurrentEffectParameters() {
         EffectParameters parameters = new EffectParameters();
         
-        // Aqui você pode implementar getters no AudioEngine ou usar o StateManager
-        // Por enquanto, vamos usar valores padrão
-        parameters.setGain(0.5f);
-        parameters.setDistortion(0.0f);
-        parameters.setDelayTime(0.0f);
-        parameters.setDelayFeedback(0.0f);
-        parameters.setReverbRoomSize(0.0f);
-        parameters.setReverbDamping(0.0f);
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                // Obter valores do engine nativo
+                parameters.setGain(audioEngine.getGain());
+                parameters.setDistortion(audioEngine.getDistortion());
+                parameters.setDelayTime(audioEngine.getDelayTime());
+                parameters.setDelayFeedback(audioEngine.getDelayFeedback());
+                parameters.setReverbRoomSize(audioEngine.getReverbRoomSize());
+                parameters.setReverbDamping(audioEngine.getReverbDamping());
+            } else {
+                // Valores padrão se a biblioteca não estiver carregada
+                parameters.setGain(0.5f);
+                parameters.setDistortion(0.0f);
+                parameters.setDelayTime(0.0f);
+                parameters.setDelayFeedback(0.0f);
+                parameters.setReverbRoomSize(0.0f);
+                parameters.setReverbDamping(0.0f);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter parâmetros atuais: " + e.getMessage(), e);
+            // Usar valores padrão em caso de erro
+            parameters.setGain(0.5f);
+            parameters.setDistortion(0.0f);
+            parameters.setDelayTime(0.0f);
+            parameters.setDelayFeedback(0.0f);
+            parameters.setReverbRoomSize(0.0f);
+            parameters.setReverbDamping(0.0f);
+        }
         
         return parameters;
     }
@@ -158,8 +383,14 @@ public class AudioRepository {
      * @param enabled true para ativar
      */
     public void setGainEnabled(boolean enabled) {
-        // Versão simplificada - implementação futura
-        // audioEngine.setGainEnabled(enabled);
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                audioEngine.setGainEnabled(enabled);
+                Log.d(TAG, "Ganho " + (enabled ? "ativado" : "desativado"));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar ganho: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -167,8 +398,14 @@ public class AudioRepository {
      * @param enabled true para ativar
      */
     public void setDistortionEnabled(boolean enabled) {
-        // Versão simplificada - implementação futura
-        // audioEngine.setDistortionEnabled(enabled);
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                audioEngine.setDistortionEnabled(enabled);
+                Log.d(TAG, "Distorção " + (enabled ? "ativada" : "desativada"));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar distorção: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -176,8 +413,14 @@ public class AudioRepository {
      * @param enabled true para ativar
      */
     public void setDelayEnabled(boolean enabled) {
-        // Versão simplificada - implementação futura
-        // audioEngine.setDelayEnabled(enabled);
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                audioEngine.setDelayEnabled(enabled);
+                Log.d(TAG, "Delay " + (enabled ? "ativado" : "desativado"));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar delay: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -185,8 +428,14 @@ public class AudioRepository {
      * @param enabled true para ativar
      */
     public void setReverbEnabled(boolean enabled) {
-        // Versão simplificada - implementação futura
-        // audioEngine.setReverbEnabled(enabled);
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                audioEngine.setReverbEnabled(enabled);
+                Log.d(TAG, "Reverb " + (enabled ? "ativado" : "desativado"));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar reverb: " + e.getMessage(), e);
+        }
     }
     
     // === PRESETS ===
@@ -197,8 +446,28 @@ public class AudioRepository {
      * @return true se carregado com sucesso
      */
     public boolean loadPreset(String presetName) {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Carregando preset: " + presetName);
+            
+            // Carregar preset do manager
+            boolean success = presetManager.loadPreset(presetName);
+            
+            if (success) {
+                // Aplicar parâmetros do preset
+                EffectParameters parameters = presetManager.getCurrentPresetParameters();
+                applyEffectParameters(parameters);
+                
+                Log.d(TAG, "Preset carregado com sucesso: " + presetName);
+            } else {
+                Log.e(TAG, "Falha ao carregar preset: " + presetName);
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao carregar preset: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
@@ -207,8 +476,27 @@ public class AudioRepository {
      * @return true se salvo com sucesso
      */
     public boolean savePreset(String presetName) {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Salvando preset: " + presetName);
+            
+            // Obter parâmetros atuais
+            EffectParameters parameters = getCurrentEffectParameters();
+            
+            // Salvar preset
+            boolean success = presetManager.savePreset(presetName, parameters);
+            
+            if (success) {
+                Log.d(TAG, "Preset salvo com sucesso: " + presetName);
+            } else {
+                Log.e(TAG, "Falha ao salvar preset: " + presetName);
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao salvar preset: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
@@ -216,8 +504,12 @@ public class AudioRepository {
      * @return lista de nomes de presets
      */
     public List<String> getPresetNames() {
-        // Versão simplificada - implementação futura
-        return new ArrayList<>();
+        try {
+            return presetManager.getPresetNames();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter lista de presets: " + e.getMessage(), e);
+            return new ArrayList<>();
+        }
     }
     
     /**
@@ -226,8 +518,23 @@ public class AudioRepository {
      * @return true se removido com sucesso
      */
     public boolean deletePreset(String presetName) {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Removendo preset: " + presetName);
+            
+            boolean success = presetManager.deletePreset(presetName);
+            
+            if (success) {
+                Log.d(TAG, "Preset removido com sucesso: " + presetName);
+            } else {
+                Log.e(TAG, "Falha ao remover preset: " + presetName);
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao remover preset: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     // === AUTOMAÇÃO ===
@@ -239,8 +546,19 @@ public class AudioRepository {
      * @return true se iniciado com sucesso
      */
     public boolean startAutomationRecording(String presetName, String automationName) {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Iniciando gravação de automação: " + automationName + " para preset: " + presetName);
+            
+            automationManager.startRecording(presetName, automationName);
+            
+            Log.d(TAG, "Gravação de automação iniciada com sucesso");
+            
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar gravação de automação: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
@@ -248,8 +566,19 @@ public class AudioRepository {
      * @return true se parado com sucesso
      */
     public boolean stopAutomationRecording() {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Parando gravação de automação...");
+            
+            automationManager.stopRecording();
+            
+            Log.d(TAG, "Gravação de automação parada com sucesso");
+            
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar gravação de automação: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
@@ -259,8 +588,19 @@ public class AudioRepository {
      * @return true se iniciado com sucesso
      */
     public boolean startAutomationPlayback(String presetName, String automationName) {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Iniciando reprodução de automação: " + automationName + " para preset: " + presetName);
+            
+            automationManager.startPlayback(presetName, automationName);
+            
+            Log.d(TAG, "Reprodução de automação iniciada com sucesso");
+            
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar reprodução de automação: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     /**
@@ -268,8 +608,19 @@ public class AudioRepository {
      * @return true se parado com sucesso
      */
     public boolean stopAutomationPlayback() {
-        // Versão simplificada - implementação futura
-        return true;
+        try {
+            Log.d(TAG, "Parando reprodução de automação...");
+            
+            automationManager.stopPlayback();
+            
+            Log.d(TAG, "Reprodução de automação parada com sucesso");
+            
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar reprodução de automação: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     // === ESTADO DO ÁUDIO ===
@@ -280,11 +631,28 @@ public class AudioRepository {
      */
     public AudioState getCurrentAudioState() {
         AudioState state = new AudioState();
-        // Versão simplificada - implementação futura
-        state.setPipelineRunning(false);
-        state.setPipelinePaused(false);
-        state.setCurrentLatencyMode(1);
-        state.setOversamplingEnabled(false);
+        
+        try {
+            state.setPipelineRunning(pipelineManager.isRunning());
+            state.setPipelinePaused(pipelineManager.isPaused());
+            state.setCurrentLatencyMode(latencyManager.getCurrentMode());
+            state.setOversamplingEnabled(audioEngine.isOversamplingEnabled());
+            state.setSampleRate(pipelineManager.getCurrentSampleRate());
+            state.setBufferSize(pipelineManager.getCurrentBufferSize());
+            state.setErrorCount(pipelineManager.getErrorCount());
+            state.setLastError(pipelineManager.getLastError());
+            state.setUptime(pipelineManager.getUptime());
+            state.setTotalSamplesProcessed(pipelineManager.getTotalSamplesProcessed());
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter estado do áudio: " + e.getMessage(), e);
+            // Estado padrão em caso de erro
+            state.setPipelineRunning(false);
+            state.setPipelinePaused(false);
+            state.setCurrentLatencyMode(1);
+            state.setOversamplingEnabled(false);
+        }
+        
         return state;
     }
     
@@ -292,16 +660,25 @@ public class AudioRepository {
      * Salva o estado atual do áudio
      */
     public void saveCurrentState() {
-        // Versão simplificada - implementação futura
-        // stateManager.saveCurrentState();
+        try {
+            AudioState state = getCurrentAudioState();
+            stateManager.saveCurrentState();
+            Log.d(TAG, "Estado do áudio salvo");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao salvar estado do áudio: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Restaura o estado salvo do áudio
      */
     public void restoreState() {
-        // Versão simplificada - implementação futura
-        // stateManager.restoreState();
+        try {
+            stateManager.restoreState();
+            Log.d(TAG, "Estado do áudio restaurado");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao restaurar estado do áudio: " + e.getMessage(), e);
+        }
     }
     
     // === CONFIGURAÇÕES DE LATÊNCIA ===
@@ -311,7 +688,12 @@ public class AudioRepository {
      * @param mode modo (0=baixa, 1=equilibrado, 2=estabilidade)
      */
     public void setLatencyMode(int mode) {
-        latencyManager.setLatencyMode(mode);
+        try {
+            latencyManager.setLatencyMode(mode);
+            Log.d(TAG, "Modo de latência alterado para: " + mode);
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao alterar modo de latência: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -319,7 +701,12 @@ public class AudioRepository {
      * @return modo atual
      */
     public int getCurrentLatencyMode() {
-        return latencyManager.getCurrentMode();
+        try {
+            return latencyManager.getCurrentMode();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter modo de latência: " + e.getMessage(), e);
+            return 1; // Modo equilibrado como fallback
+        }
     }
     
     /**
@@ -327,7 +714,12 @@ public class AudioRepository {
      * @return latência estimada
      */
     public float getEstimatedLatency() {
-        return latencyManager.getEstimatedLatency();
+        try {
+            return latencyManager.getEstimatedLatency();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter latência estimada: " + e.getMessage(), e);
+            return 10.0f; // Latência padrão como fallback
+        }
     }
     
     // === MIDI ===
@@ -337,8 +729,12 @@ public class AudioRepository {
      * @param enabled true para ativar
      */
     public void setMidiEnabled(boolean enabled) {
-        // Versão simplificada - implementação futura
-        // midiManager.setMidiEnabled(enabled);
+        try {
+            midiManager.setMidiEnabled(enabled);
+            Log.d(TAG, "MIDI " + (enabled ? "ativado" : "desativado"));
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar MIDI: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -346,8 +742,12 @@ public class AudioRepository {
      * @return true se MIDI está ativo
      */
     public boolean isMidiEnabled() {
-        // Versão simplificada - implementação futura
-        return false;
+        try {
+            return midiManager.isMidiEnabled();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao verificar estado do MIDI: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     // === ANÁLISE DE ÁUDIO ===
@@ -357,17 +757,25 @@ public class AudioRepository {
      * @param callback callback para receber dados
      */
     public void startAudioAnalysis(AudioAnalyzer.AudioAnalyzerCallback callback) {
-        // Versão simplificada - implementação futura
-        // audioAnalyzer.setCallback(callback);
-        // audioAnalyzer.startAnalysis();
+        try {
+            audioAnalyzer.setCallback(callback);
+            audioAnalyzer.startAnalysis();
+            Log.d(TAG, "Análise de áudio iniciada");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar análise de áudio: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Para análise de áudio
      */
     public void stopAudioAnalysis() {
-        // Versão simplificada - implementação futura
-        // audioAnalyzer.stopAnalysis();
+        try {
+            audioAnalyzer.stopAnalysis();
+            Log.d(TAG, "Análise de áudio parada");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar análise de áudio: " + e.getMessage(), e);
+        }
     }
     
     // === LOOPER ===
@@ -376,35 +784,60 @@ public class AudioRepository {
      * Inicia gravação do looper
      */
     public void startLooperRecording() {
-        audioEngine.startLooperRecording();
+        try {
+            audioEngine.startLooperRecording();
+            Log.d(TAG, "Gravação do looper iniciada");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar gravação do looper: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Para gravação do looper
      */
     public void stopLooperRecording() {
-        audioEngine.stopLooperRecording();
+        try {
+            audioEngine.stopLooperRecording();
+            Log.d(TAG, "Gravação do looper parada");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar gravação do looper: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Inicia reprodução do looper
      */
     public void startLooperPlayback() {
-        audioEngine.startLooperPlayback();
+        try {
+            audioEngine.startLooperPlayback();
+            Log.d(TAG, "Reprodução do looper iniciada");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar reprodução do looper: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Para reprodução do looper
      */
     public void stopLooperPlayback() {
-        audioEngine.stopLooperPlayback();
+        try {
+            audioEngine.stopLooperPlayback();
+            Log.d(TAG, "Reprodução do looper parada");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar reprodução do looper: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Limpa o looper
      */
     public void clearLooper() {
-        audioEngine.clearLooper();
+        try {
+            audioEngine.clearLooper();
+            Log.d(TAG, "Looper limpo");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao limpar looper: " + e.getMessage(), e);
+        }
     }
     
     // === AFINADOR ===
@@ -413,14 +846,24 @@ public class AudioRepository {
      * Inicia afinador
      */
     public void startTuner() {
-        audioEngine.startTuner();
+        try {
+            audioEngine.startTuner();
+            Log.d(TAG, "Afinador iniciado");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar afinador: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Para afinador
      */
     public void stopTuner() {
-        audioEngine.stopTuner();
+        try {
+            audioEngine.stopTuner();
+            Log.d(TAG, "Afinador parado");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar afinador: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -428,7 +871,12 @@ public class AudioRepository {
      * @return frequência em Hz
      */
     public float getDetectedFrequency() {
-        return audioEngine.getDetectedFrequency();
+        try {
+            return audioEngine.getDetectedFrequency();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter frequência detectada: " + e.getMessage(), e);
+            return 0.0f;
+        }
     }
     
     // === METRÔNOMO ===
@@ -438,14 +886,24 @@ public class AudioRepository {
      * @param bpm batidas por minuto
      */
     public void startMetronome(int bpm) {
-        audioEngine.startMetronome(bpm);
+        try {
+            audioEngine.startMetronome(bpm);
+            Log.d(TAG, "Metrônomo iniciado com " + bpm + " BPM");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao iniciar metrônomo: " + e.getMessage(), e);
+        }
     }
     
     /**
      * Para metrônomo
      */
     public void stopMetronome() {
-        audioEngine.stopMetronome();
+        try {
+            audioEngine.stopMetronome();
+            Log.d(TAG, "Metrônomo parado");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao parar metrônomo: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -453,7 +911,12 @@ public class AudioRepository {
      * @return true se ativo
      */
     public boolean isMetronomeActive() {
-        return audioEngine.isMetronomeActive();
+        try {
+            return audioEngine.isMetronomeActive();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao verificar estado do metrônomo: " + e.getMessage(), e);
+            return false;
+        }
     }
     
     // === LIMPEZA ===
@@ -462,13 +925,31 @@ public class AudioRepository {
      * Limpa recursos do repository
      */
     public void cleanup() {
-        // Versão simplificada - implementação futura
-        // if (audioAnalyzer != null) {
-        //     audioAnalyzer.cleanup();
-        // }
-        // if (midiManager != null) {
-        //     midiManager.cleanup();
-        // }
-        // Limpar outros managers conforme necessário
+        try {
+            Log.d(TAG, "Limpando recursos do AudioRepository...");
+            
+            // Parar pipeline se estiver rodando
+            if (isAudioPipelineRunning()) {
+                stopAudioPipeline();
+            }
+            
+            // Limpar managers
+            if (audioAnalyzer != null) {
+                audioAnalyzer.cleanup();
+            }
+            
+            if (midiManager != null) {
+                midiManager.cleanup();
+            }
+            
+            if (automationManager != null) {
+                automationManager.cleanup();
+            }
+            
+            Log.d(TAG, "Recursos do AudioRepository limpos");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao limpar recursos: " + e.getMessage(), e);
+        }
     }
 } 

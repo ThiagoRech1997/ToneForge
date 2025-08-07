@@ -10,15 +10,27 @@ import android.os.Looper;
 import android.util.Log;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import android.media.AudioManager;
 
 public class PipelineManager {
     private static final String TAG = "PipelineManager";
     
-    // Configurações do pipeline
-    private static final int SAMPLE_RATE = 48000;
-    private static final int BUFFER_SIZE = 2048;
+    // Configurações do pipeline - agora dinâmicas
+    private static int SAMPLE_RATE = 48000; // Será detectado dinamicamente
+    private static int BUFFER_SIZE = 2048;
     private static final int CHANNEL_CONFIG = AudioFormat.CHANNEL_OUT_MONO;
     private static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_FLOAT;
+    
+    // Limites de segurança
+    private static final int MIN_BUFFER_SIZE = 512;
+    private static final int MAX_BUFFER_SIZE = 65536;
+    private static final int MIN_SAMPLE_RATE = 8000;
+    private static final int MAX_SAMPLE_RATE = 192000;
+    
+    // Taxas de amostragem suportadas (em ordem de preferência)
+    private static final int[] SUPPORTED_SAMPLE_RATES = {
+        48000, 44100, 96000, 88200, 32000, 22050, 16000
+    };
     
     // Estados do pipeline
     private static final int STATE_STOPPED = 0;
@@ -80,6 +92,7 @@ public class PipelineManager {
     private boolean isRunning = false;
     private boolean isPaused = false;
     private LatencyManager latencyManager;
+    private Context appContext;
     
     public interface PipelineCallback {
         void onPipelineStarted();
@@ -87,6 +100,7 @@ public class PipelineManager {
         void onPipelineError(String error);
         void onPipelineRecovered();
         void onPipelineStateChanged(int oldState, int newState);
+        void onSampleRateChanged(int newSampleRate);
     }
     
     private PipelineManager() {
@@ -102,8 +116,155 @@ public class PipelineManager {
         return instance;
     }
     
+    /**
+     * Detecta a melhor taxa de amostragem suportada pelo dispositivo
+     */
+    private int detectOptimalSampleRate() {
+        Log.d(TAG, "Detectando taxa de amostragem ótima...");
+        
+        // Primeiro, tentar obter a taxa nativa do dispositivo
+        int nativeSampleRate = getNativeSampleRate(appContext);
+        if (nativeSampleRate > 0) {
+            Log.d(TAG, "Taxa nativa do dispositivo detectada: " + nativeSampleRate + " Hz");
+            if (isSampleRateSupported(nativeSampleRate)) {
+                return nativeSampleRate;
+            } else {
+                Log.w(TAG, "Taxa nativa " + nativeSampleRate + " Hz não suportada, testando alternativas");
+            }
+        }
+        
+        // Testar taxas suportadas em ordem de preferência
+        for (int sampleRate : SUPPORTED_SAMPLE_RATES) {
+            if (isSampleRateSupported(sampleRate)) {
+                Log.d(TAG, "Taxa de amostragem detectada: " + sampleRate + " Hz");
+                return sampleRate;
+            }
+        }
+        
+        // Fallback para 48kHz se nenhuma taxa for suportada
+        Log.w(TAG, "Nenhuma taxa de amostragem suportada detectada, usando fallback: 48000 Hz");
+        return 48000;
+    }
+    
+    /**
+     * Obtém a taxa de amostragem nativa do dispositivo
+     */
+    private int getNativeSampleRate(Context context) {
+        try {
+            // Tentar obter via AudioManager
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager != null) {
+                String sampleRateStr = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+                if (sampleRateStr != null) {
+                    int nativeRate = Integer.parseInt(sampleRateStr);
+                    Log.d(TAG, "Taxa nativa via AudioManager: " + nativeRate + " Hz");
+                    return nativeRate;
+                }
+            }
+            
+            // Tentar obter via AudioTrack
+            int[] sampleRates = {48000, 44100, 96000, 88200, 32000, 22050, 16000};
+            for (int rate : sampleRates) {
+                int minBufferSize = AudioTrack.getMinBufferSize(rate, CHANNEL_CONFIG, AUDIO_FORMAT);
+                if (minBufferSize != AudioTrack.ERROR_BAD_VALUE && minBufferSize != AudioTrack.ERROR) {
+                    Log.d(TAG, "Taxa nativa via AudioTrack: " + rate + " Hz");
+                    return rate;
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.w(TAG, "Erro ao detectar taxa nativa: " + e.getMessage());
+        }
+        
+        return 0; // Não foi possível detectar
+    }
+    
+    /**
+     * Verifica se uma taxa de amostragem é suportada
+     */
+    private boolean isSampleRateSupported(int sampleRate) {
+        try {
+            // Testar AudioRecord
+            int minBufferSize = AudioRecord.getMinBufferSize(sampleRate, 
+                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT);
+            
+            if (minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+                return false;
+            }
+            
+            // Testar AudioTrack
+            int minTrackBufferSize = AudioTrack.getMinBufferSize(sampleRate, 
+                CHANNEL_CONFIG, AUDIO_FORMAT);
+            
+            if (minTrackBufferSize == AudioTrack.ERROR_BAD_VALUE) {
+                return false;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            Log.d(TAG, "Taxa de amostragem " + sampleRate + " não suportada: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Configura a taxa de amostragem e ajusta os buffers
+     */
+    private void configureSampleRate(int newSampleRate) {
+        if (SAMPLE_RATE != newSampleRate) {
+            int oldSampleRate = SAMPLE_RATE;
+            
+            try {
+                // Validar nova taxa de amostragem
+                if (newSampleRate < 8000 || newSampleRate > 192000) {
+                    Log.w(TAG, "Taxa de amostragem inválida: " + newSampleRate + " Hz, usando fallback");
+                    newSampleRate = 48000;
+                }
+                
+                SAMPLE_RATE = newSampleRate;
+                
+                // Ajustar tamanho do buffer baseado na nova taxa
+                int newBufferSize = Math.max(MIN_BUFFER_SIZE, 
+                                           Math.min(newSampleRate / 24, MAX_BUFFER_SIZE)); // ~42ms de buffer
+                BUFFER_SIZE = newBufferSize;
+                
+                // Recriar buffers com verificação de memória
+                try {
+                    inputBuffer = new float[BUFFER_SIZE];
+                    outputBuffer = new float[BUFFER_SIZE];
+                } catch (OutOfMemoryError e) {
+                    Log.e(TAG, "Erro de memória ao criar buffers, reduzindo tamanho", e);
+                    BUFFER_SIZE = MIN_BUFFER_SIZE;
+                    inputBuffer = new float[BUFFER_SIZE];
+                    outputBuffer = new float[BUFFER_SIZE];
+                }
+                
+                // Notificar mudança de taxa de amostragem
+                if (callback != null) {
+                    callback.onSampleRateChanged(newSampleRate);
+                }
+                
+                Log.d(TAG, "Taxa de amostragem alterada: " + oldSampleRate + " -> " + newSampleRate + 
+                          " Hz, Buffer: " + BUFFER_SIZE);
+                
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao configurar taxa de amostragem: " + e.getMessage(), e);
+                // Fallback para configuração segura
+                SAMPLE_RATE = 48000;
+                BUFFER_SIZE = 2048;
+                inputBuffer = new float[BUFFER_SIZE];
+                outputBuffer = new float[BUFFER_SIZE];
+            }
+        }
+    }
+    
     public void initialize(Context context) {
+        this.appContext = context;
         latencyManager = LatencyManager.getInstance(context);
+        
+        // Detectar taxa de amostragem ótima
+        int optimalSampleRate = detectOptimalSampleRate();
+        configureSampleRate(optimalSampleRate);
         
         // Configurar listener mais inteligente para mudanças de latência
         latencyManager.setLatencyChangeListener(new LatencyManager.LatencyChangeListener() {
@@ -123,13 +284,32 @@ public class PipelineManager {
             
             @Override
             public void onSampleRateChanged(int newSampleRate) {
-                // Sample rate é aplicado automaticamente pelo AudioEngine
+                // Reconfigurar pipeline com nova taxa de amostragem
+                configureSampleRate(newSampleRate);
+                if (isRunning && isActivityRequired()) {
+                    Log.d(TAG, "Reiniciando pipeline com nova taxa de amostragem");
+                    restartPipeline();
+                }
             }
         });
     }
     
     public void setCallback(PipelineCallback callback) {
         this.callback = callback;
+    }
+    
+    /**
+     * Obtém a taxa de amostragem atual
+     */
+    public int getCurrentSampleRate() {
+        return SAMPLE_RATE;
+    }
+    
+    /**
+     * Obtém o tamanho do buffer atual
+     */
+    public int getCurrentBufferSize() {
+        return BUFFER_SIZE;
     }
     
     /**
@@ -148,10 +328,8 @@ public class PipelineManager {
         updateActivityStatus();
         
         if (!wasRequired && isActivityRequired()) {
-            Log.d(TAG, "Efeitos ativados - iniciando pipeline");
             startPipelineIfNeeded();
         } else if (wasRequired && !isActivityRequired()) {
-            Log.d(TAG, "Nenhuma atividade detectada - parando pipeline");
             stopPipelineIfNotNeeded();
         }
     }
@@ -165,7 +343,6 @@ public class PipelineManager {
         updateActivityStatus();
         
         if (!wasRequired && isActivityRequired()) {
-            Log.d(TAG, "Gravação iniciada - iniciando pipeline");
             startPipelineIfNeeded();
         } else if (wasRequired && !isActivityRequired()) {
             stopPipelineIfNotNeeded();
@@ -181,7 +358,6 @@ public class PipelineManager {
         updateActivityStatus();
         
         if (!wasRequired && isActivityRequired()) {
-            Log.d(TAG, "Looping iniciado - iniciando pipeline");
             startPipelineIfNeeded();
         } else if (wasRequired && !isActivityRequired()) {
             stopPipelineIfNotNeeded();
@@ -197,7 +373,6 @@ public class PipelineManager {
         updateActivityStatus();
         
         if (!wasRequired && isActivityRequired()) {
-            Log.d(TAG, "Reprodução iniciada - iniciando pipeline");
             startPipelineIfNeeded();
         } else if (wasRequired && !isActivityRequired()) {
             stopPipelineIfNotNeeded();
@@ -205,38 +380,33 @@ public class PipelineManager {
     }
     
     /**
-     * Notifica atividade do usuário (interação com controles)
+     * Notifica atividade do usuário
      */
     public void notifyUserActivity() {
         hasUserActivity = true;
+        lastActivityTime = System.currentTimeMillis();
         updateActivityStatus();
         
-        if (!isActivityRequired()) {
-            startPipelineIfNeeded();
-        }
-        
-        // Agendar verificação de timeout
+        // Cancelar timeout anterior
         uiHandler.removeCallbacks(activityTimeoutRunnable);
+        // Agendar novo timeout
         uiHandler.postDelayed(activityTimeoutRunnable, ACTIVITY_TIMEOUT);
     }
     
     private final Runnable activityTimeoutRunnable = new Runnable() {
         @Override
         public void run() {
-            // Verificar se ainda há atividade do usuário
-            long currentTime = System.currentTimeMillis();
-            if (currentTime - lastActivityTime > ACTIVITY_TIMEOUT) {
-                hasUserActivity = false;
-                Log.d(TAG, "Timeout de atividade do usuário");
-                if (!isActivityRequired()) {
-                    stopPipelineIfNotNeeded();
-                }
-            }
+            hasUserActivity = false;
+            updateActivityStatus();
         }
     };
     
     private void updateActivityStatus() {
-        lastActivityTime = System.currentTimeMillis();
+        if (isActivityRequired()) {
+            startPipelineIfNeeded();
+        } else {
+            stopPipelineIfNotNeeded();
+        }
     }
     
     private void startPipelineIfNeeded() {
@@ -247,127 +417,100 @@ public class PipelineManager {
     
     private void stopPipelineIfNotNeeded() {
         if (isRunning && !isActivityRequired()) {
-            Log.d(TAG, "Parando pipeline - nenhuma atividade necessária");
             stopPipeline();
         }
     }
     
     public synchronized boolean startPipeline() {
         if (currentState == STATE_RUNNING || currentState == STATE_STARTING) {
+            Log.d(TAG, "Pipeline já está rodando ou iniciando");
             return true;
         }
         
-        Log.d(TAG, "Iniciando pipeline de áudio sob demanda");
         setState(STATE_STARTING);
         
         try {
-            // Inicializar engine de áudio
-            AudioEngine.initAudioEngine();
+            // Detectar taxa de amostragem novamente se necessário
+            if (SAMPLE_RATE == 48000) { // Se ainda está no valor padrão
+                int optimalSampleRate = detectOptimalSampleRate();
+                configureSampleRate(optimalSampleRate);
+            }
             
-            // Configurar AudioRecord
             setupAudioRecord();
-            
-            // Configurar AudioTrack
             setupAudioTrack();
-            
-            // Iniciar thread de processamento
             startAudioThread();
             
-            setState(STATE_RUNNING);
             isRunning = true;
             startTime = System.currentTimeMillis();
-            totalSamplesProcessed = 0;
-            errorCount = 0;
-            recoveryAttempts = 0;
+            setState(STATE_RUNNING);
             
-            Log.d(TAG, "Pipeline iniciado com sucesso");
+            Log.d(TAG, "Pipeline iniciado com sucesso - Sample Rate: " + SAMPLE_RATE + 
+                      " Hz, Buffer Size: " + BUFFER_SIZE);
+            
+            if (callback != null) {
+                callback.onPipelineStarted();
+            }
+            
             return true;
             
         } catch (Exception e) {
-            Log.e(TAG, "Erro ao iniciar pipeline", e);
+            Log.e(TAG, "Erro ao iniciar pipeline: " + e.getMessage());
+            lastErrorMessage = "Erro ao iniciar pipeline: " + e.getMessage();
             setState(STATE_ERROR);
-            lastErrorMessage = e.getMessage();
-            lastErrorTime = System.currentTimeMillis();
-            errorCount++;
             
-            // Tentar recuperação apenas se ainda há atividade necessária
-            if (isActivityRequired() && recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
-                scheduleRecovery();
-            } else {
-                Log.e(TAG, "Pipeline não será recuperado - sem atividade necessária ou muitas tentativas");
+            if (callback != null) {
+                callback.onPipelineError(lastErrorMessage);
             }
+            
             return false;
         }
     }
     
     public synchronized void stopPipeline() {
-        Log.d(TAG, "Parando pipeline de áudio");
+        if (currentState == STATE_STOPPED) {
+            return;
+        }
+        
+        Log.d(TAG, "Parando pipeline...");
         
         shouldRun.set(false);
-        setState(STATE_STOPPED);
         isRunning = false;
-        isPaused = false;
         
-        // Cancelar timeout de atividade
-        uiHandler.removeCallbacks(activityTimeoutRunnable);
-        
-        // Parar thread
-        if (audioThread != null) {
+        if (audioThread != null && audioThread.isAlive()) {
             audioThread.interrupt();
             try {
                 audioThread.join(1000); // Aguardar até 1 segundo
             } catch (InterruptedException e) {
-                Log.w(TAG, "Interrompido ao aguardar thread");
+                Log.w(TAG, "Interrompido ao aguardar thread de áudio");
             }
-            audioThread = null;
         }
         
-        // Liberar recursos de áudio
         releaseAudioResources();
+        setState(STATE_STOPPED);
         
-        // Limpar engine
-        try {
-            AudioEngine.cleanupAudioEngine();
-        } catch (Exception e) {
-            Log.e(TAG, "Erro ao limpar engine", e);
+        if (callback != null) {
+            callback.onPipelineStopped();
         }
-        
-        Log.d(TAG, "Pipeline parado");
     }
     
     public void restartPipeline() {
-        if (isRunning && isActivityRequired()) {
-            Log.d(TAG, "Reiniciando pipeline com novas configurações");
-            
-            // Parar pipeline atual
-            stopPipeline();
-            
-            // Aguardar um pouco para garantir que parou completamente
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            
-            // Reiniciar apenas se ainda necessário
+        Log.d(TAG, "Reiniciando pipeline...");
+        stopPipeline();
+        
+        // Aguardar um pouco antes de reiniciar
+        uiHandler.postDelayed(() -> {
             if (isActivityRequired()) {
                 startPipeline();
             }
-        }
+        }, 100);
     }
     
     public void pausePipeline() {
-        if (isRunning && !isPaused) {
-            isPaused = true;
-            Log.d(TAG, "Pipeline pausado");
-        }
+        isPaused = true;
     }
     
     public void resumePipeline() {
-        if (isRunning && isPaused) {
-            isPaused = false;
-            Log.d(TAG, "Pipeline resumido");
-        }
+        isPaused = false;
     }
     
     public boolean isPaused() {
@@ -379,7 +522,7 @@ public class PipelineManager {
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT);
         
         if (minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-            throw new Exception("Configuração de áudio inválida para AudioRecord");
+            throw new Exception("Configuração de áudio inválida para AudioRecord - Sample Rate: " + SAMPLE_RATE);
         }
         
         audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
@@ -391,7 +534,7 @@ public class PipelineManager {
         }
         
         audioRecord.startRecording();
-        Log.d(TAG, "AudioRecord configurado e iniciado");
+        Log.d(TAG, "AudioRecord configurado e iniciado - Sample Rate: " + SAMPLE_RATE);
     }
     
     private void setupAudioTrack() throws Exception {
@@ -399,7 +542,7 @@ public class PipelineManager {
             CHANNEL_CONFIG, AUDIO_FORMAT);
         
         if (minTrackBufferSize == AudioTrack.ERROR_BAD_VALUE) {
-            throw new Exception("Configuração de áudio inválida para AudioTrack");
+            throw new Exception("Configuração de áudio inválida para AudioTrack - Sample Rate: " + SAMPLE_RATE);
         }
         
         audioTrack = new AudioTrack.Builder()
@@ -421,14 +564,14 @@ public class PipelineManager {
         }
         
         audioTrack.play();
-        Log.d(TAG, "AudioTrack configurado e iniciado");
+        Log.d(TAG, "AudioTrack configurado e iniciado - Sample Rate: " + SAMPLE_RATE);
     }
     
     private void startAudioThread() {
         shouldRun.set(true);
         
         audioThread = new Thread(() -> {
-            LogManager.i(TAG, "Thread de áudio iniciada");
+            LogManager.i(TAG, "Thread de áudio iniciada - Sample Rate: " + SAMPLE_RATE);
             
             while (shouldRun.get() && !Thread.currentThread().isInterrupted()) {
                 try {

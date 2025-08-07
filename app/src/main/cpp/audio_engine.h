@@ -216,6 +216,16 @@ extern "C" {
     void setMetronomeVolume(float volume);
     void setMetronomeTimeSignature(int beats);
     bool isMetronomeActive();
+    
+    // Métodos getter para parâmetros de efeitos
+    float getGain();
+    float getDistortion();
+    float getDelayTime();
+    float getDelayFeedback();
+    float getReverbRoomSize();
+    float getReverbDamping();
+    bool isOversamplingEnabled();
+    int getOversamplingFactor();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

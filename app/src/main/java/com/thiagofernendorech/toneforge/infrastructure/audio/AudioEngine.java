@@ -255,6 +255,103 @@ public class AudioEngine {
         }
     }
 
+    // Métodos getter para parâmetros de efeitos
+    public static float getGain() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getGainNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getGain: " + e.getMessage());
+                return 1.0f;
+            }
+        }
+        return 1.0f;
+    }
+    
+    public static float getDistortion() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getDistortionNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getDistortion: " + e.getMessage());
+                return 0.0f;
+            }
+        }
+        return 0.0f;
+    }
+    
+    public static float getDelayTime() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getDelayTimeNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getDelayTime: " + e.getMessage());
+                return 0.0f;
+            }
+        }
+        return 0.0f;
+    }
+    
+    public static float getDelayFeedback() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getDelayFeedbackNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getDelayFeedback: " + e.getMessage());
+                return 0.0f;
+            }
+        }
+        return 0.0f;
+    }
+    
+    public static float getReverbRoomSize() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getReverbRoomSizeNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getReverbRoomSize: " + e.getMessage());
+                return 0.0f;
+            }
+        }
+        return 0.0f;
+    }
+    
+    public static float getReverbDamping() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getReverbDampingNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getReverbDamping: " + e.getMessage());
+                return 0.0f;
+            }
+        }
+        return 0.0f;
+    }
+    
+    public static boolean isOversamplingEnabled() {
+        if (nativeLibraryLoaded) {
+            try {
+                return isOversamplingEnabledNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar isOversamplingEnabled: " + e.getMessage());
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    public static int getOversamplingFactor() {
+        if (nativeLibraryLoaded) {
+            try {
+                return getOversamplingFactorNative();
+            } catch (UnsatisfiedLinkError e) {
+                Log.e("AudioEngine", "Erro ao chamar getOversamplingFactor: " + e.getMessage());
+                return 1;
+            }
+        }
+        return 1;
+    }
+
     // Declarações dos métodos nativos (com sufixo Native para diferenciação)
     private static native void setGainEnabledNative(boolean enabled);
     private static native void setGainLevelNative(float level);
@@ -267,6 +364,16 @@ public class AudioEngine {
     private static native void processBufferNative(float[] input, float[] output, int numSamples);
     private static native void initAudioEngineNative();
     private static native void cleanupAudioEngineNative();
+    
+    // Métodos getter nativos
+    private static native float getGainNative();
+    private static native float getDistortionNative();
+    private static native float getDelayTimeNative();
+    private static native float getDelayFeedbackNative();
+    private static native float getReverbRoomSizeNative();
+    private static native float getReverbDampingNative();
+    private static native boolean isOversamplingEnabledNative();
+    private static native int getOversamplingFactorNative();
 
     // Looper
     public static native void startLooperRecording();
@@ -368,8 +475,6 @@ public class AudioEngine {
     // Novos métodos JNI para Oversampling
     public static native void setOversamplingEnabled(boolean enabled);
     public static native void setOversamplingFactor(int factor);
-    public static native boolean isOversamplingEnabled();
-    public static native int getOversamplingFactor();
 
     // Novos métodos JNI para obter o mix do looper como float[]
     public static native float[] getLooperMix();
@@ -474,4 +579,40 @@ public class AudioEngine {
     public static native boolean isLooperNotificationEnabled();
     public static native boolean isLooperNotificationControlsEnabled();
     public static native void updateLooperNotificationState();
+    
+    // Métodos auxiliares para compatibilidade com AudioRepository
+    public static void setSampleRate(int sampleRate) {
+        // Implementação básica - pode ser expandida conforme necessário
+        Log.d("AudioEngine", "setSampleRate chamado com: " + sampleRate);
+    }
+    
+    public static void setGain(Float gain) {
+        if (gain != null) {
+            setGainLevel(gain);
+        }
+    }
+    
+    public static void setDistortion(Float distortion) {
+        if (distortion != null) {
+            setDistortionLevel(distortion);
+        }
+    }
+    
+    public static void setDelay(Float delayTime, Float delayFeedback) {
+        if (delayTime != null) {
+            setDelayTime(delayTime);
+        }
+        if (delayFeedback != null) {
+            setDelayFeedback(delayFeedback);
+        }
+    }
+    
+    public static void setReverb(Float roomSize, Float damping) {
+        if (roomSize != null) {
+            setReverbRoomSize(roomSize);
+        }
+        if (damping != null) {
+            setReverbDamping(damping);
+        }
+    }
 } 

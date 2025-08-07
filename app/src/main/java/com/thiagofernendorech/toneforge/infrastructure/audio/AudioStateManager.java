@@ -332,4 +332,37 @@ public class AudioStateManager {
             Log.e(TAG, "Erro ao deserializar estado: " + e.getMessage());
         }
     }
+    
+    /**
+     * Salva o estado atual
+     */
+    public void saveCurrentState() {
+        try {
+            JSONObject state = serializeState();
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("saved_state", state.toString());
+            editor.apply();
+            Log.d(TAG, "Estado atual salvo com sucesso");
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao salvar estado atual: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Restaura o estado salvo
+     */
+    public void restoreState() {
+        try {
+            String savedState = prefs.getString("saved_state", null);
+            if (savedState != null) {
+                JSONObject state = new JSONObject(savedState);
+                deserializeState(state);
+                Log.d(TAG, "Estado restaurado com sucesso");
+            } else {
+                Log.d(TAG, "Nenhum estado salvo encontrado");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao restaurar estado: " + e.getMessage());
+        }
+    }
 } 

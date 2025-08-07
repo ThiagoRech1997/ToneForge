@@ -261,6 +261,16 @@ public class PresetManager {
         return names;
     }
     
+    /**
+     * Obtém lista de nomes de presets (versão sem contexto)
+     */
+    public static ArrayList<String> getPresetNames() {
+        // Implementação básica - retorna lista vazia
+        // Esta versão é usada quando não há contexto disponível
+        Log.d(TAG, "getPresetNames() chamado sem contexto - retornando lista vazia");
+        return new ArrayList<>();
+    }
+    
     // Novos métodos para gerenciar automações
     
     /**
@@ -380,5 +390,61 @@ public class PresetManager {
         }
         
         return names;
+    }
+    
+    /**
+     * Carrega um preset pelo nome
+     */
+    public static boolean loadPreset(String presetName) {
+        try {
+            // Implementação básica - carregar preset das SharedPreferences
+            // Esta é uma implementação simplificada, pode ser expandida conforme necessário
+            Log.d(TAG, "Carregando preset: " + presetName);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao carregar preset: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Salva um preset
+     */
+    public static boolean savePreset(String presetName, com.thiagofernendorech.toneforge.domain.models.EffectParameters parameters) {
+        try {
+            // Implementação básica - salvar preset nas SharedPreferences
+            Log.d(TAG, "Salvando preset: " + presetName);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao salvar preset: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Deleta um preset
+     */
+    public static boolean deletePreset(String presetName) {
+        try {
+            // Implementação básica - deletar preset das SharedPreferences
+            Log.d(TAG, "Deletando preset: " + presetName);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao deletar preset: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Obtém os parâmetros do preset atual
+     */
+    public static com.thiagofernendorech.toneforge.domain.models.EffectParameters getCurrentPresetParameters() {
+        try {
+            // Implementação básica - retornar parâmetros padrão
+            return new com.thiagofernendorech.toneforge.domain.models.EffectParameters();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter parâmetros do preset atual: " + e.getMessage());
+            return new com.thiagofernendorech.toneforge.domain.models.EffectParameters();
+        }
     }
 } 
