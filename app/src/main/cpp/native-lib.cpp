@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include "audio_engine.h"
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -62,12 +63,23 @@ Java_com_thiagofernendorech_toneforge_MainActivity_processBuffer(
         jfloatArray input,
         jfloatArray output,
         jint numSamples) {
-    
+
+    jsize inputLen = env->GetArrayLength(input);
+    jsize outputLen = env->GetArrayLength(output);
+
+    int available = numSamples;
+    if (inputLen < numSamples || outputLen < numSamples) {
+        available = std::min(static_cast<int>(inputLen), static_cast<int>(outputLen));
+        if (available <= 0) {
+            return;
+        }
+    }
+
     jfloat* inputPtr = env->GetFloatArrayElements(input, nullptr);
     jfloat* outputPtr = env->GetFloatArrayElements(output, nullptr);
-    
-    processBuffer(inputPtr, outputPtr, numSamples);
-    
+
+    processBuffer(inputPtr, outputPtr, available, static_cast<int>(inputLen), static_cast<int>(outputLen));
+
     env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
     env->ReleaseFloatArrayElements(output, outputPtr, 0);
 }
@@ -131,11 +143,22 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbLevel(JNIEnv* env, jc
 // Processamento de áudio para AudioEngine
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_processBuffer(JNIEnv* env, jclass clazz, jfloatArray input, jfloatArray output, jint numSamples) {
+    jsize inputLen = env->GetArrayLength(input);
+    jsize outputLen = env->GetArrayLength(output);
+
+    int available = numSamples;
+    if (inputLen < numSamples || outputLen < numSamples) {
+        available = std::min(static_cast<int>(inputLen), static_cast<int>(outputLen));
+        if (available <= 0) {
+            return;
+        }
+    }
+
     jfloat* inputPtr = env->GetFloatArrayElements(input, nullptr);
     jfloat* outputPtr = env->GetFloatArrayElements(output, nullptr);
-    
-    processBuffer(inputPtr, outputPtr, numSamples);
-    
+
+    processBuffer(inputPtr, outputPtr, available, static_cast<int>(inputLen), static_cast<int>(outputLen));
+
     env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
     env->ReleaseFloatArrayElements(output, outputPtr, 0);
 }

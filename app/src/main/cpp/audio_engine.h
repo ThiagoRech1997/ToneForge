@@ -10,7 +10,7 @@ extern "C" {
     
     // Processamento de áudio
     float processSample(float input);
-    void processBuffer(float* input, float* output, int numSamples);
+    void processBuffer(float* input, float* output, int numSamples, int inputLength, int outputLength);
     
     // Inicialização e limpeza
     void initAudioEngine();
