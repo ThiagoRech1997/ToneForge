@@ -103,48 +103,65 @@ public class LoopLoadUtil {
         }
     }
 
+    private static final int MAX_WAV_DATA_SIZE = 10 * 1024 * 1024; // 10 MB
+
     // Lê um arquivo WAV e retorna os dados de áudio como array de float
     private static float[] readWavFile(File file) throws IOException {
-        FileInputStream fis = new FileInputStream(file);
-        
-        // Ler header WAV
-        byte[] header = new byte[44];
-        fis.read(header);
-        
-        // Verificar se é um arquivo WAV válido
-        ByteBuffer buffer = ByteBuffer.wrap(header);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        
-        String riff = new String(header, 0, 4);
-        String wave = new String(header, 8, 4);
-        
-        if (!riff.equals("RIFF") || !wave.equals("WAVE")) {
-            throw new IOException("Arquivo não é um WAV válido");
+        try (FileInputStream fis = new FileInputStream(file)) {
+            // Ler header WAV
+            byte[] header = new byte[44];
+            int headerRead = fis.read(header);
+            if (headerRead != header.length) {
+                throw new IOException("Falha ao ler cabeçalho WAV");
+            }
+
+            // Verificar se é um arquivo WAV válido
+            ByteBuffer buffer = ByteBuffer.wrap(header);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+            String riff = new String(header, 0, 4);
+            String wave = new String(header, 8, 4);
+
+            if (!riff.equals("RIFF") || !wave.equals("WAVE")) {
+                throw new IOException("Arquivo não é um WAV válido");
+            }
+
+            // Extrair informações do header
+            int sampleRate = buffer.getInt(24);
+            int numChannels = buffer.getShort(22);
+            int bitsPerSample = buffer.getShort(34);
+            int dataSize = buffer.getInt(40);
+
+            if (dataSize <= 0 || dataSize > MAX_WAV_DATA_SIZE || dataSize > file.length() - header.length) {
+                throw new IOException("Tamanho de dados WAV inválido: " + dataSize);
+            }
+
+            // Ler dados de áudio
+            byte[] audioBytes = new byte[dataSize];
+            int totalRead = 0;
+            while (totalRead < dataSize) {
+                int bytesRead = fis.read(audioBytes, totalRead, dataSize - totalRead);
+                if (bytesRead == -1) break;
+                totalRead += bytesRead;
+            }
+
+            if (totalRead != dataSize) {
+                throw new IOException("Leitura de dados de áudio incompleta: " + totalRead + " de " + dataSize);
+            }
+
+            // Converter para float
+            int numSamples = dataSize / (bitsPerSample / 8);
+            float[] audioData = new float[numSamples];
+
+            ByteBuffer audioBuffer = ByteBuffer.wrap(audioBytes);
+            audioBuffer.order(ByteOrder.LITTLE_ENDIAN);
+
+            for (int i = 0; i < numSamples; i++) {
+                short sample = audioBuffer.getShort();
+                audioData[i] = sample / 32767.0f; // Normalizar para [-1, 1]
+            }
+
+            return audioData;
         }
-        
-        // Extrair informações do header
-        int sampleRate = buffer.getInt(24);
-        int numChannels = buffer.getShort(22);
-        int bitsPerSample = buffer.getShort(34);
-        int dataSize = buffer.getInt(40);
-        
-        // Ler dados de áudio
-        byte[] audioBytes = new byte[dataSize];
-        fis.read(audioBytes);
-        fis.close();
-        
-        // Converter para float
-        int numSamples = dataSize / (bitsPerSample / 8);
-        float[] audioData = new float[numSamples];
-        
-        ByteBuffer audioBuffer = ByteBuffer.wrap(audioBytes);
-        audioBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        
-        for (int i = 0; i < numSamples; i++) {
-            short sample = audioBuffer.getShort();
-            audioData[i] = sample / 32767.0f; // Normalizar para [-1, 1]
-        }
-        
-        return audioData;
     }
 } 
