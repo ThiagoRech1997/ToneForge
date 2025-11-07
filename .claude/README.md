@@ -9,7 +9,10 @@ Este diretório contém configurações especializadas para o Claude Code trabal
 ├── README.md                  # Este arquivo
 ├── EXAMPLES.md               # Exemplos práticos de uso
 ├── QUICK-REFERENCE.md        # Referência rápida
+├── TROUBLESHOOTING.md        # Guia de resolução de problemas
 ├── skills-index.md           # Índice visual de skills e agents
+├── claude_settings.json      # Configurações e hooks
+├── git-commit-template.txt   # Template para mensagens de commit
 ├── agents/                   # Agents especializados
 │   ├── android-architecture-reviewer.md
 │   ├── android-qa-engineer.md
@@ -17,23 +20,47 @@ Este diretório contém configurações especializadas para o Claude Code trabal
 │   ├── audio-dsp-engineer.md
 │   ├── toneforge-advanced-features.md
 │   └── toneforge-utility-developer.md
-└── skills/                   # Skills (workflows)
+├── skills/                   # Skills (workflows)
+│   ├── README.md
+│   ├── USAGE.md
+│   ├── audio-test/
+│   │   └── SKILL.md
+│   ├── code-review/          # ✨ NEW
+│   │   └── SKILL.md
+│   ├── cpp-effect/
+│   │   └── SKILL.md
+│   ├── debug-native/
+│   │   └── SKILL.md
+│   ├── mvp-scaffold/
+│   │   └── SKILL.md
+│   ├── refactor-legacy/
+│   │   └── SKILL.md
+│   ├── release-prep/
+│   │   └── SKILL.md
+│   └── security-audit/
+│       └── SKILL.md
+├── commands/                 # ✨ NEW - Slash commands
+│   ├── validate.md           # Validação completa
+│   ├── test-coverage.md      # Análise de cobertura
+│   ├── debug-audio.md        # Debug de audio pipeline
+│   └── review-pr.md          # Review de pull request
+├── checklists/               # ✨ NEW - Checklists
+│   ├── pr-review.md          # Checklist de code review
+│   ├── new-feature.md        # Checklist de nova feature
+│   └── security-audit.md     # Checklist de segurança
+├── templates/                # ✨ NEW - Templates de código
+│   ├── README.md
+│   ├── mvp-contract-template.kt
+│   ├── presenter-template.kt
+│   ├── fragment-refactored-template.kt
+│   ├── test-presenter-template.kt
+│   └── layout-fragment-template.xml
+└── adr/                      # ✨ NEW - Architecture Decision Records
     ├── README.md
-    ├── USAGE.md
-    ├── audio-test/
-    │   └── SKILL.md
-    ├── cpp-effect/
-    │   └── SKILL.md
-    ├── debug-native/
-    │   └── SKILL.md
-    ├── mvp-scaffold/
-    │   └── SKILL.md
-    ├── refactor-legacy/
-    │   └── SKILL.md
-    ├── release-prep/
-    │   └── SKILL.md
-    └── security-audit/
-        └── SKILL.md
+    ├── template.md
+    ├── 001-mvp-pattern-adoption.md
+    ├── 002-clean-architecture-layers.md
+    └── 003-jni-security-practices.md
 ```
 
 ## Conceitos
@@ -78,10 +105,18 @@ Claude usará `cpp-effect` + `release-prep` com os agents apropriados
 
 ## Documentação
 
+### Referências Principais
 - **[skills-index.md](skills-index.md)** - Índice visual de todos os recursos
 - **[EXAMPLES.md](EXAMPLES.md)** - Exemplos práticos detalhados
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Guia completo de resolução de problemas
 - **[skills/README.md](skills/README.md)** - Documentação de skills
 - **[skills/USAGE.md](skills/USAGE.md)** - Guia de uso em português
+
+### Recursos de Desenvolvimento
+- **[commands/](commands/)** - Slash commands para tarefas comuns
+- **[checklists/](checklists/)** - Checklists de qualidade e segurança
+- **[templates/](templates/)** - Templates de código MVP
+- **[adr/](adr/)** - Decisões arquiteturais documentadas
 
 ## Manutenção
 
@@ -118,6 +153,44 @@ Esta estrutura segue as recomendações da Anthropic para:
 - [Anthropic Skills Guide](https://docs.anthropic.com/claude/docs/skills)
 - [ToneForge CLAUDE.md](../CLAUDE.md)
 
+## Novos Recursos (v2.0)
+
+### 🎯 Slash Commands
+Comandos rápidos para tarefas comuns:
+
+- `/validate` - Validação completa (testes, lint, build)
+- `/test-coverage` - Análise detalhada de cobertura de testes
+- `/debug-audio` - Debug de problemas no audio pipeline
+- `/review-pr` - Review abrangente de pull requests
+
+### ✅ Checklists
+Checklists completas para garantir qualidade:
+
+- `checklists/pr-review.md` - Review de código (arquitetura, segurança, qualidade)
+- `checklists/new-feature.md` - Implementação de novas features
+- `checklists/security-audit.md` - Auditoria de segurança completa
+
+### 📝 Templates de Código
+Templates prontos para desenvolvimento MVP:
+
+- `mvp-contract-template.kt` - Definição de contratos
+- `presenter-template.kt` - Presenters com coroutines
+- `fragment-refactored-template.kt` - Fragments MVP
+- `test-presenter-template.kt` - Testes unitários
+- `layout-fragment-template.xml` - Layouts Material Design
+
+### 📚 Architecture Decision Records (ADRs)
+Decisões arquiteturais documentadas:
+
+- **ADR-001**: Adoção do padrão MVP
+- **ADR-002**: Estrutura de camadas Clean Architecture
+- **ADR-003**: Práticas de segurança JNI
+
+### 🔧 Configurações Avançadas
+- `claude_settings.json` - Hooks, prioridades de contexto, configurações
+- `git-commit-template.txt` - Template padronizado para commits
+- `TROUBLESHOOTING.md` - Guia completo de resolução de problemas
+
 ## Troubleshooting
 
 ### Skill não é reconhecida
@@ -135,6 +208,11 @@ Esta estrutura segue as recomendações da Anthropic para:
 - Seja mais específico nos requisitos
 - Peça para Claude explicar o plano primeiro
 
+### Problemas de desenvolvimento
+- Consulte [TROUBLESHOOTING.md](TROUBLESHOOTING.md) para guia completo
+- Use `/debug-audio` para problemas de áudio
+- Use `/validate` para verificar projeto completo
+
 ## Contribuindo
 
 Para melhorar esta configuração:
@@ -144,8 +222,78 @@ Para melhorar esta configuração:
 4. Teste com casos reais
 5. Itere baseado em feedback
 
+## Como Usar os Novos Recursos
+
+### Slash Commands
+Simplesmente digite o comando no chat:
+```
+/validate
+/test-coverage
+/debug-audio
+/review-pr
+```
+
+### Checklists
+Referenciadas automaticamente durante code reviews ou use manualmente:
+```
+Review this code using the PR review checklist
+```
+
+### Templates
+Copie templates para criar novos componentes MVP:
+```
+Create a new Profile feature using MVP templates
+```
+
+### ADRs
+Consulte quando tiver dúvidas sobre decisões arquiteturais:
+```
+Why did we choose MVP over MVVM?
+```
+
+### Troubleshooting
+Quando encontrar problemas:
+```
+Audio pipeline is not starting, help me debug
+The build is failing with CMake errors
+```
+
+## Boas Práticas
+
+### Antes de Commitar
+```
+/validate
+```
+
+### Antes de Pull Request
+```
+/review-pr
+/test-coverage
+```
+
+### Ao Criar Nova Feature
+1. Consulte checklist: `checklists/new-feature.md`
+2. Use templates: `templates/`
+3. Siga ADRs existentes
+4. Execute `/validate` antes do commit
+
+### Ao Encontrar Problemas
+1. Consulte `TROUBLESHOOTING.md`
+2. Use comandos de debug (`/debug-audio`)
+3. Verifique ADRs relacionados
+4. Revise checklists relevantes
+
 ---
 
-**Versão:** 1.0.0
+**Versão:** 2.0.0
 **Última atualização:** 2025-11-07
 **Projeto:** ToneForge Android Multi-Effects
+
+**Novidades v2.0:**
+- ✨ 4 Slash commands para tarefas comuns
+- ✅ 3 Checklists completas
+- 📝 5 Templates de código MVP
+- 📚 3 ADRs documentando decisões arquiteturais
+- 🔧 Configurações avançadas com hooks
+- 📖 Guia de troubleshooting expandido
+- 🎯 Skill de code review

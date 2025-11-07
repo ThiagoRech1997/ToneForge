@@ -1,0 +1,125 @@
+{
+  "version": "1.0.0",
+  "project": "ToneForge",
+  "description": "Configuration for Claude Code integration with ToneForge Android project",
+
+  "contextPriority": [
+    "CLAUDE.md",
+    ".claude/README.md",
+    ".claude/agents/",
+    ".claude/skills/",
+    ".claude/checklists/",
+    "app/src/main/java/com/example/toneforge/domain/",
+    "app/src/main/java/com/example/toneforge/infrastructure/",
+    "app/src/main/java/com/example/toneforge/ui/",
+    "cpp/"
+  ],
+
+  "hooks": {
+    "beforeFileWrite": {
+      "description": "Validate Kotlin files before writing",
+      "enabled": false,
+      "command": "# Uncomment to enable Kotlin linting before file writes\n# if [[ \"$FILE_PATH\" == *.kt ]]; then\n#   ./gradlew ktlintCheck\n# fi"
+    },
+    "afterFileWrite": {
+      "description": "Run quick validation after file writes",
+      "enabled": false,
+      "command": "# Uncomment to enable automatic validation\n# if [[ \"$FILE_PATH\" == *.kt ]] || [[ \"$FILE_PATH\" == *.cpp ]]; then\n#   ./gradlew compileDebugKotlin || echo 'Compilation check failed'\n# fi"
+    },
+    "beforeGitCommit": {
+      "description": "Run tests before git commits",
+      "enabled": false,
+      "command": "# Uncomment to enable pre-commit testing\n# ./gradlew test lint || {\n#   echo 'Tests or lint failed. Commit aborted.'\n#   exit 1\n# }"
+    },
+    "afterGitCommit": {
+      "description": "Run functional validation after commits",
+      "enabled": false,
+      "command": "# Uncomment to enable post-commit validation\n# ./scripts/functional-validation.sh"
+    }
+  },
+
+  "filePatterns": {
+    "ignore": [
+      "**/build/",
+      "**/.gradle/",
+      "**/.idea/",
+      "**/node_modules/",
+      "**/*.class",
+      "**/*.dex",
+      "**/*.apk",
+      "**/*.ap_",
+      "**/*.log",
+      "**/local.properties"
+    ],
+    "prioritize": [
+      "**/*Contract.kt",
+      "**/*Presenter.kt",
+      "**/*FragmentRefactored.kt",
+      "**/*UseCase.kt",
+      "**/*Repository.kt",
+      "**/audio_engine.cpp",
+      "**/native-lib.cpp"
+    ]
+  },
+
+  "codeReview": {
+    "autoCheckArchitecture": true,
+    "autoCheckSecurity": true,
+    "minTestCoveragePercent": 75,
+    "requireTestsForNewCode": true,
+    "checklistPath": ".claude/checklists/pr-review.md"
+  },
+
+  "testing": {
+    "unitTestCommand": "./gradlew test",
+    "integrationTestCommand": "./gradlew connectedAndroidTest",
+    "coverageCommand": "./gradlew jacocoTestReport",
+    "coverageReportPath": "app/build/reports/jacoco/test/html/index.html"
+  },
+
+  "validation": {
+    "preCommitCommand": "./gradlew test lint",
+    "fullValidationCommand": "./scripts/functional-validation.sh",
+    "lintCommand": "./gradlew lint",
+    "buildCommand": "./gradlew assembleDebug"
+  },
+
+  "architecture": {
+    "style": "Clean Architecture with MVP",
+    "layers": [
+      "domain",
+      "infrastructure",
+      "ui"
+    ],
+    "patterns": {
+      "presentation": "MVP (Model-View-Presenter)",
+      "contracts": "*Contract.kt interfaces",
+      "fragments": "*FragmentRefactored.kt for new code",
+      "presenters": "*Presenter.kt with coroutines",
+      "useCases": "*UseCase.kt in domain layer"
+    }
+  },
+
+  "naming": {
+    "contracts": "*Contract",
+    "presenters": "*Presenter",
+    "fragments": "*FragmentRefactored",
+    "useCases": "*UseCase",
+    "repositories": "*Repository",
+    "adapters": "*Adapter",
+    "managers": "*Manager"
+  },
+
+  "security": {
+    "jniBufferValidation": "Always validate buffer sizes",
+    "fileValidation": "Validate WAV files with LoopLoadUtil",
+    "uriPermissions": "Use takePersistableUriPermission",
+    "fileProvider": "Use FileProvider for file sharing"
+  },
+
+  "notes": {
+    "hooks": "All hooks are disabled by default. Enable them by setting 'enabled': true and uncommenting commands.",
+    "contextPriority": "Files matching these patterns will be prioritized when providing context to Claude.",
+    "validation": "Use /validate command to run comprehensive checks before committing."
+  }
+}
