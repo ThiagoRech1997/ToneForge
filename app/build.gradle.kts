@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    jacoco
 }
 
 android {
@@ -43,6 +44,12 @@ android {
         checkReleaseBuilds = false
         disable += "MissingPermission"
     }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -54,9 +61,43 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment:2.7.7")
     implementation("androidx.navigation:navigation-ui:2.7.7")
     testImplementation(libs.junit)
-    testImplementation("org.mockito:mockito-core:5.8.0")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+}
+
+// Jacoco Test Coverage Configuration
+jacoco {
+    toolVersion = "0.8.8"
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R\$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+        "**/databinding/**/*.*",
+        "**/generated/**/*.*"
+    )
+    
+    val debugTree = fileTree("${project.buildDir}/intermediates/javac/debug/classes") {
+        exclude(fileFilter)
+    }
+    val mainSrc = "${project.projectDir}/src/main/java"
+    
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(files("${project.buildDir}/jacoco/testDebugUnitTest.exec"))
 }
 
