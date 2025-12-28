@@ -45,6 +45,16 @@ For detailed features, usage, architecture, and advanced guides, see the [projec
 - **Format**: PCM Float 32-bit
 - **Channels**: Mono (input and output)
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get started quickly
+- **[CLAUDE.md](CLAUDE.md)** - Complete project architecture and development guide
+- **[Setup Guides](docs/setup/)** - Environment configuration and ADB setup
+- **[Testing Reports](docs/testing/)** - Build, deploy, and test reports
+- **[Scripts Documentation](scripts/README.md)** - Available development scripts
+
 ## 🔧 Development
 
 ### Prerequisites
@@ -53,9 +63,67 @@ For detailed features, usage, architecture, and advanced guides, see the [projec
 - NDK (Native Development Kit)
 - Android device with microphone
 
-### Build
+### Quick Setup
 ```bash
+# Setup development environment (installs SDK, tools, etc.)
+./scripts/setup/setup-dev-environment.sh
+
+# Verify environment
+./scripts/verify-environment.sh
+```
+
+### Build Commands
+```bash
+# Build debug APK
 ./gradlew assembleDebug
+
+# Build and install on device
+./gradlew installDebug
+
+# Clean build
+./gradlew clean assembleDebug
+```
+
+### Testing
+```bash
+# Run unit tests
+./gradlew test
+
+# Run instrumentation tests (device required)
+./gradlew connectedAndroidTest
+
+# Generate coverage report
+./gradlew jacocoTestReport
+
+# Test on device with automated script
+./scripts/test-app-device.sh
+```
+
+### Useful Scripts
+
+All development scripts are in [`scripts/`](scripts/):
+
+- **`scripts/setup/setup-dev-environment.sh`** - Complete environment setup
+- **`scripts/verify-environment.sh`** - Verify development environment
+- **`scripts/test-app-device.sh`** - Automated device testing
+- **`scripts/functional-validation.sh`** - Full project validation
+- **`scripts/create-release.sh`** - Create a release build
+
+See [`scripts/README.md`](scripts/README.md) for detailed documentation.
+
+## 📊 Project Structure
+
+```
+ToneForge/
+├── app/                    # Android application source code
+├── docs/                   # Complete documentation
+│   ├── setup/             # Setup and configuration guides
+│   └── testing/           # Test reports and validation
+├── scripts/               # Development and testing scripts
+│   └── setup/            # Environment setup scripts
+├── logs/                  # Build and test logs (git ignored)
+├── CLAUDE.md             # Project architecture documentation
+└── README.md             # This file
 ```
 
 ## 📄 License

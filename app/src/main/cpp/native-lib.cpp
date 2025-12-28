@@ -597,6 +597,85 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_getOversamplingFactor(JNIEnv* 
     return getOversamplingFactor();
 }
 
+// Funções JNI com sufixo Native (para compatibilidade)
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isOversamplingEnabledNative(JNIEnv* env, jclass clazz) {
+    return isOversamplingEnabled();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getOversamplingFactorNative(JNIEnv* env, jclass clazz) {
+    return getOversamplingFactor();
+}
+
+// Funções setXXXEnabledNative
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setGainEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setGainEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDistortionEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setDistortionEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDelayEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setDelayEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setReverbEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setChorusEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setChorusEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setFlangerEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setFlangerEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setPhaserEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setPhaserEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setEQEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setEQEnabled(enabled);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setCompressorEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
+    setCompressorEnabled(enabled);
+}
+
+// Funções setXXXLevelNative (wrappers para ajustar níveis de efeitos)
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setGainLevelNative(JNIEnv* env, jclass clazz, jfloat level) {
+    setGain(level);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDistortionLevelNative(JNIEnv* env, jclass clazz, jfloat level) {
+    setDistortion(level);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDelayTimeLevelNative(JNIEnv* env, jclass clazz, jfloat level) {
+    setDelayTime(level);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbLevelNative(JNIEnv* env, jclass clazz, jfloat level) {
+    // setReverb aceita roomSize e damping, vamos usar level como roomSize e manter damping em 0.5
+    setReverb(level, 0.5f);
+}
+
 // Novas funções JNI para looper avançado
 extern "C" JNIEXPORT jint JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_getLooperLength(JNIEnv* env, jclass clazz) {

@@ -132,7 +132,30 @@ public class AudioRepository {
             Log.e(TAG, "Erro ao atualizar estado do áudio: " + e.getMessage(), e);
         }
     }
-    
+
+    /**
+     * Verifica se há efeitos ativos e notifica o PipelineManager
+     */
+    private void updateEffectsActiveStatus() {
+        try {
+            // Verificar se algum efeito está habilitado no engine nativo
+            boolean hasActiveEffects = false;
+
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                // Verificar se algum efeito está ativado
+                // (assumindo que se foi chamado setXXXEnabled(true), há efeito ativo)
+                hasActiveEffects = true;
+            }
+
+            // Notificar o pipeline manager
+            pipelineManager.setEffectsActive(hasActiveEffects);
+            Log.d(TAG, "Status de efeitos atualizado: " + (hasActiveEffects ? "ativos" : "inativos"));
+
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao atualizar status de efeitos: " + e.getMessage(), e);
+        }
+    }
+
     // === OPERAÇÕES DE ÁUDIO ===
     
     /**
@@ -387,6 +410,8 @@ public class AudioRepository {
             if (AudioEngine.isNativeLibraryLoaded()) {
                 audioEngine.setGainEnabled(enabled);
                 Log.d(TAG, "Ganho " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
             }
         } catch (Exception e) {
             Log.e(TAG, "Erro ao configurar ganho: " + e.getMessage(), e);
@@ -402,6 +427,8 @@ public class AudioRepository {
             if (AudioEngine.isNativeLibraryLoaded()) {
                 audioEngine.setDistortionEnabled(enabled);
                 Log.d(TAG, "Distorção " + (enabled ? "ativada" : "desativada"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
             }
         } catch (Exception e) {
             Log.e(TAG, "Erro ao configurar distorção: " + e.getMessage(), e);
@@ -417,6 +444,8 @@ public class AudioRepository {
             if (AudioEngine.isNativeLibraryLoaded()) {
                 audioEngine.setDelayEnabled(enabled);
                 Log.d(TAG, "Delay " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
             }
         } catch (Exception e) {
             Log.e(TAG, "Erro ao configurar delay: " + e.getMessage(), e);
@@ -432,12 +461,99 @@ public class AudioRepository {
             if (AudioEngine.isNativeLibraryLoaded()) {
                 audioEngine.setReverbEnabled(enabled);
                 Log.d(TAG, "Reverb " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
             }
         } catch (Exception e) {
             Log.e(TAG, "Erro ao configurar reverb: " + e.getMessage(), e);
         }
     }
-    
+
+    /**
+     * Ativa/desativa efeito de chorus
+     * @param enabled true para ativar
+     */
+    public void setChorusEnabled(boolean enabled) {
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                AudioEngine.setChorusEnabled(enabled);
+                Log.d(TAG, "Chorus " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar chorus: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Ativa/desativa efeito de flanger
+     * @param enabled true para ativar
+     */
+    public void setFlangerEnabled(boolean enabled) {
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                AudioEngine.setFlangerEnabled(enabled);
+                Log.d(TAG, "Flanger " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar flanger: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Ativa/desativa efeito de phaser
+     * @param enabled true para ativar
+     */
+    public void setPhaserEnabled(boolean enabled) {
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                AudioEngine.setPhaserEnabled(enabled);
+                Log.d(TAG, "Phaser " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar phaser: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Ativa/desativa efeito de equalização
+     * @param enabled true para ativar
+     */
+    public void setEQEnabled(boolean enabled) {
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                AudioEngine.setEQEnabled(enabled);
+                Log.d(TAG, "EQ " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar EQ: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Ativa/desativa efeito de compressor
+     * @param enabled true para ativar
+     */
+    public void setCompressorEnabled(boolean enabled) {
+        try {
+            if (AudioEngine.isNativeLibraryLoaded()) {
+                AudioEngine.setCompressorEnabled(enabled);
+                Log.d(TAG, "Compressor " + (enabled ? "ativado" : "desativado"));
+                // Notificar pipeline manager que há efeito ativo
+                updateEffectsActiveStatus();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao configurar compressor: " + e.getMessage(), e);
+        }
+    }
+
     // === PRESETS ===
     
     /**

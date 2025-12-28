@@ -361,10 +361,15 @@ public class AudioEngine {
     private static native void setDelayLevelNative(float level);
     private static native void setReverbEnabledNative(boolean enabled);
     private static native void setReverbLevelNative(float level);
+    private static native void setChorusEnabledNative(boolean enabled);
+    private static native void setFlangerEnabledNative(boolean enabled);
+    private static native void setPhaserEnabledNative(boolean enabled);
+    private static native void setEQEnabledNative(boolean enabled);
+    private static native void setCompressorEnabledNative(boolean enabled);
     private static native void processBufferNative(float[] input, float[] output, int numSamples);
     private static native void initAudioEngineNative();
     private static native void cleanupAudioEngineNative();
-    
+
     // Métodos getter nativos
     private static native float getGainNative();
     private static native float getDistortionNative();
