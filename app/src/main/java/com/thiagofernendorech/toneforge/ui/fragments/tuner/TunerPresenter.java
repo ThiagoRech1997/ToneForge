@@ -10,6 +10,7 @@ import com.thiagofernendorech.toneforge.ui.base.BasePresenter;
 import com.thiagofernendorech.toneforge.data.repository.AudioRepository;
 import com.thiagofernendorech.toneforge.AudioEngine;
 import com.thiagofernendorech.toneforge.PermissionManager;
+import com.thiagofernendorech.toneforge.PipelineManager;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -25,6 +26,7 @@ public class TunerPresenter extends BasePresenter<TunerContract.View> implements
     // Estado do afinador
     private boolean isTuning = false;
     private boolean isAudioInitialized = false;
+    private boolean wasPipelineRunning = false; // Para restaurar estado do pipeline
     private AudioRecord audioRecord;
     private Thread audioThread;
     private AtomicBoolean shouldStop = new AtomicBoolean(false);
@@ -149,23 +151,37 @@ public class TunerPresenter extends BasePresenter<TunerContract.View> implements
                 }
                 return;
             }
-            
+
+            // Pausar o pipeline de áudio para liberar o microfone
+            PipelineManager pipelineManager = PipelineManager.getInstance();
+            wasPipelineRunning = pipelineManager.isRunning();
+            if (wasPipelineRunning) {
+                pipelineManager.stopPipeline();
+            }
+
             initializeAudio();
             if (isAudioInitialized) {
                 isTuning = true;
                 shouldStop.set(false);
-                
+
+                // Ativar o tuner nativo para processar as amostras
+                AudioEngine.startTuner();
+
                 // Iniciar thread de áudio
                 startAudioThread();
-                
+
                 // Iniciar atualizações da UI
                 startUIUpdates();
-                
+
                 if (isViewAttached()) {
                     getView().updateTunerStatus(true, "Afinando...");
                     getView().updateMicrophoneStatus(true);
                 }
             } else {
+                // Restaurar pipeline se falhou
+                if (wasPipelineRunning) {
+                    pipelineManager.startPipeline();
+                }
                 if (isViewAttached()) {
                     getView().showMicrophoneError();
                 }
@@ -178,16 +194,25 @@ public class TunerPresenter extends BasePresenter<TunerContract.View> implements
         if (isTuning) {
             isTuning = false;
             shouldStop.set(true);
-            
+
             // Parar thread de áudio
             stopAudioThread();
-            
+
             // Parar atualizações da UI
             stopUIUpdates();
-            
+
+            // Desativar o tuner nativo
+            AudioEngine.stopTuner();
+
             // Liberar recursos de áudio
             releaseAudio();
-            
+
+            // Restaurar o pipeline de áudio se estava rodando antes
+            if (wasPipelineRunning) {
+                PipelineManager.getInstance().startPipeline();
+                wasPipelineRunning = false;
+            }
+
             if (isViewAttached()) {
                 getView().updateTunerStatus(false, "Parado");
                 getView().updateMicrophoneStatus(false);
