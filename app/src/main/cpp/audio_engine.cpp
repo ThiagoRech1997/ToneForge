@@ -9,6 +9,9 @@
 #include <string>
 #include <algorithm>
 
+// Flag de inicialização do engine
+static std::atomic<bool> isEngineInitialized{false};
+
 // Mutexes para proteção thread-safe
 static std::mutex audioEngineMutex;
 static std::mutex oversamplingMutex;
@@ -440,11 +443,17 @@ void initAudioEngine() {
     looperMidiCCMapping[65] = 1; // CC65 = Play
     looperMidiCCMapping[66] = 2; // CC66 = Stop
     looperMidiCCMapping[67] = 3; // CC67 = Clear
-    
+
+    // Marcar engine como inicializado
+    isEngineInitialized.store(true);
+
     printf("initAudioEngine: inicializado com taxa de amostragem %d Hz\n", currentSampleRate);
 }
 
 void cleanupAudioEngine() {
+    // Marcar engine como não inicializado
+    isEngineInitialized.store(false);
+
     // Limpar buffers
     delayBuffer.clear();
     reverbBuffer.clear();
@@ -860,8 +869,13 @@ void setReverbType(int type) {
 }
 
 float processSample(float input) {
+    // Verificar se o engine foi inicializado
+    if (!isEngineInitialized.load()) {
+        return input; // Passthrough se não inicializado
+    }
+
     float output = input;
-    
+
     // Aplicar ganho
     if (gainEnabled.load()) {
         output *= currentGain.load();
@@ -962,6 +976,16 @@ void processBuffer(float* input, float* output, int numSamples, int inputLength,
     if (input == nullptr || output == nullptr || numSamples <= 0) {
         printf("processBuffer: Parâmetros inválidos - input: %p, output: %p, numSamples: %d\n",
                input, output, numSamples);
+        return;
+    }
+
+    // Verificar se o engine foi inicializado - passthrough se não
+    if (!isEngineInitialized.load()) {
+        // Copiar input para output (passthrough)
+        int copySize = std::min(numSamples, std::min(inputLength, outputLength));
+        if (copySize > 0) {
+            memcpy(output, input, copySize * sizeof(float));
+        }
         return;
     }
 
@@ -1891,37 +1915,13 @@ void applyLooperFadeOut(float start, float end) {
     }
 }
 
-// Métodos getter para parâmetros de efeitos
-extern "C" float getGainNative() {
+// Métodos getter para parâmetros de efeitos (sem sufixo, para uso externo via header)
+float getGain() {
     return currentGain.load();
 }
 
-extern "C" float getDistortionNative() {
+float getDistortion() {
     return distortionAmount.load();
-}
-
-extern "C" float getDelayTimeNative() {
-    return delayTime.load();
-}
-
-extern "C" float getDelayFeedbackNative() {
-    return delayFeedback.load();
-}
-
-extern "C" float getReverbRoomSizeNative() {
-    return reverbRoomSize.load();
-}
-
-extern "C" float getReverbDampingNative() {
-    return reverbDamping.load();
-}
-
-extern "C" bool isOversamplingEnabledNative() {
-    return oversamplingEnabled.load();
-}
-
-extern "C" int getOversamplingFactorNative() {
-    return oversamplingFactor.load();
 }
 
 

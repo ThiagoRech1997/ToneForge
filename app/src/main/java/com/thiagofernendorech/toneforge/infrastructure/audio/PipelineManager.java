@@ -61,6 +61,7 @@ public class PipelineManager {
     private volatile boolean isLooping = false;
     private volatile boolean isPlaying = false;
     private volatile boolean hasUserActivity = false;
+    private volatile boolean audioPassthroughEnabled = true; // Passthrough sempre ativo por padrão para pedalboard
     private long lastActivityTime = 0;
     private static final long ACTIVITY_TIMEOUT = 30000; // 30 segundos sem atividade
     
@@ -316,7 +317,31 @@ public class PipelineManager {
      * Verifica se há atividade que justifica manter o pipeline ativo
      */
     private boolean isActivityRequired() {
-        return hasActiveEffects || isRecording || isLooping || isPlaying || hasUserActivity;
+        return audioPassthroughEnabled || hasActiveEffects || isRecording || isLooping || isPlaying || hasUserActivity;
+    }
+
+    /**
+     * Habilita ou desabilita o passthrough de áudio.
+     * Quando habilitado, o pipeline mantém o áudio passando mesmo sem efeitos ativos.
+     * Para um pedalboard de guitarra, isso normalmente deve estar sempre ativado.
+     */
+    public void setAudioPassthroughEnabled(boolean enabled) {
+        boolean wasRequired = isActivityRequired();
+        audioPassthroughEnabled = enabled;
+        Log.d(TAG, "Audio passthrough " + (enabled ? "habilitado" : "desabilitado"));
+
+        if (!wasRequired && isActivityRequired()) {
+            startPipelineIfNeeded();
+        } else if (wasRequired && !isActivityRequired()) {
+            stopPipelineIfNotNeeded();
+        }
+    }
+
+    /**
+     * Verifica se o passthrough de áudio está habilitado
+     */
+    public boolean isAudioPassthroughEnabled() {
+        return audioPassthroughEnabled;
     }
     
     /**

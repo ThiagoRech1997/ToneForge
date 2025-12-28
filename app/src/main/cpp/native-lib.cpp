@@ -608,6 +608,70 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_getOversamplingFactorNative(JN
     return getOversamplingFactor();
 }
 
+// processBufferNative - função principal de processamento de áudio
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_processBufferNative(JNIEnv* env, jclass clazz, jfloatArray input, jfloatArray output, jint numSamples) {
+    // SECURITY: Validações robustas de parâmetros JNI
+    if (input == nullptr || output == nullptr) {
+        return;
+    }
+
+    jsize inputLen = env->GetArrayLength(input);
+    jsize outputLen = env->GetArrayLength(output);
+
+    // SECURITY: Validar tamanhos dos arrays
+    if (inputLen <= 0 || outputLen <= 0) {
+        return;
+    }
+
+    // SECURITY: Validar número de amostras solicitado
+    if (numSamples <= 0) {
+        return;
+    }
+
+    // SECURITY: Limitar o número de amostras ao tamanho disponível
+    int available = numSamples;
+    if (inputLen < numSamples || outputLen < numSamples) {
+        available = std::min(static_cast<int>(inputLen), static_cast<int>(outputLen));
+        if (available <= 0) {
+            return;
+        }
+    }
+
+    // SECURITY: Validar ponteiros antes de usar
+    jfloat* inputPtr = env->GetFloatArrayElements(input, nullptr);
+    jfloat* outputPtr = env->GetFloatArrayElements(output, nullptr);
+
+    if (inputPtr == nullptr || outputPtr == nullptr) {
+        // Limpar recursos em caso de erro
+        if (inputPtr != nullptr) {
+            env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
+        }
+        if (outputPtr != nullptr) {
+            env->ReleaseFloatArrayElements(output, outputPtr, JNI_ABORT);
+        }
+        return;
+    }
+
+    // SECURITY: Processar buffer com validações
+    processBuffer(inputPtr, outputPtr, available, static_cast<int>(inputLen), static_cast<int>(outputLen));
+
+    // SECURITY: Liberar recursos de forma segura
+    env->ReleaseFloatArrayElements(input, inputPtr, JNI_ABORT);
+    env->ReleaseFloatArrayElements(output, outputPtr, 0);
+}
+
+// initAudioEngineNative e cleanupAudioEngineNative
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_initAudioEngineNative(JNIEnv* env, jclass clazz) {
+    initAudioEngine();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_cleanupAudioEngineNative(JNIEnv* env, jclass clazz) {
+    cleanupAudioEngine();
+}
+
 // Funções setXXXEnabledNative
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setGainEnabledNative(JNIEnv* env, jclass clazz, jboolean enabled) {
@@ -674,6 +738,42 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_setReverbLevelNative(JNIEnv* env, jclass clazz, jfloat level) {
     // setReverb aceita roomSize e damping, vamos usar level como roomSize e manter damping em 0.5
     setReverb(level, 0.5f);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_setDelayLevelNative(JNIEnv* env, jclass clazz, jfloat level) {
+    setDelay(level, 0.5f);
+}
+
+// Funções getter nativas
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getGainNative(JNIEnv* env, jclass clazz) {
+    return getGain();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getDistortionNative(JNIEnv* env, jclass clazz) {
+    return getDistortion();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getDelayTimeNative(JNIEnv* env, jclass clazz) {
+    return getDelayTime();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getDelayFeedbackNative(JNIEnv* env, jclass clazz) {
+    return getDelayFeedback();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getReverbRoomSizeNative(JNIEnv* env, jclass clazz) {
+    return getReverbRoomSize();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getReverbDampingNative(JNIEnv* env, jclass clazz) {
+    return getReverbDamping();
 }
 
 // Novas funções JNI para looper avançado

@@ -92,7 +92,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/generated/**/*.*"
     )
     
-    val debugTree = fileTree("${project.buildDir}/intermediates/javac/debug/classes") {
+    val debugTree = fileTree("${project.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
         exclude(fileFilter)
     }
     val mainSrc = "${project.projectDir}/src/main/java"
