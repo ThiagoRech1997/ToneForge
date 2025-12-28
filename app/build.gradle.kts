@@ -62,6 +62,7 @@ dependencies {
     implementation("androidx.navigation:navigation-ui:2.7.7")
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.inline)
     testImplementation(libs.robolectric)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
