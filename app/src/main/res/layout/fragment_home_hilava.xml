@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    fragment_home_hilava.xml
+    Nova interface Home inspirada no HILAVA OS do Lava ME 3
+    Usa ViewPager2 para navegação entre páginas de apps
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/hilava_background_start">
+
+    <!-- Título ToneForge -->
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ToneForge"
+        android:textColor="@color/hilava_text_primary"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Subtítulo opcional com status -->
+    <LinearLayout
+        android:id="@+id/statusContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/titleText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Indicador FX ativo -->
+        <TextView
+            android:id="@+id/fxIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FX"
+            android:textColor="@color/hilava_text_primary"
+            android:textSize="10sp"
+            android:background="@drawable/hilava_status_pill"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:visibility="gone" />
+
+        <!-- Indicador de gravação -->
+        <View
+            android:id="@+id/recordingIndicator"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/hilava_recording_dot"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Grid de Apps - Página 1 (principais) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/appsGrid"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/statusContainer"
+        app:layout_constraintBottom_toTopOf="@id/pageIndicator"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Linha 1 -->
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnTuner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_tuner"
+            app:hilava_icon="@drawable/ic_target"
+            app:hilava_label="Afinador"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnEffects"
+            app:layout_constraintHorizontal_chainStyle="spread" />
+
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnEffects"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_effects"
+            app:hilava_icon="@drawable/ic_graphic_eq"
+            app:hilava_label="Efeitos"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnTuner"
+            app:layout_constraintEnd_toStartOf="@id/btnLooper" />
+
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnLooper"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_loops"
+            app:hilava_icon="@drawable/ic_rotate_left"
+            app:hilava_label="Looper"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnEffects"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Linha 2 -->
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnMetronome"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_tempo"
+            app:hilava_icon="@drawable/ic_av_timer"
+            app:hilava_label="Metrônomo"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toBottomOf="@id/btnTuner"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnRecorder"
+            android:layout_marginTop="8dp" />
+
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnRecorder"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_recorder"
+            app:hilava_icon="@drawable/ic_mic"
+            app:hilava_label="Gravar"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toBottomOf="@id/btnEffects"
+            app:layout_constraintStart_toEndOf="@id/btnMetronome"
+            app:layout_constraintEnd_toStartOf="@id/btnLearning"
+            android:layout_marginTop="8dp" />
+
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnLearning"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_practice"
+            app:hilava_icon="@drawable/ic_book"
+            app:hilava_label="Aprender"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toBottomOf="@id/btnLooper"
+            app:layout_constraintStart_toEndOf="@id/btnRecorder"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="8dp" />
+
+        <!-- Linha 3 -->
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnSettings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_settings"
+            app:hilava_icon="@drawable/ic_settings"
+            app:hilava_label="Ajustes"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toBottomOf="@id/btnMetronome"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnLibrary"
+            android:layout_marginTop="8dp" />
+
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnLibrary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/hilava_library"
+            app:hilava_icon="@drawable/ic_folder"
+            app:hilava_label="Biblioteca"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toBottomOf="@id/btnRecorder"
+            app:layout_constraintStart_toEndOf="@id/btnSettings"
+            app:layout_constraintEnd_toStartOf="@id/btnPresets"
+            android:layout_marginTop="8dp" />
+
+        <com.thiagofernendorech.toneforge.ui.widgets.HilavaAppButton
+            android:id="@+id/btnPresets"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:hilava_color="@color/lava_indigo"
+            app:hilava_icon="@drawable/ic_presets"
+            app:hilava_label="Presets"
+            app:layout_constraintWidth_percent="0.30"
+            app:layout_constraintTop_toBottomOf="@id/btnLearning"
+            app:layout_constraintStart_toEndOf="@id/btnLibrary"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="8dp" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Indicador de página (dots) -->
+    <LinearLayout
+        android:id="@+id/pageIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        app:layout_constraintBottom_toTopOf="@id/audioStatusCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <View
+            android:id="@+id/dot1"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/hilava_page_dot_active" />
+
+        <View
+            android:id="@+id/dot2"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/hilava_page_dot_inactive"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Card de Status do Áudio (compacto) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/audioStatusCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="@color/hilava_surface"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp">
+
+            <!-- Indicador de pipeline -->
+            <View
+                android:id="@+id/pipelineIndicator"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:background="@drawable/hilava_status_dot" />
+
+            <TextView
+                android:id="@+id/audioStatusText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="Áudio pronto"
+                android:textColor="@color/hilava_text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Bateria -->
+            <ImageView
+                android:id="@+id/batteryIcon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_battery"
+                app:tint="@color/hilava_practice" />
+
+            <TextView
+                android:id="@+id/batteryText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="100%"
+                android:textColor="@color/hilava_text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
