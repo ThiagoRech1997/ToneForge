@@ -309,6 +309,114 @@
                         android:layout_marginStart="8dp"/>
                 </LinearLayout>
 
+                <!-- Seção de Logs -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Configurações de Log"
+                    android:textColor="@color/green"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Logging Verboso"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchVerboseLogging"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false"
+                        android:text=""/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Logging de Debug"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"/>
+                    <Switch
+                        android:id="@+id/switchDebugLogging"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false"
+                        android:text=""/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
+                    
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Nível de Log"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:layout_marginBottom="8dp"/>
+                    
+                    <RadioGroup
+                        android:id="@+id/radioGroupLogLevel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        
+                        <RadioButton
+                            android:id="@+id/radioLogError"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Apenas Erros"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"/>
+                        
+                        <RadioButton
+                            android:id="@+id/radioLogWarn"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Avisos e Erros"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"/>
+                        
+                        <RadioButton
+                            android:id="@+id/radioLogInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Informações, Avisos e Erros"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"
+                            android:checked="true"/>
+                        
+                        <RadioButton
+                            android:id="@+id/radioLogDebug"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Debug Completo"
+                            android:textColor="@color/white"
+                            android:buttonTint="@color/green"/>
+                    </RadioGroup>
+                </LinearLayout>
+
             </LinearLayout>
 
         </LinearLayout>

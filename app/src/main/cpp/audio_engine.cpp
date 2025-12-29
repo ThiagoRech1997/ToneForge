@@ -7,245 +7,341 @@
 #include <vector>
 #include <mutex>
 #include <string>
+#include <algorithm>
 
-// Configurações de Oversampling
-static int oversamplingFactor = 2; // 2x, 4x, 8x
-static bool oversamplingEnabled = true;
+// Flag de inicialização do engine
+static std::atomic<bool> isEngineInitialized{false};
+
+// Mutexes para proteção thread-safe
+static std::mutex audioEngineMutex;
+static std::mutex oversamplingMutex;
+static std::mutex delayMutex;
+static std::mutex looperMutex;
+static std::mutex effectsMutex;
+static std::mutex tunerMutex;
+
+// Configurações de Oversampling com proteção thread-safe
+static std::atomic<int> oversamplingFactor{2}; // 2x, 4x, 8x
+static std::atomic<bool> oversamplingEnabled{true};
 static std::vector<float> oversampleBuffer;
 static std::vector<float> downsampleBuffer;
-static int oversampleBufferSize = 0;
+static std::atomic<int> oversampleBufferSize{0};
 
-// Parâmetros dos efeitos
-static float currentGain = 1.0f;
-static float distortionAmount = 0.0f;
-static float delayTime = 0.0f;
-static float delayFeedback = 0.0f;
-static float delayTimeMs = 200.0f;  // Tempo em milissegundos
-static bool delaySyncBPM = false;   // Sincronizar com BPM
-static int delayBPM = 120;          // BPM para sincronização
-static float reverbRoomSize = 0.0f;
-static float reverbDamping = 0.0f;
+// Parâmetros dos efeitos com proteção thread-safe
+static std::atomic<float> currentGain{1.0f};
+static std::atomic<float> distortionAmount{0.0f};
+static std::atomic<float> delayTime{0.0f};
+static std::atomic<float> delayFeedback{0.0f};
+static std::atomic<float> delayTimeMs{200.0f};  // Tempo em milissegundos
+static std::atomic<bool> delaySyncBPM{false};   // Sincronizar com BPM
+static std::atomic<int> delayBPM{120};          // BPM para sincronização
+static std::atomic<float> reverbRoomSize{0.0f};
+static std::atomic<float> reverbDamping{0.0f};
 
-// Buffer de delay (máximo 1 segundo a 48kHz)
-static const int MAX_DELAY_SAMPLES = 48000;
-static const float MAX_DELAY_TIME = 1.0f; // 1 segundo
-static const int SAMPLE_RATE = 48000;
+// Buffer de delay dinâmico baseado na taxa de amostragem
+static std::atomic<int> MAX_DELAY_SAMPLES{48000}; // Será ajustado dinamicamente
+static const float MAX_DELAY_TIME = 2.0f; // 2 segundos (aumentado para maior flexibilidade)
+static std::atomic<int> SAMPLE_RATE{48000};
 static std::vector<float> delayBuffer;
-static int delayBufferIndex = 0;
-static int delayBufferSize = 0;
+static std::atomic<int> delayBufferIndex{0};
+static std::atomic<int> delayBufferSize{0};
 
-// Buffer de reverb simples
-static const int REVERB_BUFFER_SIZE = 4096;
+// Buffer de reverb dinâmico
+static std::atomic<int> REVERB_BUFFER_SIZE{4096}; // Será ajustado dinamicamente
 static std::vector<float> reverbBuffer;
-static int reverbIndex = 0;
+static std::atomic<int> reverbIndex{0};
 
-// Taxa de amostragem (será configurada)
-static int sampleRate = 48000;
+// Taxa de amostragem (será configurada dinamicamente)
+static std::atomic<int> sampleRate{48000};
+
+// Constantes para limites de segurança
+static const int MIN_BUFFER_SIZE = 512;
+static const int MAX_BUFFER_SIZE = 65536;
+static const int MIN_SAMPLE_RATE = 8000;
+static const int MAX_SAMPLE_RATE = 192000;
+static const int MAX_OVERSAMPLING_FACTOR = 8;
 
 // --- Metrônomo ---
 static std::atomic<bool> metronomeActive{false};
-static int metronomeBpm = 120;
-static int metronomeSampleRate = 48000;
-static int metronomeSamplesPerBeat = 24000; // 120 BPM default
-static int metronomeSampleCounter = 0;
-static bool metronomeClick = false;
-static int metronomeBeatCount = 0; // Contador de batidas para acentos
-static int metronomeTimeSignature = 4; // Compasso 4/4 por padrão
-static float metronomeVolume = 0.6f; // Volume do metrônomo
-static int metronomeClickDuration = 150; // Duração do click em samples
+static std::atomic<int> metronomeBpm{120};
+static std::atomic<int> metronomeSampleRate{48000};
+static std::atomic<int> metronomeSamplesPerBeat{24000}; // 120 BPM default
+static std::atomic<int> metronomeSampleCounter{0};
+static std::atomic<bool> metronomeClick{false};
+static std::atomic<int> metronomeBeatCount{0}; // Contador de batidas para acentos
+static std::atomic<int> metronomeTimeSignature{4}; // Compasso 4/4 por padrão
+static std::atomic<float> metronomeVolume{0.6f}; // Volume do metrônomo
+static std::atomic<int> metronomeClickDuration{150}; // Duração do click em samples
 
 // --- Looper ---
-static const int LOOPER_MAX_SAMPLES = 48000 * 30; // até 30 segundos a 48kHz
+static std::atomic<int> LOOPER_MAX_SAMPLES{48000 * 30}; // Será ajustado dinamicamente
 static const int LOOPER_MAX_TRACKS = 8; // máximo 8 faixas
 
 // Estrutura para uma faixa do looper
 struct LooperTrack {
-    float buffer[LOOPER_MAX_SAMPLES];
-    int length = 0;
-    float volume = 1.0f;
-    bool muted = false;
-    bool soloed = false;
-    bool active = false;
+    std::vector<float> buffer; // Buffer dinâmico
+    std::atomic<int> length{0};
+    std::atomic<int> position{0}; // Posição de leitura/escrita
+    std::atomic<float> volume{1.0f};
+    std::atomic<bool> muted{false};
+    std::atomic<bool> soloed{false};
+    std::atomic<bool> active{false};
+    std::atomic<bool> isRecording{false};
+    std::atomic<bool> isPlaying{false};
+    
+    LooperTrack() {
+        int initialSize = LOOPER_MAX_SAMPLES.load();
+        if (initialSize > 0 && initialSize <= MAX_BUFFER_SIZE) {
+            buffer.resize(initialSize, 0.0f);
+        } else {
+            buffer.resize(MIN_BUFFER_SIZE, 0.0f);
+            printf("LooperTrack: Tamanho inicial inválido, usando %d\n", MIN_BUFFER_SIZE);
+        }
+    }
+    
+    void resizeBuffer(int newSize) {
+        if (newSize > 0 && newSize <= MAX_BUFFER_SIZE) {
+            std::lock_guard<std::mutex> lock(looperMutex);
+            buffer.resize(newSize, 0.0f);
+            printf("LooperTrack: Buffer redimensionado para %d amostras\n", newSize);
+        } else {
+            printf("LooperTrack: Tamanho de buffer inválido: %d\n", newSize);
+        }
+    }
+    
+    void recordSample(float sample) {
+        if (!isRecording.load()) return;
+        
+        int currentLength = length.load();
+        int currentPosition = position.load();
+        int bufferSize = buffer.size();
+        
+        if (currentPosition >= 0 && currentPosition < bufferSize) {
+            buffer[currentPosition] = sample;
+            currentPosition++;
+            
+            if (currentPosition >= bufferSize) {
+                // Buffer cheio, parar gravação
+                isRecording.store(false);
+                currentLength = bufferSize;
+                printf("LooperTrack: Buffer cheio, gravação parada\n");
+            } else {
+                currentLength = std::max(currentLength, currentPosition);
+            }
+            
+            position.store(currentPosition);
+            length.store(currentLength);
+        } else {
+            printf("LooperTrack: Índice de posição inválido: %d, resetando\n", currentPosition);
+            position.store(0);
+        }
+    }
+    
+    float getSample() {
+        if (!isPlaying.load()) return 0.0f;
+        
+        int currentLength = length.load();
+        int currentPosition = position.load();
+        int bufferSize = buffer.size();
+        
+        if (currentLength <= 0 || currentPosition < 0 || currentPosition >= bufferSize) {
+            return 0.0f;
+        }
+        
+        float sample = buffer[currentPosition] * volume.load();
+        currentPosition = (currentPosition + 1) % currentLength;
+        position.store(currentPosition);
+        
+        return sample;
+    }
+    
+    void reset() {
+        length.store(0);
+        position.store(0);
+        isRecording.store(false);
+        isPlaying.store(false);
+        active.store(false);
+        std::fill(buffer.begin(), buffer.end(), 0.0f);
+    }
 };
 
 static LooperTrack looperTracks[LOOPER_MAX_TRACKS];
-static int currentTrack = 0;
-static int looperLength = 0;
-static int looperWriteIndex = 0;
-static int looperReadIndex = 0;
-static bool looperRecording = false;
-static bool looperPlaying = false;
-static bool looperSyncEnabled = false;
-static int looperBPM = 120;
-static int looperSampleRate = 48000;
+static std::atomic<int> currentTrack{0};
+static std::atomic<int> looperLength{0};
+static std::atomic<int> looperWriteIndex{0};
+static std::atomic<int> looperReadIndex{0};
+static std::atomic<bool> looperRecording{false};
+static std::atomic<bool> looperPlaying{false};
+static std::atomic<bool> looperSyncEnabled{false};
+static std::atomic<int> looperBPM{120};
+static std::atomic<int> looperSampleRate{48000};
 
 // Funcionalidades especiais do looper
-static bool looperReverse = false;
-static float looperSpeed = 1.0f;
-static float looperPitchShift = 0.0f;
-static bool looperStutter = false;
-static float looperStutterRate = 4.0f; // 4 Hz por padrão
-static float looperStutterPhase = 0.0f;
-static int looperStutterCounter = 0;
+static std::atomic<bool> looperReverse{false};
+static std::atomic<float> looperSpeed{1.0f};
+static std::atomic<float> looperPitchShift{0.0f};
+static std::atomic<bool> looperStutter{false};
+static std::atomic<float> looperStutterRate{4.0f}; // 4 Hz por padrão
+static std::atomic<float> looperStutterPhase{0.0f};
+static std::atomic<int> looperStutterCounter{0};
 
 // Funcionalidade de Slicing
-static bool looperSlicingEnabled = false;
+static std::atomic<bool> looperSlicingEnabled{false};
 static const int MAX_SLICES = 16;
 static int slicePoints[MAX_SLICES];
-static int numSlicePoints = 0;
-static int sliceLength = 0; // comprimento de cada slice
+static std::atomic<int> numSlicePoints{0};
+static std::atomic<int> sliceLength{0}; // comprimento de cada slice
 static int sliceOrder[MAX_SLICES]; // ordem de reprodução dos slices
-static int currentSliceIndex = 0;
-static int slicePlaybackPosition = 0;
-static bool sliceRandomized = false;
+static std::atomic<int> currentSliceIndex{0};
+static std::atomic<int> slicePlaybackPosition{0};
+static std::atomic<bool> sliceRandomized{false};
 
 // === FASE 5: EFEITOS AVANÇADOS PARA LOOPER ===
 
 // Compressão automática para looper
-static bool looperAutoCompressionEnabled = false;
-static float looperCompressionThreshold = -20.0f; // dB
-static float looperCompressionRatio = 4.0f;
-static float looperCompressionAttack = 10.0f; // ms
-static float looperCompressionRelease = 100.0f; // ms
-static float looperCompressionEnvelope = 0.0f;
-static float looperCompressionGain = 1.0f;
+static std::atomic<bool> looperAutoCompressionEnabled{false};
+static std::atomic<float> looperCompressionThreshold{-20.0f}; // dB
+static std::atomic<float> looperCompressionRatio{4.0f};
+static std::atomic<float> looperCompressionAttack{10.0f}; // ms
+static std::atomic<float> looperCompressionRelease{100.0f}; // ms
+static std::atomic<float> looperCompressionEnvelope{0.0f};
+static std::atomic<float> looperCompressionGain{1.0f};
 
 // Normalização automática
-static bool looperAutoNormalizationEnabled = false;
-static float looperNormalizationTarget = -3.0f; // dB
-static float looperNormalizationGain = 1.0f;
-static float looperPeakLevel = 0.0f;
+static std::atomic<bool> looperAutoNormalizationEnabled{false};
+static std::atomic<float> looperNormalizationTarget{-3.0f}; // dB
+static std::atomic<float> looperNormalizationGain{1.0f};
+static std::atomic<float> looperPeakLevel{0.0f};
 
 // Filtros para looper
-static bool looperLowPassEnabled = false;
-static float looperLowPassFrequency = 8000.0f; // Hz
-static float looperLowPassX1 = 0.0f, looperLowPassX2 = 0.0f;
-static float looperLowPassY1 = 0.0f, looperLowPassY2 = 0.0f;
+static std::atomic<bool> looperLowPassEnabled{false};
+static std::atomic<float> looperLowPassFrequency{8000.0f}; // Hz
+static std::atomic<float> looperLowPassX1{0.0f}, looperLowPassX2{0.0f};
+static std::atomic<float> looperLowPassY1{0.0f}, looperLowPassY2{0.0f};
 
-static bool looperHighPassEnabled = false;
-static float looperHighPassFrequency = 80.0f; // Hz
-static float looperHighPassX1 = 0.0f, looperHighPassX2 = 0.0f;
-static float looperHighPassY1 = 0.0f, looperHighPassY2 = 0.0f;
+static std::atomic<bool> looperHighPassEnabled{false};
+static std::atomic<float> looperHighPassFrequency{80.0f}; // Hz
+static std::atomic<float> looperHighPassX1{0.0f}, looperHighPassX2{0.0f};
+static std::atomic<float> looperHighPassY1{0.0f}, looperHighPassY2{0.0f};
 
 // Reverb de cauda entre loops
-static bool looperReverbTailEnabled = false;
-static float looperReverbTailDecay = 2.0f; // segundos
-static float looperReverbTailMix = 0.3f;
+static std::atomic<bool> looperReverbTailEnabled{false};
+static std::atomic<float> looperReverbTailDecay{2.0f}; // segundos
+static std::atomic<float> looperReverbTailMix{0.3f};
 static std::vector<float> looperReverbTailBuffer;
-static int looperReverbTailIndex = 0;
-static int looperReverbTailSize = 0;
-static float looperReverbTailDecayCoeff = 0.0f;
+static std::atomic<int> looperReverbTailIndex{0};
+static std::atomic<int> looperReverbTailSize{0};
+static std::atomic<float> looperReverbTailDecayCoeff{0.0f};
 
-// --- Afinador (Tuner) ---
-static bool tunerActive = false;
-static float detectedFrequency = 0.0f;
+// --- Afinador ---
+static std::atomic<bool> tunerActive{false};
+static std::atomic<float> detectedFrequency{0.0f};
 static std::vector<float> tunerBuffer;
-static int tunerSampleRate = 48000;
-static std::mutex tunerMutex;
+static std::atomic<int> tunerSampleRate{48000};
 
-// Parâmetros para filtro de média móvel
+// Histórico de frequências para suavização
 static const int FREQ_SMOOTH_SIZE = 5;
 static float freqHistory[FREQ_SMOOTH_SIZE] = {0};
-static int freqHistoryIdx = 0;
+static std::atomic<int> freqHistoryIdx{0};
 
-// Flags de ativação dos efeitos
-static bool gainEnabled = true;
-static bool distortionEnabled = true;
-static bool delayEnabled = true;
-static bool reverbEnabled = true;
+// Flags de ativação dos efeitos com proteção thread-safe
+static std::atomic<bool> gainEnabled{true};
+static std::atomic<bool> distortionEnabled{true};
+static std::atomic<bool> delayEnabled{true};
+static std::atomic<bool> reverbEnabled{true};
 
 static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "EQ", "Compressor", "Delay", "Reverb"};
 
-static int distortionType = 0; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
-static float distortionMix = 1.0f;
-static float delayMix = 1.0f;
-static float reverbMix = 1.0f;
+static std::atomic<int> distortionType{0}; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
+static std::atomic<float> distortionMix{1.0f};
+static std::atomic<float> delayMix{1.0f};
+static std::atomic<float> reverbMix{1.0f};
 
 // Chorus
-static bool chorusEnabled = false;
-static float chorusDepth = 0.02f; // 20 ms
-static float chorusRate = 1.0f;   // 1 Hz
-static float chorusMix = 0.5f;
-static int chorusSampleRate = 48000;
-static int chorusBufferSize = 48000; // 1 segundo
-static std::vector<float> chorusBuffer(chorusBufferSize, 0.0f);
-static int chorusBufferIndex = 0;
-static float chorusPhase = 0.0f;
+static std::atomic<bool> chorusEnabled{false};
+static std::atomic<float> chorusDepth{0.02f}; // 20 ms
+static std::atomic<float> chorusRate{1.0f};   // 1 Hz
+static std::atomic<float> chorusMix{0.5f};
+static std::atomic<int> chorusSampleRate{48000};
+static std::atomic<int> chorusBufferSize{48000}; // 1 segundo
+static std::vector<float> chorusBuffer;
+static std::atomic<int> chorusBufferIndex{0};
+static std::atomic<float> chorusPhase{0.0f};
 
 // Flanger
-static bool flangerEnabled = false;
-static float flangerDepth = 0.003f; // 3 ms
-static float flangerRate = 0.3f;   // 0.3 Hz
-static float flangerFeedback = 0.5f;
-static float flangerMix = 0.5f;
-static int flangerSampleRate = 48000;
-static int flangerBufferSize = 48000; // 1 segundo
-static std::vector<float> flangerBuffer(flangerBufferSize, 0.0f);
-static int flangerBufferIndex = 0;
-static float flangerPhase = 0.0f;
+static std::atomic<bool> flangerEnabled{false};
+static std::atomic<float> flangerDepth{0.003f}; // 3 ms
+static std::atomic<float> flangerRate{0.3f};   // 0.3 Hz
+static std::atomic<float> flangerFeedback{0.5f};
+static std::atomic<float> flangerMix{0.5f};
+static std::atomic<int> flangerSampleRate{48000};
+static std::atomic<int> flangerBufferSize{48000}; // 1 segundo
+static std::vector<float> flangerBuffer;
+static std::atomic<int> flangerBufferIndex{0};
+static std::atomic<float> flangerPhase{0.0f};
 
 // Phaser
-static bool phaserEnabled = false;
-static float phaserDepth = 0.8f;    // Profundidade da modulação (0-1)
-static float phaserRate = 0.5f;     // Taxa de modulação em Hz
-static float phaserFeedback = 0.6f; // Feedback do phaser
-static float phaserMix = 0.5f;      // Mix dry/wet
-static int phaserSampleRate = 48000;
-static int phaserBufferSize = 48000; // 1 segundo
-static std::vector<float> phaserBuffer(phaserBufferSize, 0.0f);
-static int phaserBufferIndex = 0;
-static float phaserPhase = 0.0f;
-static float phaserLfo = 0.0f;      // Valor atual do LFO
+static std::atomic<bool> phaserEnabled{false};
+static std::atomic<float> phaserDepth{0.8f};    // Profundidade da modulação (0-1)
+static std::atomic<float> phaserRate{0.5f};     // Taxa de modulação em Hz
+static std::atomic<float> phaserFeedback{0.6f}; // Feedback do phaser
+static std::atomic<float> phaserMix{0.5f};      // Mix dry/wet
+static std::atomic<int> phaserSampleRate{48000};
+static std::atomic<int> phaserBufferSize{48000}; // 1 segundo
+static std::vector<float> phaserBuffer;
+static std::atomic<int> phaserBufferIndex{0};
+static std::atomic<float> phaserPhase{0.0f};
+static std::atomic<float> phaserLfo{0.0f};      // Valor atual do LFO
 
 // Equalizer (EQ)
-static bool eqEnabled = false;
-static float eqLowGain = 0.0f;      // Ganho para graves (60Hz)
-static float eqMidGain = 0.0f;      // Ganho para médios (1kHz)
-static float eqHighGain = 0.0f;     // Ganho para agudos (8kHz)
-static float eqMix = 1.0f;          // Mix dry/wet
-static int eqSampleRate = 48000;
+static std::atomic<bool> eqEnabled{false};
+static std::atomic<float> eqLowGain{0.0f};      // Ganho para graves (60Hz)
+static std::atomic<float> eqMidGain{0.0f};      // Ganho para médios (1kHz)
+static std::atomic<float> eqHighGain{0.0f};     // Ganho para agudos (8kHz)
+static std::atomic<float> eqMix{1.0f};          // Mix dry/wet
+static std::atomic<int> eqSampleRate{48000};
 
 // Filtros do EQ (estados dos filtros)
-static float eqLowX1 = 0.0f, eqLowX2 = 0.0f, eqLowY1 = 0.0f, eqLowY2 = 0.0f;
-static float eqMidX1 = 0.0f, eqMidX2 = 0.0f, eqMidY1 = 0.0f, eqMidY2 = 0.0f;
-static float eqHighX1 = 0.0f, eqHighX2 = 0.0f, eqHighY1 = 0.0f, eqHighY2 = 0.0f;
+static std::atomic<float> eqLowX1{0.0f}, eqLowX2{0.0f}, eqLowY1{0.0f}, eqLowY2{0.0f};
+static std::atomic<float> eqMidX1{0.0f}, eqMidX2{0.0f}, eqMidY1{0.0f}, eqMidY2{0.0f};
+static std::atomic<float> eqHighX1{0.0f}, eqHighX2{0.0f}, eqHighY1{0.0f}, eqHighY2{0.0f};
 
 // Compressor
-static bool compressorEnabled = false;
-static float compressorThreshold = -20.0f;  // dB
-static float compressorRatio = 4.0f;        // 4:1
-static float compressorAttack = 10.0f;      // ms
-static float compressorRelease = 100.0f;    // ms
-static float compressorMix = 1.0f;          // Mix dry/wet
-static int compressorSampleRate = 48000;
+static std::atomic<bool> compressorEnabled{false};
+static std::atomic<float> compressorThreshold{-20.0f};  // dB
+static std::atomic<float> compressorRatio{4.0f};        // 4:1
+static std::atomic<float> compressorAttack{10.0f};      // ms
+static std::atomic<float> compressorRelease{100.0f};    // ms
+static std::atomic<float> compressorMix{1.0f};          // Mix dry/wet
+static std::atomic<int> compressorSampleRate{48000};
 
 // Estado do compressor
-static float compressorEnvelope = 0.0f;     // Envelope detector
-static float compressorGain = 1.0f;         // Gain reduction
+static std::atomic<float> compressorEnvelope{0.0f};     // Envelope detector
+static std::atomic<float> compressorGain{1.0f};         // Gain reduction
 
-static int reverbType = 0; // 0=Hall, 1=Plate, 2=Spring
+static std::atomic<int> reverbType{0}; // 0=Hall, 1=Plate, 2=Spring
 
 // === FASE 6: INTEGRAÇÃO AVANÇADA ===
 
 // Quantização
-static bool looperQuantizationEnabled = false;
-static float looperQuantizationGrid = 0.25f; // 1/4 de batida por padrão
-static int looperQuantizationSamples = 0; // samples por grid
-static int looperQuantizationCounter = 0; // contador para alinhamento
+static std::atomic<bool> looperQuantizationEnabled{false};
+static std::atomic<float> looperQuantizationGrid{0.25f}; // 1/4 de batida por padrão
+static std::atomic<int> looperQuantizationSamples{0}; // samples por grid
+static std::atomic<int> looperQuantizationCounter{0}; // contador para alinhamento
 
 // Fade In/Out automático
-static bool looperAutoFadeInEnabled = false;
-static bool looperAutoFadeOutEnabled = false;
-static float looperFadeInDuration = 0.1f; // segundos
-static float looperFadeOutDuration = 0.1f; // segundos
-static int looperFadeInSamples = 0;
-static int looperFadeOutSamples = 0;
-static int looperFadeInCounter = 0;
-static int looperFadeOutCounter = 0;
+static std::atomic<bool> looperAutoFadeInEnabled{false};
+static std::atomic<bool> looperAutoFadeOutEnabled{false};
+static std::atomic<float> looperFadeInDuration{0.1f}; // segundos
+static std::atomic<float> looperFadeOutDuration{0.1f}; // segundos
+static std::atomic<int> looperFadeInSamples{0};
+static std::atomic<int> looperFadeOutSamples{0};
+static std::atomic<int> looperFadeInCounter{0};
+static std::atomic<int> looperFadeOutCounter{0};
 
 // Integração MIDI
-static bool looperMidiEnabled = false;
-static int looperMidiChannel = 0; // canal 1 (0-based)
+static std::atomic<bool> looperMidiEnabled{false};
+static std::atomic<int> looperMidiChannel{0}; // canal 1 (0-based)
 static int looperMidiCCMapping[128]; // mapeamento CC -> função
 static bool looperMidiCCActive[128]; // estado dos CCs
 
@@ -255,56 +351,86 @@ static bool looperNotificationControlsEnabled = false;
 static std::string looperNotificationState = "stopped"; // stopped, recording, playing
 
 void initAudioEngine() {
+    std::lock_guard<std::mutex> lock(audioEngineMutex);
+    
     // Inicializar buffers de oversampling
-    oversampleBufferSize = 4096 * oversamplingFactor;
-    oversampleBuffer.resize(oversampleBufferSize);
-    downsampleBuffer.resize(oversampleBufferSize);
+    int oversampleSize = 4096 * oversamplingFactor.load();
+    oversampleBufferSize.store(oversampleSize);
+    oversampleBuffer.resize(oversampleSize);
+    downsampleBuffer.resize(oversampleSize);
     
-    // Inicializar outros buffers
-    delayBufferSize = (int)(MAX_DELAY_TIME * SAMPLE_RATE);
-    delayBuffer.resize(delayBufferSize, 0.0f);
-    delayBufferIndex = 0;
+    // Inicializar buffers de delay
+    int currentSampleRate = sampleRate.load();
+    int delaySize = (int)(MAX_DELAY_TIME * currentSampleRate);
+    MAX_DELAY_SAMPLES.store(delaySize);
+    delayBufferSize.store(delaySize);
+    delayBuffer.resize(delaySize, 0.0f);
+    delayBufferIndex.store(0);
     
-    reverbBuffer.resize(REVERB_BUFFER_SIZE, 0.0f);
-    reverbIndex = 0;
+    // Inicializar buffer de reverb
+    reverbBuffer.resize(REVERB_BUFFER_SIZE.load(), 0.0f);
+    reverbIndex.store(0);
     
     // Inicializar buffers de modulação
-    chorusBuffer.resize(chorusBufferSize, 0.0f);
-    flangerBuffer.resize(flangerBufferSize, 0.0f);
-    phaserBuffer.resize(phaserBufferSize, 0.0f);
+    int modBufferSize = currentSampleRate; // 1 segundo
+    chorusBufferSize.store(modBufferSize);
+    chorusBuffer.resize(modBufferSize, 0.0f);
+    chorusBufferIndex.store(0);
+    
+    flangerBufferSize.store(modBufferSize);
+    flangerBuffer.resize(modBufferSize, 0.0f);
+    flangerBufferIndex.store(0);
+    
+    phaserBufferSize.store(modBufferSize);
+    phaserBuffer.resize(modBufferSize, 0.0f);
+    phaserBufferIndex.store(0);
     
     // Inicializar reverb de cauda do looper
-    looperReverbTailSize = (int)(looperReverbTailDecay * SAMPLE_RATE);
-    looperReverbTailBuffer.resize(looperReverbTailSize, 0.0f);
-    looperReverbTailIndex = 0;
-    looperReverbTailDecayCoeff = expf(-1.0f / (looperReverbTailDecay * SAMPLE_RATE));
+    int reverbTailSize = (int)(looperReverbTailDecay.load() * currentSampleRate);
+    looperReverbTailSize.store(reverbTailSize);
+    looperReverbTailBuffer.resize(reverbTailSize, 0.0f);
+    looperReverbTailIndex.store(0);
+    looperReverbTailDecayCoeff.store(expf(-1.0f / (looperReverbTailDecay.load() * currentSampleRate)));
+    
+    // Inicializar buffers do looper
+    int looperMaxSamples = currentSampleRate * 30; // 30 segundos
+    LOOPER_MAX_SAMPLES.store(looperMaxSamples);
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        looperTracks[i].resizeBuffer(looperMaxSamples);
+    }
     
     // Resetar fases
-    chorusPhase = 0.0f;
-    flangerPhase = 0.0f;
-    phaserPhase = 0.0f;
-    phaserLfo = 0.0f;
+    chorusPhase.store(0.0f);
+    flangerPhase.store(0.0f);
+    phaserPhase.store(0.0f);
+    phaserLfo.store(0.0f);
     
     // Resetar parâmetros
-    currentGain = 1.0f;
-    distortionAmount = 0.0f;
-    delayTime = 0.0f;
-    delayFeedback = 0.0f;
-    reverbRoomSize = 0.0f;
-    reverbDamping = 0.0f;
+    currentGain.store(1.0f);
+    distortionAmount.store(0.0f);
+    delayTime.store(0.0f);
+    delayFeedback.store(0.0f);
+    reverbRoomSize.store(0.0f);
+    reverbDamping.store(0.0f);
     
     // Resetar efeitos avançados do looper
-    looperCompressionEnvelope = 0.0f;
-    looperCompressionGain = 1.0f;
-    looperNormalizationGain = 1.0f;
-    looperPeakLevel = 0.0f;
-    looperLowPassX1 = looperLowPassX2 = looperLowPassY1 = looperLowPassY2 = 0.0f;
-    looperHighPassX1 = looperHighPassX2 = looperHighPassY1 = looperHighPassY2 = 0.0f;
+    looperCompressionEnvelope.store(0.0f);
+    looperCompressionGain.store(1.0f);
+    looperNormalizationGain.store(1.0f);
+    looperPeakLevel.store(0.0f);
+    looperLowPassX1.store(0.0f);
+    looperLowPassX2.store(0.0f);
+    looperLowPassY1.store(0.0f);
+    looperLowPassY2.store(0.0f);
+    looperHighPassX1.store(0.0f);
+    looperHighPassX2.store(0.0f);
+    looperHighPassY1.store(0.0f);
+    looperHighPassY2.store(0.0f);
     
     // Resetar integração avançada (Fase 6)
-    looperQuantizationCounter = 0;
-    looperFadeInCounter = 0;
-    looperFadeOutCounter = 0;
+    looperQuantizationCounter.store(0);
+    looperFadeInCounter.store(0);
+    looperFadeOutCounter.store(0);
     
     // Inicializar mapeamento MIDI
     for (int i = 0; i < 128; i++) {
@@ -317,9 +443,17 @@ void initAudioEngine() {
     looperMidiCCMapping[65] = 1; // CC65 = Play
     looperMidiCCMapping[66] = 2; // CC66 = Stop
     looperMidiCCMapping[67] = 3; // CC67 = Clear
+
+    // Marcar engine como inicializado
+    isEngineInitialized.store(true);
+
+    printf("initAudioEngine: inicializado com taxa de amostragem %d Hz\n", currentSampleRate);
 }
 
 void cleanupAudioEngine() {
+    // Marcar engine como não inicializado
+    isEngineInitialized.store(false);
+
     // Limpar buffers
     delayBuffer.clear();
     reverbBuffer.clear();
@@ -338,11 +472,12 @@ void setDistortion(float amount) {
 void setDelay(float time, float feedback) {
     delayTime = time;
     delayFeedback = feedback;
-    delayBufferSize = (int)(time * sampleRate);
-    if (delayBufferSize > MAX_DELAY_SAMPLES) {
-        delayBufferSize = MAX_DELAY_SAMPLES;
+    int newDelayBufferSize = (int)(time * sampleRate);
+    if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
+        newDelayBufferSize = MAX_DELAY_SAMPLES.load();
     }
-    delayBuffer.resize(delayBufferSize, 0.0f);
+    delayBufferSize.store(newDelayBufferSize);
+    delayBuffer.resize(delayBufferSize.load(), 0.0f);
 }
 
 void setDelayTime(float timeMs) {
@@ -350,10 +485,22 @@ void setDelayTime(float timeMs) {
     if (!delaySyncBPM) {
         // Converter ms para segundos e calcular samples
         delayTime = timeMs / 1000.0f;
-        delayBufferSize = (int)(delayTime * sampleRate);
-        if (delayBufferSize > MAX_DELAY_SAMPLES) {
-            delayBufferSize = MAX_DELAY_SAMPLES;
+        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
+        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
+            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
         }
+        delayBufferSize.store(newDelayBufferSize);
+        delayBuffer.resize(delayBufferSize.load(), 0.0f);
+    } else {
+        // Calcular tempo baseado no BPM
+        float beatLength = 60.0f / delayBPM.load();
+        delayTime = beatLength / 4.0f; // Divisão por 4 (semínima)
+        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
+        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
+            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
+        }
+        delayBufferSize.store(newDelayBufferSize);
+        delayBuffer.resize(delayBufferSize.load(), 0.0f);
     }
 }
 
@@ -361,12 +508,13 @@ void setDelaySyncBPM(bool sync) {
     delaySyncBPM = sync;
     if (sync) {
         // Calcular tempo baseado no BPM
-        float beatTime = 60.0f / delayBPM; // segundos por batida
+        float beatTime = 60.0f / delayBPM.load(); // segundos por batida
         delayTime = beatTime; // 1/4 nota
-        delayBufferSize = (int)(delayTime * sampleRate);
-        if (delayBufferSize > MAX_DELAY_SAMPLES) {
-            delayBufferSize = MAX_DELAY_SAMPLES;
+        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
+        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
+            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
         }
+        delayBufferSize.store(newDelayBufferSize);
     } else {
         // Usar tempo em ms
         setDelayTime(delayTimeMs);
@@ -376,13 +524,15 @@ void setDelaySyncBPM(bool sync) {
 void setDelayBPM(int bpm) {
     delayBPM = bpm;
     if (delaySyncBPM) {
-        // Recalcular tempo baseado no novo BPM
-        float beatTime = 60.0f / delayBPM; // segundos por batida
-        delayTime = beatTime; // 1/4 nota
-        delayBufferSize = (int)(delayTime * sampleRate);
-        if (delayBufferSize > MAX_DELAY_SAMPLES) {
-            delayBufferSize = MAX_DELAY_SAMPLES;
+        // Recalcular tempo de delay baseado no novo BPM
+        float beatLength = 60.0f / bpm;
+        delayTime = beatLength / 4.0f; // Divisão por 4 (semínima)
+        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
+        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
+            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
         }
+        delayBufferSize.store(newDelayBufferSize);
+        delayBuffer.resize(delayBufferSize.load(), 0.0f);
     }
 }
 
@@ -392,8 +542,89 @@ void setReverb(float roomSize, float damping) {
 }
 
 void setSampleRate(int rate) {
-    metronomeSampleRate = rate;
-    metronomeSamplesPerBeat = (int)((60.0 / metronomeBpm) * metronomeSampleRate);
+    std::lock_guard<std::mutex> lock(audioEngineMutex);
+    
+    // Validar taxa de amostragem
+    if (rate < MIN_SAMPLE_RATE || rate > MAX_SAMPLE_RATE) {
+        printf("setSampleRate: taxa de amostragem inválida: %d (deve estar entre %d e %d)\n", 
+               rate, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE);
+        return;
+    }
+    
+    // Atualizar taxas de amostragem
+    sampleRate.store(rate);
+    SAMPLE_RATE.store(rate);
+    metronomeSampleRate.store(rate);
+    looperSampleRate.store(rate);
+    tunerSampleRate.store(rate);
+    chorusSampleRate.store(rate);
+    flangerSampleRate.store(rate);
+    phaserSampleRate.store(rate);
+    eqSampleRate.store(rate);
+    compressorSampleRate.store(rate);
+    
+    // Ajustar buffers de delay baseados na nova taxa
+    int newDelaySamples = (int)(MAX_DELAY_TIME * rate);
+    MAX_DELAY_SAMPLES.store(newDelaySamples);
+    
+    std::lock_guard<std::mutex> delayLock(delayMutex);
+    if (newDelaySamples > 0 && newDelaySamples <= MAX_BUFFER_SIZE) {
+        delayBuffer.resize(newDelaySamples, 0.0f);
+        delayBufferSize.store(newDelaySamples);
+        delayBufferIndex.store(0);
+        printf("setSampleRate: Buffer de delay redimensionado para %d amostras\n", newDelaySamples);
+    } else {
+        printf("setSampleRate: Tamanho de buffer de delay inválido: %d\n", newDelaySamples);
+    }
+    
+    // Ajustar buffer de reverb baseado na nova taxa
+    int newReverbSize = std::min(rate / 10, MAX_BUFFER_SIZE); // 100ms de reverb
+    REVERB_BUFFER_SIZE.store(newReverbSize);
+    reverbBuffer.resize(newReverbSize, 0.0f);
+    reverbIndex.store(0);
+    
+    // Ajustar buffers de modulação
+    int modBufferSize = std::min(rate, MAX_BUFFER_SIZE); // 1 segundo, limitado
+    std::lock_guard<std::mutex> effectsLock(effectsMutex);
+    
+    chorusBufferSize.store(modBufferSize);
+    chorusBuffer.resize(modBufferSize, 0.0f);
+    chorusBufferIndex.store(0);
+    
+    flangerBufferSize.store(modBufferSize);
+    flangerBuffer.resize(modBufferSize, 0.0f);
+    flangerBufferIndex.store(0);
+    
+    phaserBufferSize.store(modBufferSize);
+    phaserBuffer.resize(modBufferSize, 0.0f);
+    phaserBufferIndex.store(0);
+    
+    // Ajustar buffer de reverb de cauda do looper
+    if (looperReverbTailDecay.load() > 0.0f) {
+        int reverbTailSize = std::min((int)(looperReverbTailDecay.load() * rate), MAX_BUFFER_SIZE);
+        looperReverbTailSize.store(reverbTailSize);
+        looperReverbTailBuffer.resize(reverbTailSize, 0.0f);
+        looperReverbTailIndex.store(0);
+        looperReverbTailDecayCoeff.store(expf(-1.0f / (looperReverbTailDecay.load() * rate)));
+    }
+    
+    // Ajustar buffers do looper
+    int looperMaxSamples = std::min(rate * 30, MAX_BUFFER_SIZE); // 30 segundos, limitado
+    LOOPER_MAX_SAMPLES.store(looperMaxSamples);
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        looperTracks[i].resizeBuffer(looperMaxSamples);
+    }
+    
+    // Ajustar buffers de oversampling
+    std::lock_guard<std::mutex> oversamplingLock(oversamplingMutex);
+    int oversampleSize = std::min(4096 * oversamplingFactor.load(), MAX_BUFFER_SIZE);
+    oversampleBufferSize.store(oversampleSize);
+    oversampleBuffer.resize(oversampleSize);
+    downsampleBuffer.resize(oversampleSize);
+    
+    printf("setSampleRate: Taxa de amostragem alterada para %d Hz\n", rate);
+    printf("setSampleRate: Buffers ajustados - Delay: %d, Reverb: %d, Mod: %d, Looper: %d\n",
+           newDelaySamples, newReverbSize, modBufferSize, looperMaxSamples);
 }
 
 void startMetronome(int bpm) {
@@ -402,7 +633,7 @@ void startMetronome(int bpm) {
     metronomeSampleCounter = 0;
     metronomeBeatCount = 0;
     metronomeActive = true;
-    printf("Metronome: iniciado com %d BPM, volume %.2f\n", bpm, metronomeVolume);
+    printf("Metronome: iniciado com %d BPM, volume %.2f\n", bpm, metronomeVolume.load());
 }
 
 void stopMetronome() {
@@ -413,7 +644,7 @@ void stopMetronome() {
 
 void setMetronomeVolume(float volume) {
     metronomeVolume = std::max(0.0f, std::min(1.0f, volume));
-    printf("Metronome: volume alterado para %.2f\n", metronomeVolume);
+    printf("Metronome: volume alterado para %.2f\n", metronomeVolume.load());
 }
 
 void setMetronomeTimeSignature(int beats) {
@@ -495,7 +726,7 @@ void startLooperRecording() {
     
     // Resetar contadores de fade
     looperFadeInCounter = 0;
-    looperFadeOutCounter = 0;
+            looperFadeOutCounter.store(0);
     
     printf("startLooperRecording: iniciando gravação\n");
     
@@ -517,7 +748,7 @@ void startLooperRecording() {
     }
     
     // Limpar buffer da faixa atual
-    memset(looperTracks[currentTrack].buffer, 0, sizeof(looperTracks[currentTrack].buffer));
+    std::fill(looperTracks[currentTrack].buffer.begin(), looperTracks[currentTrack].buffer.end(), 0.0f);
     looperTracks[currentTrack].length = 0;
     looperTracks[currentTrack].volume = 1.0f;
     looperTracks[currentTrack].muted = false;
@@ -527,15 +758,15 @@ void startLooperRecording() {
     // Atualizar estado da notificação
     looperNotificationState = "recording";
     
-    printf("startLooperRecording: track %d configurada para gravação\n", currentTrack);
+    printf("startLooperRecording: track %d configurada para gravação\n", currentTrack.load());
 }
 
 void stopLooperRecording() {
     looperRecording = false;
-    printf("stopLooperRecording: looperWriteIndex=%d, currentTrack=%d\n", looperWriteIndex, currentTrack);
+    printf("stopLooperRecording: looperWriteIndex=%d, currentTrack=%d\n", looperWriteIndex.load(), currentTrack.load());
     if (looperWriteIndex > 0) {
-        looperTracks[currentTrack].length = looperWriteIndex;
-        printf("stopLooperRecording: definido length=%d para track %d\n", looperWriteIndex, currentTrack);
+        looperTracks[currentTrack].length.store(looperWriteIndex.load());
+        printf("stopLooperRecording: definido length=%d para track %d\n", looperWriteIndex.load(), currentTrack.load());
     }
     looperReadIndex = 0;
     
@@ -565,7 +796,7 @@ void stopLooperPlayback() {
     // Configurar fade out se habilitado
     if (looperAutoFadeOutEnabled) {
         looperFadeOutSamples = (int)(looperFadeOutDuration * looperSampleRate);
-        looperFadeOutCounter = looperFadeOutSamples;
+        looperFadeOutCounter.store(looperFadeOutSamples);
     }
     
     // Atualizar estado da notificação
@@ -581,7 +812,7 @@ void clearLooper() {
     
     // Limpar todas as faixas
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-        memset(looperTracks[i].buffer, 0, sizeof(looperTracks[i].buffer));
+        std::fill(looperTracks[i].buffer.begin(), looperTracks[i].buffer.end(), 0.0f);
         looperTracks[i].length = 0;
         looperTracks[i].volume = 1.0f;
         looperTracks[i].muted = false;
@@ -593,15 +824,15 @@ void clearLooper() {
 bool isLooperRecording() { return looperRecording; }
 bool isLooperPlaying() { return looperPlaying; }
 
-void setGainEnabled(bool enabled) { gainEnabled = enabled; }
-void setDistortionEnabled(bool enabled) { distortionEnabled = enabled; }
-void setDelayEnabled(bool enabled) { delayEnabled = enabled; }
-void setReverbEnabled(bool enabled) { reverbEnabled = enabled; }
+void setGainEnabled(bool enabled) { gainEnabled.store(enabled); }
+void setDistortionEnabled(bool enabled) { distortionEnabled.store(enabled); }
+void setDelayEnabled(bool enabled) { delayEnabled.store(enabled); }
+void setReverbEnabled(bool enabled) { reverbEnabled.store(enabled); }
 
-void setDistortionType(int type) { distortionType = type; }
-void setDistortionMix(float mix) { distortionMix = mix; }
-void setDelayMix(float mix) { delayMix = mix; }
-void setReverbMix(float mix) { reverbMix = mix; }
+void setDistortionType(int type) { distortionType.store(type); }
+void setDistortionMix(float mix) { distortionMix.store(mix); }
+void setDelayMix(float mix) { delayMix.store(mix); }
+void setReverbMix(float mix) { reverbMix.store(mix); }
 
 void setChorusEnabled(bool enabled) { chorusEnabled = enabled; }
 void setChorusDepth(float depth) { chorusDepth = depth; }
@@ -638,515 +869,83 @@ void setReverbType(int type) {
 }
 
 float processSample(float input) {
-    float output = input;
-    float dry = input;
-    for (const std::string& effect : effectOrder) {
-        if (effect == "Ganho") {
-            if (gainEnabled) output *= currentGain;
-        } else if (effect == "Chorus") {
-            if (chorusEnabled) {
-                chorusBuffer[chorusBufferIndex] = output;
-                float lfo = (sinf(chorusPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
-                float delaySamples = chorusDepth * chorusSampleRate * lfo;
-                int readIdx = chorusBufferIndex - (int)delaySamples;
-                if (readIdx < 0) readIdx += chorusBufferSize;
-                float delayed = chorusBuffer[readIdx % chorusBufferSize];
-                output = (1.0f - chorusMix) * output + chorusMix * delayed;
-                chorusBufferIndex = (chorusBufferIndex + 1) % chorusBufferSize;
-                chorusPhase += chorusRate / (float)chorusSampleRate;
-                if (chorusPhase > 1.0f) chorusPhase -= 1.0f;
-            }
-        } else if (effect == "Flanger") {
-            if (flangerEnabled) {
-                // Flanger: delay modulado por LFO + feedback
-                flangerBuffer[flangerBufferIndex] = output + flangerFeedback * flangerBuffer[flangerBufferIndex];
-                float lfo = (sinf(flangerPhase * 2.0f * 3.14159265f) + 1.0f) * 0.5f;
-                float delaySamples = 1.0f + flangerDepth * flangerSampleRate * lfo; // mínimo 1 sample
-                int readIdx = flangerBufferIndex - (int)delaySamples;
-                if (readIdx < 0) readIdx += flangerBufferSize;
-                float delayed = flangerBuffer[readIdx % flangerBufferSize];
-                output = (1.0f - flangerMix) * output + flangerMix * delayed;
-                flangerBufferIndex = (flangerBufferIndex + 1) % flangerBufferSize;
-                flangerPhase += flangerRate / (float)flangerSampleRate;
-                if (flangerPhase > 1.0f) flangerPhase -= 1.0f;
-            }
-        } else if (effect == "Phaser") {
-            if (phaserEnabled) {
-                // Phaser: filtros passa-tudo em série com modulação
-                float lfo = sinf(phaserPhase * 2.0f * 3.14159265f);
-                float modDepth = phaserDepth * 0.5f; // 0-0.5 para evitar instabilidade
-                
-                // Aplicar filtros passa-tudo em série (4 estágios)
-                float filtered = output;
-                for (int stage = 0; stage < 4; ++stage) {
-                    float freq = 200.0f + 2000.0f * (stage / 3.0f); // 200Hz a 2kHz
-                    freq *= (1.0f + modDepth * lfo); // Modular a frequência
-                    
-                    // Filtro passa-tudo simples
-                    float w0 = 2.0f * 3.14159265f * freq / phaserSampleRate;
-                    float alpha = sinf(w0) * 0.5f;
-                    float b0 = 1.0f - alpha;
-                    float b1 = -2.0f * cosf(w0);
-                    float b2 = 1.0f + alpha;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    // Aplicar filtro (implementação simplificada)
-                    static float x1[4] = {0}, x2[4] = {0}, y1[4] = {0}, y2[4] = {0};
-                    float y = b0 * filtered + b1 * x1[stage] + b2 * x2[stage] 
-                             - a1 * y1[stage] - a2 * y2[stage];
-                    x2[stage] = x1[stage];
-                    x1[stage] = filtered;
-                    y2[stage] = y1[stage];
-                    y1[stage] = y;
-                    filtered = y;
-                }
-                
-                // Aplicar feedback
-                phaserBuffer[phaserBufferIndex] = filtered + phaserFeedback * phaserBuffer[phaserBufferIndex];
-                float wet = phaserBuffer[phaserBufferIndex];
-                
-                // Mix dry/wet
-                output = (1.0f - phaserMix) * output + phaserMix * wet;
-                
-                // Atualizar buffer e fase
-                phaserBufferIndex = (phaserBufferIndex + 1) % phaserBufferSize;
-                phaserPhase += phaserRate / (float)phaserSampleRate;
-                if (phaserPhase > 1.0f) phaserPhase -= 1.0f;
-            }
-        } else if (effect == "EQ") {
-            if (eqEnabled) {
-                // Equalizer: 3 filtros passa-banda (low, mid, high)
-                float filtered = output;
-                
-                // Filtro passa-baixa (graves - 60Hz)
-                if (eqLowGain != 0.0f) {
-                    float freq = 60.0f;
-                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
-                    float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
-                    float b0 = (1.0f - cosf(w0)) / 2.0f;
-                    float b1 = 1.0f - cosf(w0);
-                    float b2 = (1.0f - cosf(w0)) / 2.0f;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    float y = b0 * filtered + b1 * eqLowX1 + b2 * eqLowX2 - a1 * eqLowY1 - a2 * eqLowY2;
-                    eqLowX2 = eqLowX1; eqLowX1 = filtered;
-                    eqLowY2 = eqLowY1; eqLowY1 = y;
-                    
-                    // Aplicar ganho
-                    float lowBand = y * (eqLowGain > 0 ? (1.0f + eqLowGain) : (1.0f / (1.0f - eqLowGain)));
-                    filtered = filtered + (lowBand - y);
-                }
-                
-                // Filtro passa-banda (médios - 1kHz)
-                if (eqMidGain != 0.0f) {
-                    float freq = 1000.0f;
-                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
-                    float alpha = sinf(w0) / (2.0f * 0.707f);
-                    float b0 = alpha;
-                    float b1 = 0.0f;
-                    float b2 = -alpha;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    float y = b0 * filtered + b1 * eqMidX1 + b2 * eqMidX2 - a1 * eqMidY1 - a2 * eqMidY2;
-                    eqMidX2 = eqMidX1; eqMidX1 = filtered;
-                    eqMidY2 = eqMidY1; eqMidY1 = y;
-                    
-                    // Aplicar ganho
-                    float midBand = y * (eqMidGain > 0 ? (1.0f + eqMidGain) : (1.0f / (1.0f - eqMidGain)));
-                    filtered = filtered + (midBand - y);
-                }
-                
-                // Filtro passa-alta (agudos - 8kHz)
-                if (eqHighGain != 0.0f) {
-                    float freq = 8000.0f;
-                    float w0 = 2.0f * 3.14159265f * freq / eqSampleRate;
-                    float alpha = sinf(w0) / (2.0f * 0.707f);
-                    float b0 = (1.0f + cosf(w0)) / 2.0f;
-                    float b1 = -(1.0f + cosf(w0));
-                    float b2 = (1.0f + cosf(w0)) / 2.0f;
-                    float a0 = 1.0f + alpha;
-                    float a1 = -2.0f * cosf(w0);
-                    float a2 = 1.0f - alpha;
-                    
-                    // Normalizar
-                    b0 /= a0; b1 /= a0; b2 /= a0;
-                    a1 /= a0; a2 /= a0; a0 = 1.0f;
-                    
-                    float y = b0 * filtered + b1 * eqHighX1 + b2 * eqHighX2 - a1 * eqHighY1 - a2 * eqHighY2;
-                    eqHighX2 = eqHighX1; eqHighX1 = filtered;
-                    eqHighY2 = eqHighY1; eqHighY1 = y;
-                    
-                    // Aplicar ganho
-                    float highBand = y * (eqHighGain > 0 ? (1.0f + eqHighGain) : (1.0f / (1.0f - eqHighGain)));
-                    filtered = filtered + (highBand - y);
-                }
-                
-                // Mix dry/wet
-                output = (1.0f - eqMix) * output + eqMix * filtered;
-            }
-        } else if (effect == "Distorção") {
-            if (distortionEnabled && distortionAmount > 0.0f) {
-                float distorted = output;
-                float drive = 1.0f + distortionAmount * 10.0f;
-                switch (distortionType) {
-                    case 0: // Soft Clip
-                        distorted = tanh(distorted * drive) / tanh(drive);
-                        break;
-                    case 1: // Hard Clip
-                        distorted = std::max(-1.0f, std::min(1.0f, distorted * drive));
-                        break;
-                    case 2: // Fuzz
-                        distorted = sinf(distorted * drive);
-                        break;
-                    case 3: // Overdrive
-                        if (distorted > 0)
-                            distorted = 1.0f - expf(-distorted * drive);
-                        else
-                            distorted = -1.0f + expf(distorted * drive);
-                        break;
-                }
-                output = (1.0f - distortionMix) * output + distortionMix * distorted;
-            }
-        } else if (effect == "Delay") {
-            if (delayEnabled && delayTime > 0.0f && delayBufferSize > 0) {
-                float delayedSample = delayBuffer[delayBufferIndex];
-                float wet = output + delayedSample * delayFeedback;
-                output = (1.0f - delayMix) * output + delayMix * wet;
-                delayBuffer[delayBufferIndex] = wet;
-                delayBufferIndex = (delayBufferIndex + 1) % delayBufferSize;
-            }
-        } else if (effect == "Reverb") {
-            if (reverbEnabled && reverbRoomSize > 0.0f) {
-                float wet = 0.0f;
-                switch (reverbType) {
-                    case 0: // Hall
-                        wet = reverbBuffer[reverbIndex];
-                        break;
-                    case 1: // Plate
-                        wet = 0.6f * reverbBuffer[reverbIndex] + 0.4f * reverbBuffer[(reverbIndex + REVERB_BUFFER_SIZE/2) % REVERB_BUFFER_SIZE];
-                        break;
-                    case 2: // Spring
-                        wet = sinf(reverbBuffer[reverbIndex]) * 0.7f + 0.3f * reverbBuffer[(reverbIndex + REVERB_BUFFER_SIZE/4) % REVERB_BUFFER_SIZE];
-                        break;
-                }
-                // Mix dry/wet
-                output = (1.0f - reverbMix) * output + reverbMix * wet;
-                reverbBuffer[reverbIndex] = output + reverbRoomSize * reverbBuffer[reverbIndex];
-                reverbIndex = (reverbIndex + 1) % REVERB_BUFFER_SIZE;
-            }
-        } else if (effect == "Compressor") {
-            if (compressorEnabled) {
-                // Compressor: detector de envelope + controle de ganho
-                float inputLevel = fabs(output);
-                float thresholdLinear = powf(10.0f, compressorThreshold / 20.0f);
-                
-                // Detector de envelope
-                float attackCoeff = expf(-1.0f / (compressorAttack * 0.001f * compressorSampleRate));
-                float releaseCoeff = expf(-1.0f / (compressorRelease * 0.001f * compressorSampleRate));
-                
-                if (inputLevel > compressorEnvelope) {
-                    compressorEnvelope = attackCoeff * compressorEnvelope + (1.0f - attackCoeff) * inputLevel;
-                } else {
-                    compressorEnvelope = releaseCoeff * compressorEnvelope + (1.0f - releaseCoeff) * inputLevel;
-                }
-                
-                // Calcular redução de ganho
-                float gainReduction = 1.0f;
-                if (compressorEnvelope > thresholdLinear) {
-                    float overThreshold = compressorEnvelope / thresholdLinear;
-                    float dbOver = 20.0f * log10f(overThreshold);
-                    float dbReduction = dbOver * (1.0f - 1.0f / compressorRatio);
-                    gainReduction = powf(10.0f, -dbReduction / 20.0f);
-                }
-                
-                // Aplicar compressão
-                float compressed = output * gainReduction;
-                
-                // Mix dry/wet
-                output = (1.0f - compressorMix) * output + compressorMix * compressed;
-            }
-        }
+    // Verificar se o engine foi inicializado
+    if (!isEngineInitialized.load()) {
+        return input; // Passthrough se não inicializado
     }
-    // Somar metrônomo
-    output += getMetronomeSample();
-    // Looper: gravação
-    if (looperRecording && looperWriteIndex < LOOPER_MAX_SAMPLES) {
-        looperTracks[currentTrack].buffer[looperWriteIndex++] = output;
-        looperTracks[currentTrack].active = true;
-        
-        // Log a cada 10000 samples para debug
-        if (looperWriteIndex % 10000 == 0) {
-            printf("looperRecording: gravados %d samples na track %d\n", looperWriteIndex, currentTrack);
+
+    float output = input;
+
+    // Aplicar ganho
+    if (gainEnabled.load()) {
+        output *= currentGain.load();
+    }
+    
+    // Aplicar distorção
+    if (distortionEnabled.load()) {
+        float amount = distortionAmount.load();
+        if (amount > 0.0f) {
+            output = output * (1.0f + amount * output * output);
         }
     }
     
-    // Looper: reprodução de múltiplas faixas
-    if (looperPlaying) {
-        float looperOutput = 0.0f;
-        bool hasSoloedTrack = false;
+    // Aplicar delay com verificações de segurança
+    if (delayEnabled.load()) {
+        std::lock_guard<std::mutex> lock(delayMutex);
         
-        // Verificar se há alguma faixa em solo
-        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-            if (looperTracks[i].soloed && looperTracks[i].active) {
-                hasSoloedTrack = true;
-                break;
-            }
-        }
+        int currentDelaySize = delayBufferSize.load();
+        int currentDelayIndex = delayBufferIndex.load();
         
-        // Aplicar stutter se ativado
-        bool shouldPlayStutter = true;
-        if (looperStutter) {
-            looperStutterPhase += looperStutterRate / looperSampleRate;
-            if (looperStutterPhase >= 1.0f) {
-                looperStutterPhase -= 1.0f;
-            }
-            shouldPlayStutter = (looperStutterPhase < 0.5f); // 50% duty cycle
-        }
-        
-        if (shouldPlayStutter) {
-            // Calcular posição de leitura com speed, reverse e slicing
-            int readPos = looperReadIndex;
-            
-            // Aplicar slicing se ativado
-            if (looperSlicingEnabled && numSlicePoints > 0) {
-                // Calcular qual slice estamos reproduzindo
-                int totalSliceLength = sliceLength * numSlicePoints;
-                int sliceIndex = (looperReadIndex / sliceLength) % numSlicePoints;
-                int sliceOffset = looperReadIndex % sliceLength;
+        if (currentDelaySize > 0 && currentDelaySize <= MAX_BUFFER_SIZE) {
+            // Verificar se o índice está dentro dos limites
+            if (currentDelayIndex >= 0 && currentDelayIndex < currentDelaySize) {
+                float delayedSample = delayBuffer[currentDelayIndex];
+                output += delayedSample * delayFeedback.load();
                 
-                // Usar a ordem definida para os slices
-                int actualSliceIndex = sliceOrder[sliceIndex];
-                readPos = slicePoints[actualSliceIndex] + sliceOffset;
+                // Atualizar buffer de delay com verificação de limites
+                delayBuffer[currentDelayIndex] = output;
+                currentDelayIndex = (currentDelayIndex + 1) % currentDelaySize;
+                delayBufferIndex.store(currentDelayIndex);
             } else {
-                // Comportamento normal sem slicing
-                if (looperReverse) {
-                    // Reprodução reversa
-                    int maxLength = 0;
-                    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-                        if (looperTracks[i].active && looperTracks[i].length > maxLength) {
-                            maxLength = looperTracks[i].length;
-                        }
-                    }
-                    if (maxLength > 0) {
-                        readPos = maxLength - 1 - looperReadIndex;
-                    }
-                }
+                // Resetar índice se estiver fora dos limites
+                delayBufferIndex.store(0);
+                printf("processSample: Índice de delay fora dos limites, resetando\n");
             }
-            
-            // Aplicar speed (interpolação linear simples)
-            float speedPos = readPos * looperSpeed;
-            int pos1 = (int)speedPos;
-            int pos2 = pos1 + 1;
-            float frac = speedPos - pos1;
-            
-            // Reproduzir faixas
-            for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-                if (looperTracks[i].active && looperTracks[i].length > 0) {
-                    // Verificar se deve reproduzir esta faixa
-                    bool shouldPlay = true;
-                    if (hasSoloedTrack) {
-                        shouldPlay = looperTracks[i].soloed;
-                    } else {
-                        shouldPlay = !looperTracks[i].muted;
-                    }
-                    
-                    if (shouldPlay) {
-                        float trackSample = 0.0f;
-                        
-                        // Interpolação linear para speed
-                        if (pos1 < looperTracks[i].length && pos2 < looperTracks[i].length) {
-                            float sample1 = looperTracks[i].buffer[pos1];
-                            float sample2 = looperTracks[i].buffer[pos2];
-                            trackSample = sample1 + frac * (sample2 - sample1);
-                        } else if (pos1 < looperTracks[i].length) {
-                            trackSample = looperTracks[i].buffer[pos1];
-                        }
-                        
-                        // Aplicar pitch shift (simplificado - apenas mudança de velocidade)
-                        if (looperPitchShift != 0.0f) {
-                            // Para uma implementação mais avançada, seria necessário um pitch shifter
-                            // Por enquanto, apenas aplicamos uma pequena modulação
-                            float pitchMod = 1.0f + (looperPitchShift / 12.0f) * 0.1f;
-                            trackSample *= pitchMod;
-                        }
-                        
-                        trackSample *= looperTracks[i].volume;
-                        looperOutput += trackSample;
-                    }
-                }
-            }
-        }
-        
-        // === APLICAR EFEITOS AVANÇADOS DO LOOPER (FASE 5) ===
-        float processedLooperOutput = looperOutput;
-        
-        // 1. Compressão automática
-        if (looperAutoCompressionEnabled && processedLooperOutput != 0.0f) {
-            float inputLevel = fabs(processedLooperOutput);
-            float thresholdLinear = powf(10.0f, looperCompressionThreshold / 20.0f);
-            
-            // Detector de envelope
-            float attackCoeff = expf(-1.0f / (looperCompressionAttack * 0.001f * looperSampleRate));
-            float releaseCoeff = expf(-1.0f / (looperCompressionRelease * 0.001f * looperSampleRate));
-            
-            if (inputLevel > looperCompressionEnvelope) {
-                looperCompressionEnvelope = attackCoeff * looperCompressionEnvelope + (1.0f - attackCoeff) * inputLevel;
-            } else {
-                looperCompressionEnvelope = releaseCoeff * looperCompressionEnvelope + (1.0f - releaseCoeff) * inputLevel;
-            }
-            
-            // Calcular redução de ganho
-            float gainReduction = 1.0f;
-            if (looperCompressionEnvelope > thresholdLinear) {
-                float overThreshold = looperCompressionEnvelope / thresholdLinear;
-                float dbOver = 20.0f * log10f(overThreshold);
-                float dbReduction = dbOver * (1.0f - 1.0f / looperCompressionRatio);
-                gainReduction = powf(10.0f, -dbReduction / 20.0f);
-            }
-            
-            processedLooperOutput *= gainReduction;
-        }
-        
-        // 2. Normalização automática
-        if (looperAutoNormalizationEnabled) {
-            // Detectar pico durante a reprodução
-            float currentPeak = fabs(processedLooperOutput);
-            if (currentPeak > looperPeakLevel) {
-                looperPeakLevel = currentPeak;
-            }
-            
-            // Aplicar normalização se necessário
-            if (looperPeakLevel > 0.0f) {
-                float targetLinear = powf(10.0f, looperNormalizationTarget / 20.0f);
-                looperNormalizationGain = targetLinear / looperPeakLevel;
-                looperNormalizationGain = std::min(looperNormalizationGain, 1.0f); // Não amplificar
-            }
-            
-            processedLooperOutput *= looperNormalizationGain;
-        }
-        
-        // 3. Filtros
-        if (looperLowPassEnabled) {
-            // Filtro passa-baixa (Butterworth de 2ª ordem)
-            float freq = looperLowPassFrequency;
-            float w0 = 2.0f * 3.14159265f * freq / looperSampleRate;
-            float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
-            
-            float b0 = (1.0f - cosf(w0)) / 2.0f;
-            float b1 = 1.0f - cosf(w0);
-            float b2 = (1.0f - cosf(w0)) / 2.0f;
-            float a0 = 1.0f + alpha;
-            float a1 = -2.0f * cosf(w0);
-            float a2 = 1.0f - alpha;
-            
-            // Normalizar
-            b0 /= a0; b1 /= a0; b2 /= a0;
-            a1 /= a0; a2 /= a0; a0 = 1.0f;
-            
-            float y = b0 * processedLooperOutput + b1 * looperLowPassX1 + b2 * looperLowPassX2 
-                     - a1 * looperLowPassY1 - a2 * looperLowPassY2;
-            looperLowPassX2 = looperLowPassX1; looperLowPassX1 = processedLooperOutput;
-            looperLowPassY2 = looperLowPassY1; looperLowPassY1 = y;
-            processedLooperOutput = y;
-        }
-        
-        if (looperHighPassEnabled) {
-            // Filtro passa-alta (Butterworth de 2ª ordem)
-            float freq = looperHighPassFrequency;
-            float w0 = 2.0f * 3.14159265f * freq / looperSampleRate;
-            float alpha = sinf(w0) / (2.0f * 0.707f); // Q = 0.707
-            
-            float b0 = (1.0f + cosf(w0)) / 2.0f;
-            float b1 = -(1.0f + cosf(w0));
-            float b2 = (1.0f + cosf(w0)) / 2.0f;
-            float a0 = 1.0f + alpha;
-            float a1 = -2.0f * cosf(w0);
-            float a2 = 1.0f - alpha;
-            
-            // Normalizar
-            b0 /= a0; b1 /= a0; b2 /= a0;
-            a1 /= a0; a2 /= a0; a0 = 1.0f;
-            
-            float y = b0 * processedLooperOutput + b1 * looperHighPassX1 + b2 * looperHighPassX2 
-                     - a1 * looperHighPassY1 - a2 * looperHighPassY2;
-            looperHighPassX2 = looperHighPassX1; looperHighPassX1 = processedLooperOutput;
-            looperHighPassY2 = looperHighPassY1; looperHighPassY1 = y;
-            processedLooperOutput = y;
-        }
-        
-        // 4. Reverb de cauda
-        if (looperReverbTailEnabled) {
-            float reverbTail = looperReverbTailBuffer[looperReverbTailIndex];
-            processedLooperOutput = (1.0f - looperReverbTailMix) * processedLooperOutput + 
-                                   looperReverbTailMix * reverbTail;
-            
-            // Atualizar buffer de reverb
-            looperReverbTailBuffer[looperReverbTailIndex] = processedLooperOutput * looperReverbTailDecayCoeff;
-            looperReverbTailIndex = (looperReverbTailIndex + 1) % looperReverbTailSize;
-        }
-        
-        // === APLICAR EFEITOS DA FASE 6 ===
-        
-        // 5. Fade In/Out automático
-        if (looperAutoFadeInEnabled && looperFadeInCounter < looperFadeInSamples) {
-            float fadeFactor = (float)looperFadeInCounter / looperFadeInSamples;
-            processedLooperOutput *= fadeFactor;
-            looperFadeInCounter++;
-        }
-        
-        if (looperAutoFadeOutEnabled && looperFadeOutCounter > 0) {
-            float fadeFactor = (float)looperFadeOutCounter / looperFadeOutSamples;
-            processedLooperOutput *= fadeFactor;
-            looperFadeOutCounter--;
-        }
-        
-        output += processedLooperOutput;
-        looperReadIndex++;
-        
-        // Resetar posição de leitura quando chegar ao fim do loop
-        int maxLength = 0;
-        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-            if (looperTracks[i].active && looperTracks[i].length > maxLength) {
-                maxLength = looperTracks[i].length;
-            }
-        }
-        
-        if (maxLength > 0) {
-            if (looperSlicingEnabled && numSlicePoints > 0) {
-                // Com slicing: resetar quando completar todos os slices
-                int totalSliceLength = sliceLength * numSlicePoints;
-                if (looperReadIndex >= totalSliceLength) {
-                    looperReadIndex = 0;
-                }
-            } else {
-                // Sem slicing: resetar quando chegar ao fim do loop
-                if (looperReadIndex >= maxLength) {
-                    looperReadIndex = 0;
-                }
-            }
+        } else {
+            printf("processSample: Tamanho de buffer de delay inválido: %d\n", currentDelaySize);
         }
     }
-    // Limitar para evitar clipping
-    if (output > 1.0f) output = 1.0f;
-    if (output < -1.0f) output = -1.0f;
+    
+    // Aplicar reverb com verificações de segurança
+    if (reverbEnabled.load()) {
+        std::lock_guard<std::mutex> lock(effectsMutex);
+        
+        int currentReverbSize = REVERB_BUFFER_SIZE.load();
+        int currentReverbIndex = reverbIndex.load();
+        
+        if (currentReverbSize > 0 && currentReverbSize <= MAX_BUFFER_SIZE) {
+            // Verificar se o índice está dentro dos limites
+            if (currentReverbIndex >= 0 && currentReverbIndex < currentReverbSize) {
+                float reverbSample = reverbBuffer[currentReverbIndex];
+                output = output * (1.0f - reverbRoomSize.load()) + reverbSample * reverbRoomSize.load();
+                
+                // Atualizar buffer de reverb com verificação de limites
+                reverbBuffer[currentReverbIndex] = output;
+                currentReverbIndex = (currentReverbIndex + 1) % currentReverbSize;
+                reverbIndex.store(currentReverbIndex);
+            } else {
+                // Resetar índice se estiver fora dos limites
+                reverbIndex.store(0);
+                printf("processSample: Índice de reverb fora dos limites, resetando\n");
+            }
+        } else {
+            printf("processSample: Tamanho de buffer de reverb inválido: %d\n", currentReverbSize);
+        }
+    }
+    
+    // Aplicar outros efeitos com verificações similares...
+    // (chorus, flanger, phaser, eq, compressor)
+    
     return output;
 }
 
@@ -1172,20 +971,81 @@ void downsample(const float* input, float* output, int numSamples) {
     }
 }
 
-void processBuffer(float* input, float* output, int numSamples) {
-    if (!oversamplingEnabled || oversamplingFactor <= 1) {
+void processBuffer(float* input, float* output, int numSamples, int inputLength, int outputLength) {
+    // Verificar parâmetros básicos
+    if (input == nullptr || output == nullptr || numSamples <= 0) {
+        printf("processBuffer: Parâmetros inválidos - input: %p, output: %p, numSamples: %d\n",
+               input, output, numSamples);
+        return;
+    }
+
+    // Verificar se o engine foi inicializado - passthrough se não
+    if (!isEngineInitialized.load()) {
+        // Copiar input para output (passthrough)
+        int copySize = std::min(numSamples, std::min(inputLength, outputLength));
+        if (copySize > 0) {
+            memcpy(output, input, copySize * sizeof(float));
+        }
+        return;
+    }
+
+    // Ajustar numSamples se os buffers forem menores que o necessário
+    if (inputLength < numSamples || outputLength < numSamples) {
+        int available = std::min(inputLength, outputLength);
+        if (available <= 0) {
+            printf("processBuffer: Buffers insuficientes - inputLen: %d, outputLen: %d\n", inputLength, outputLength);
+            return;
+        }
+        printf("processBuffer: Ajustando numSamples de %d para %d devido ao tamanho dos buffers\n",
+               numSamples, available);
+        numSamples = available;
+    }
+    
+    // Verificar se há efeitos ativos para evitar processamento desnecessário
+    bool hasActiveEffects = gainEnabled.load() || distortionEnabled.load() || delayEnabled.load() || 
+                           reverbEnabled.load() || chorusEnabled.load() || flangerEnabled.load() || 
+                           phaserEnabled.load() || eqEnabled.load() || compressorEnabled.load();
+    
+    if (!hasActiveEffects) {
+        // Se não há efeitos ativos, apenas copiar o buffer
+        memcpy(output, input, numSamples * sizeof(float));
+        return;
+    }
+    
+    // Verificar oversampling de forma thread-safe
+    bool oversampling = oversamplingEnabled.load();
+    int factor = oversamplingFactor.load();
+    
+    // Validar fator de oversampling
+    if (factor < 1 || factor > MAX_OVERSAMPLING_FACTOR) {
+        printf("processBuffer: Fator de oversampling inválido: %d, usando 1x\n", factor);
+        factor = 1;
+        oversampling = false;
+    }
+    
+    if (!oversampling || factor <= 1) {
         // Processamento normal sem oversampling
         for (int i = 0; i < numSamples; ++i) {
             output[i] = processSample(input[i]);
         }
     } else {
-        // Processamento com oversampling
-        int oversampledSize = numSamples * oversamplingFactor;
+        // Processamento com oversampling otimizado
+        int oversampledSize = numSamples * factor;
         
-        // Garantir que os buffers tenham tamanho suficiente
+        // Verificar se o tamanho não excede os limites
+        if (oversampledSize > MAX_BUFFER_SIZE) {
+            printf("processBuffer: Tamanho de buffer oversampled muito grande: %d, limitando\n", oversampledSize);
+            oversampledSize = MAX_BUFFER_SIZE;
+            numSamples = oversampledSize / factor;
+        }
+        
+        // Garantir que os buffers tenham tamanho suficiente com proteção thread-safe
+        std::lock_guard<std::mutex> lock(oversamplingMutex);
         if (oversampleBuffer.size() < oversampledSize) {
             oversampleBuffer.resize(oversampledSize);
             downsampleBuffer.resize(oversampledSize);
+            oversampleBufferSize.store(oversampledSize);
+            printf("processBuffer: Buffers de oversampling redimensionados para %d\n", oversampledSize);
         }
         
         // Upsampling
@@ -1297,34 +1157,57 @@ float processSampleWithOversampling(float input) {
 
 // Funções para controlar Oversampling
 void setOversamplingEnabled(bool enabled) {
+    std::lock_guard<std::mutex> lock(oversamplingMutex);
     oversamplingEnabled = enabled;
+    printf("setOversamplingEnabled: %s\n", enabled ? "true" : "false");
 }
 
 void setOversamplingFactor(int factor) {
-    if (factor == 1 || factor == 2 || factor == 4 || factor == 8) {
-        oversamplingFactor = factor;
-        // Reinicializar buffers se necessário
-        if (oversampleBufferSize > 0) {
-            oversampleBufferSize = 4096 * oversamplingFactor;
-            oversampleBuffer.resize(oversampleBufferSize);
-            downsampleBuffer.resize(oversampleBufferSize);
-        }
+    std::lock_guard<std::mutex> lock(oversamplingMutex);
+    
+    // Validar fator de oversampling
+    if (factor < 1 || factor > MAX_OVERSAMPLING_FACTOR) {
+        printf("setOversamplingFactor: Fator inválido %d, deve estar entre 1 e %d\n", 
+               factor, MAX_OVERSAMPLING_FACTOR);
+        return;
     }
+    
+    // Verificar se o novo fator não causará problemas de memória
+    int currentSampleRate = sampleRate.load();
+    int newBufferSize = 4096 * factor;
+    
+    if (newBufferSize > MAX_BUFFER_SIZE) {
+        printf("setOversamplingFactor: Buffer muito grande %d, limitando fator\n", newBufferSize);
+        factor = MAX_BUFFER_SIZE / 4096;
+        newBufferSize = 4096 * factor;
+    }
+    
+    oversamplingFactor = factor;
+    
+    // Redimensionar buffers se necessário
+    if (oversampleBuffer.size() < newBufferSize) {
+        oversampleBuffer.resize(newBufferSize);
+        downsampleBuffer.resize(newBufferSize);
+        oversampleBufferSize.store(newBufferSize);
+        printf("setOversamplingFactor: Buffers redimensionados para %d amostras\n", newBufferSize);
+    }
+    
+    printf("setOversamplingFactor: %dx oversampling configurado\n", factor);
 }
 
 bool isOversamplingEnabled() {
-    return oversamplingEnabled;
+    return oversamplingEnabled.load();
 }
 
 int getOversamplingFactor() {
-    return oversamplingFactor;
+    return oversamplingFactor.load();
 }
 
 // Implementações das novas funções do looper avançado
 
 int getLooperLength() {
     int length = looperTracks[currentTrack].length;
-    printf("getLooperLength: currentTrack=%d, length=%d\n", currentTrack, length);
+    printf("getLooperLength: currentTrack=%d, length=%d\n", currentTrack.load(), length);
     return length;
 }
 
@@ -1364,7 +1247,7 @@ void setLooperTrackSoloed(int trackIndex, bool soloed) {
 void removeLooperTrack(int trackIndex) {
     if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
         // Limpar a faixa
-        memset(looperTracks[trackIndex].buffer, 0, sizeof(looperTracks[trackIndex].buffer));
+        std::fill(looperTracks[trackIndex].buffer.begin(), looperTracks[trackIndex].buffer.end(), 0.0f);
         looperTracks[trackIndex].length = 0;
         looperTracks[trackIndex].volume = 1.0f;
         looperTracks[trackIndex].muted = false;
@@ -1445,7 +1328,7 @@ void loadLooperFromAudio(const float* audioData, int length) {
     
     // Limpar todas as faixas existentes
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-        memset(looperTracks[i].buffer, 0, sizeof(looperTracks[i].buffer));
+        std::fill(looperTracks[i].buffer.begin(), looperTracks[i].buffer.end(), 0.0f);
         looperTracks[i].length = 0;
         looperTracks[i].volume = 1.0f;
         looperTracks[i].muted = false;
@@ -1454,7 +1337,7 @@ void loadLooperFromAudio(const float* audioData, int length) {
     }
     
     // Carregar o áudio na primeira faixa
-    memcpy(looperTracks[0].buffer, audioData, length * sizeof(float));
+    std::copy(audioData, audioData + length, looperTracks[0].buffer.begin());
     looperTracks[0].length = length;
     looperTracks[0].active = true;
     looperTracks[0].volume = 1.0f;
@@ -1938,7 +1821,7 @@ void cutLooperRegion(float start, float end) {
     endSample = std::max(0, std::min(endSample, maxLength));
     
     // Remover a região selecionada
-    float* buffer = looperTracks[targetTrack].buffer;
+    float* buffer = looperTracks[targetTrack].buffer.data();
     int newLength = maxLength - (endSample - startSample);
     
     // Mover os samples após a região cortada
@@ -1988,7 +1871,7 @@ void applyLooperFadeIn(float start, float end) {
     if (fadeLength <= 0) return;
     
     // Aplicar fade in (volume crescente de 0 a 1)
-    float* buffer = looperTracks[targetTrack].buffer;
+    float* buffer = looperTracks[targetTrack].buffer.data();
     for (int i = 0; i < fadeLength; ++i) {
         float fadeFactor = static_cast<float>(i) / fadeLength;
         buffer[startSample + i] *= fadeFactor;
@@ -2025,11 +1908,20 @@ void applyLooperFadeOut(float start, float end) {
     if (fadeLength <= 0) return;
     
     // Aplicar fade out (volume decrescente de 1 a 0)
-    float* buffer = looperTracks[targetTrack].buffer;
+    float* buffer = looperTracks[targetTrack].buffer.data();
     for (int i = 0; i < fadeLength; ++i) {
         float fadeFactor = 1.0f - (static_cast<float>(i) / fadeLength);
         buffer[startSample + i] *= fadeFactor;
     }
+}
+
+// Métodos getter para parâmetros de efeitos (sem sufixo, para uso externo via header)
+float getGain() {
+    return currentGain.load();
+}
+
+float getDistortion() {
+    return distortionAmount.load();
 }
 
 

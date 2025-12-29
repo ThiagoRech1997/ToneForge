@@ -79,6 +79,21 @@ public interface SettingsContract {
          * Mostra mensagem de feedback
          */
         void showMessage(String message);
+        
+        /**
+         * Atualiza o estado do switch de logging verboso
+         */
+        void setVerboseLoggingEnabled(boolean enabled);
+        
+        /**
+         * Atualiza o estado do switch de logging de debug
+         */
+        void setDebugLoggingEnabled(boolean enabled);
+        
+        /**
+         * Atualiza o nível de log selecionado
+         */
+        void setLogLevel(int level);
     }
 
     /**
@@ -151,5 +166,20 @@ public interface SettingsContract {
          * Atualiza a UI quando o fragment é retomado
          */
         void onResume();
+        
+        /**
+         * Salva a configuração de logging verboso
+         */
+        void setVerboseLogging(boolean enabled);
+        
+        /**
+         * Salva a configuração de logging de debug
+         */
+        void setDebugLogging(boolean enabled);
+        
+        /**
+         * Salva o nível de log
+         */
+        void setLogLevel(int level);
     }
 } 

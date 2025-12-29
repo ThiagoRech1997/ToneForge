@@ -10,7 +10,7 @@ extern "C" {
     
     // Processamento de áudio
     float processSample(float input);
-    void processBuffer(float* input, float* output, int numSamples);
+    void processBuffer(float* input, float* output, int numSamples, int inputLength, int outputLength);
     
     // Inicialização e limpeza
     void initAudioEngine();
@@ -216,6 +216,16 @@ extern "C" {
     void setMetronomeVolume(float volume);
     void setMetronomeTimeSignature(int beats);
     bool isMetronomeActive();
+    
+    // Métodos getter para parâmetros de efeitos
+    float getGain();
+    float getDistortion();
+    float getDelayTime();
+    float getDelayFeedback();
+    float getReverbRoomSize();
+    float getReverbDamping();
+    bool isOversamplingEnabled();
+    int getOversamplingFactor();
 }
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

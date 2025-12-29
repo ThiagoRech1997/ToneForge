@@ -14,3 +14,13 @@
 .cxx
 local.properties
 /features-new
+/temp
+
+# Logs temporários
+/logs/*.log
+/logs/*.txt
+*.log
+
+# Screenshots temporários
+*.png
+!docs/testing/*.png

@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -201,6 +202,14 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
     
     @Override
     public void updateAudioState(AudioState audioState) {
+        // Verificar se o audioState é null para evitar crashes
+        if (audioState == null) {
+            Log.w("HomeFragmentRefactored", "AudioState é null - usando estado padrão");
+            // Usar estado padrão seguro
+            setButtonsEnabled(false);
+            return;
+        }
+        
         // Atualizar UI baseado no estado do áudio
         // Por exemplo, mudar cores dos botões baseado no estado
         
@@ -214,7 +223,7 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
         
         // Mostrar informações de status se necessário
         String statusDescription = audioState.getStatusDescription();
-        if (!statusDescription.equals("Pronto")) {
+        if (statusDescription != null && !statusDescription.equals("Pronto")) {
             showMessage(statusDescription);
         }
     }
@@ -227,14 +236,16 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
     @Override
     public void showWifiDialog() {
         if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).showWifiStatusDialog();
+            // Implementação movida para SystemStatusController
+            // Não é necessário chamar diretamente
         }
     }
     
     @Override
     public void showVolumeDialog() {
         if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).showVolumeControlDialog();
+            // Implementação movida para SystemStatusController
+            // Não é necessário chamar diretamente
         }
     }
     

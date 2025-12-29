@@ -38,8 +38,10 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
 
     // Componentes de UI
     private Switch switchDarkTheme, switchVibration, switchAutoSave, switchAudioBackground, switchMidiEnabled;
-    private RadioGroup radioGroupLatency;
+    private Switch switchVerboseLogging, switchDebugLogging;
+    private RadioGroup radioGroupLatency, radioGroupLogLevel;
     private RadioButton radioLowLatency, radioBalanced, radioStability;
+    private RadioButton radioLogError, radioLogWarn, radioLogInfo, radioLogDebug;
     private TextView textLatencyInfo, textLatencyDetails, textMidiStatus, textMidiDevice;
     private Button buttonLatencyInfo, buttonMidiScan, buttonMidiMappings, buttonAbout;
 
@@ -102,6 +104,15 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
         buttonMidiScan = view.findViewById(R.id.buttonMidiScan);
         buttonMidiMappings = view.findViewById(R.id.buttonMidiMappings);
 
+        // Componentes de Log
+        switchVerboseLogging = view.findViewById(R.id.switchVerboseLogging);
+        switchDebugLogging = view.findViewById(R.id.switchDebugLogging);
+        radioGroupLogLevel = view.findViewById(R.id.radioGroupLogLevel);
+        radioLogError = view.findViewById(R.id.radioLogError);
+        radioLogWarn = view.findViewById(R.id.radioLogWarn);
+        radioLogInfo = view.findViewById(R.id.radioLogInfo);
+        radioLogDebug = view.findViewById(R.id.radioLogDebug);
+
         // Botão sobre
         buttonAbout = view.findViewById(R.id.settingsAboutButton);
     }
@@ -160,6 +171,34 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
 
         buttonMidiMappings.setOnClickListener(v -> {
             if (presenter != null) presenter.onMidiMappingsRequested();
+        });
+
+        // Logs
+        switchVerboseLogging.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (presenter != null) presenter.setVerboseLogging(isChecked);
+        });
+
+        switchDebugLogging.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (presenter != null) presenter.setDebugLogging(isChecked);
+        });
+
+        radioGroupLogLevel.setOnCheckedChangeListener((group, checkedId) -> {
+            if (presenter == null) return;
+            
+            int selectedLevel;
+            if (checkedId == R.id.radioLogError) {
+                selectedLevel = com.thiagofernendorech.toneforge.LogManager.LEVEL_ERROR;
+            } else if (checkedId == R.id.radioLogWarn) {
+                selectedLevel = com.thiagofernendorech.toneforge.LogManager.LEVEL_WARN;
+            } else if (checkedId == R.id.radioLogInfo) {
+                selectedLevel = com.thiagofernendorech.toneforge.LogManager.LEVEL_INFO;
+            } else if (checkedId == R.id.radioLogDebug) {
+                selectedLevel = com.thiagofernendorech.toneforge.LogManager.LEVEL_DEBUG;
+            } else {
+                return;
+            }
+            
+            presenter.setLogLevel(selectedLevel);
         });
 
         // Sobre
@@ -360,5 +399,44 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
     @Override
     public void hideLoading() {
         // Implementação básica - pode ser expandida com ProgressBar
+    }
+    
+    @Override
+    public void setVerboseLoggingEnabled(boolean enabled) {
+        if (switchVerboseLogging != null) {
+            switchVerboseLogging.setChecked(enabled);
+        }
+    }
+    
+    @Override
+    public void setDebugLoggingEnabled(boolean enabled) {
+        if (switchDebugLogging != null) {
+            switchDebugLogging.setChecked(enabled);
+        }
+    }
+    
+    @Override
+    public void setLogLevel(int level) {
+        if (radioGroupLogLevel != null) {
+            int radioId;
+            switch (level) {
+                case com.thiagofernendorech.toneforge.LogManager.LEVEL_ERROR:
+                    radioId = R.id.radioLogError;
+                    break;
+                case com.thiagofernendorech.toneforge.LogManager.LEVEL_WARN:
+                    radioId = R.id.radioLogWarn;
+                    break;
+                case com.thiagofernendorech.toneforge.LogManager.LEVEL_INFO:
+                    radioId = R.id.radioLogInfo;
+                    break;
+                case com.thiagofernendorech.toneforge.LogManager.LEVEL_DEBUG:
+                    radioId = R.id.radioLogDebug;
+                    break;
+                default:
+                    radioId = R.id.radioLogInfo;
+                    break;
+            }
+            radioGroupLogLevel.check(radioId);
+        }
     }
 } 

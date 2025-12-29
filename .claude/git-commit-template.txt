@@ -1,0 +1,91 @@
+# <type>(<scope>): <subject>
+# |<----  Using a Maximum Of 50 Characters  ---->|
+
+# Explain why this change is being made
+# |<----   Try To Limit Each Line to a Maximum Of 72 Characters   ---->|
+
+# Provide links or keys to any relevant tickets, articles or other resources
+# Example: Github issue #23
+
+# --- COMMIT END ---
+# Type can be
+#    feat     (new feature)
+#    fix      (bug fix)
+#    refactor (refactoring production code)
+#    style    (formatting, missing semi colons, etc; no code change)
+#    docs     (changes to documentation)
+#    test     (adding or refactoring tests; no production code change)
+#    chore    (updating build tasks, package manager configs, etc; no production code change)
+#    perf     (performance improvement)
+#
+# Scope can be
+#    ui           (UI layer: fragments, activities)
+#    domain       (domain layer: use cases, models)
+#    infrastructure (infrastructure layer: adapters, managers)
+#    audio        (audio processing)
+#    native       (C++ / JNI code)
+#    effects      (audio effects)
+#    presets      (preset management)
+#    midi         (MIDI functionality)
+#    tuner        (tuner feature)
+#    looper       (looper feature)
+#    metronome    (metronome feature)
+#    recorder     (recorder feature)
+#    tests        (test code)
+#    build        (build system)
+#    config       (configuration)
+#    deps         (dependencies)
+#
+# Subject line should use imperative mood
+#    "add feature" not "added feature"
+#    "fix bug" not "fixed bug"
+#
+# Examples:
+#
+# feat(audio): add tremolo effect with rate and depth controls
+#
+# Implements tremolo effect using LFO modulation.
+# Parameters: rate (0.1-10 Hz) and depth (0-100%).
+#
+# Closes #42
+#
+# --------------------
+#
+# fix(native): validate buffer sizes in JNI audio processing
+#
+# Adds GetArrayLength() calls before array access to prevent
+# buffer overflows. Implements bounds checking following ADR-003
+# security practices.
+#
+# --------------------
+#
+# refactor(ui): migrate SettingsFragment to MVP pattern
+#
+# Creates SettingsContract, SettingsPresenter, and
+# SettingsFragmentRefactored following established MVP pattern.
+# Legacy SettingsFragment remains for compatibility.
+#
+# Part of ongoing fragment refactoring effort.
+#
+# --------------------
+#
+# test(domain): add comprehensive tests for StartAudioPipelineUseCase
+#
+# Covers success cases, error handling, and edge cases.
+# Increases domain layer coverage to 92%.
+#
+# --------------------
+#
+# docs(adr): document JNI security practices
+#
+# Adds ADR-003 documenting mandatory security practices for
+# all JNI code including buffer validation and bounds checking.
+#
+# --------------------
+#
+# chore(deps): update Gradle and Kotlin versions
+#
+# - Gradle 8.11.0
+# - Kotlin 2.0.0
+# - Update build scripts for compatibility
+#
