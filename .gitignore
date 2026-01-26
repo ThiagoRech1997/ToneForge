@@ -24,3 +24,5 @@ local.properties
 # Screenshots temporários
 *.png
 !docs/testing/*.png
+
+toneforge-hilava/*

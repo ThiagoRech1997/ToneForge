@@ -13,6 +13,7 @@ import com.thiagofernendorech.toneforge.ui.fragments.learning.LearningFragmentRe
 import com.thiagofernendorech.toneforge.RecorderFragment;
 import com.thiagofernendorech.toneforge.ui.fragments.settings.SettingsFragmentRefactored;
 import com.thiagofernendorech.toneforge.LoopLibraryFragment;
+import com.thiagofernendorech.toneforge.ui.activities.BaseActivity.TransitionType;
 import java.lang.ref.WeakReference;
 
 /**
@@ -44,87 +45,110 @@ public class NavigationController {
     }
     
     /**
-     * Navega para o fragment Home
+     * Navega para o fragment Home (com slide da esquerda - voltar)
      */
     public void navigateToHome() {
-        loadFragment(new HomeFragment(), "ToneForge");
+        MainActivity activity = getActivity();
+        if (activity != null) {
+            activity.hideHeader(); // Home tem seu próprio status card
+            activity.loadFragment(new HomeFragment(), TransitionType.SLIDE_LEFT);
+            activity.updateHeaderTitle("ToneForge");
+        }
     }
-    
+
     /**
      * Navega para o fragment de Efeitos
      */
     public void navigateToEffects() {
-        loadFragment(new EffectsFragmentRefactored(), "Efeitos");
+        navigateWithHeader(new EffectsFragmentRefactored(), "Efeitos");
     }
-    
+
     /**
      * Navega para o fragment de looper
      */
     public void navigateToLooper() {
         MainActivity activity = getActivity();
         if (activity != null) {
-            com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored looperFragment = 
+            activity.showHeader();
+            com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored looperFragment =
                 new com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored();
-            activity.loadFragment(looperFragment);
+            activity.loadFragment(looperFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Looper");
         }
     }
-    
+
     /**
      * Navega para o fragment do Afinador
      */
     public void navigateToTuner() {
         MainActivity activity = getActivity();
         if (activity != null) {
+            activity.showHeader();
             TunerFragmentRefactored tunerFragment = new TunerFragmentRefactored();
-            activity.loadFragment(tunerFragment);
+            activity.loadFragment(tunerFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Afinador");
         }
     }
-    
+
     /**
      * Navega para o fragment do Metrônomo
      */
     public void navigateToMetronome() {
         MainActivity activity = getActivity();
         if (activity != null) {
+            activity.showHeader();
             MetronomeFragmentRefactored metronomeFragment = new MetronomeFragmentRefactored();
-            activity.loadFragment(metronomeFragment);
+            activity.loadFragment(metronomeFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Metrônomo");
         }
     }
-    
+
     /**
      * Navega para o fragment de Aprendizado
      */
     public void navigateToLearning() {
-        loadFragment(new LearningFragmentRefactored(), "Aprendizado");
+        navigateWithHeader(new LearningFragmentRefactored(), "Aprendizado");
     }
-    
+
     /**
      * Navega para o fragment do Gravador
      */
     public void navigateToRecorder() {
         MainActivity activity = getActivity();
         if (activity != null) {
+            activity.showHeader();
             RecorderFragmentRefactored recorderFragment = new RecorderFragmentRefactored();
-            activity.loadFragment(recorderFragment);
+            activity.loadFragment(recorderFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Gravador");
         }
     }
-    
+
     /**
      * Navega para o fragment de Configurações
      */
     public void navigateToSettings() {
-        loadFragment(new SettingsFragmentRefactored(), "Configurações");
+        navigateWithHeader(new SettingsFragmentRefactored(), "Configurações");
     }
-    
+
     /**
      * Navega para o fragment da Biblioteca de Loops
      */
     public void navigateToLoopLibrary() {
-        loadFragment(new LoopLibraryFragment(), "Biblioteca de Loops");
+        navigateWithHeader(new LoopLibraryFragment(), "Biblioteca de Loops");
+    }
+
+    /**
+     * Navega para um fragment mostrando o header
+     * @param fragment fragment a ser carregado
+     * @param title título do header
+     */
+    private void navigateWithHeader(Fragment fragment, String title) {
+        MainActivity activity = getActivity();
+        if (activity != null) {
+            activity.showHeader();
+            activity.loadFragment(fragment, TransitionType.SLIDE_RIGHT);
+            activity.updateHeaderTitle(title);
+        }
     }
     
     /**
@@ -138,7 +162,7 @@ public class NavigationController {
     }
     
     /**
-     * Carrega um fragment com título
+     * Carrega um fragment com título (usa transição padrão fade)
      * @param fragment fragment a ser carregado
      * @param title título do header
      */
@@ -146,6 +170,20 @@ public class NavigationController {
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.loadFragment(fragment);
+            activity.updateHeaderTitle(title);
+        }
+    }
+
+    /**
+     * Carrega um fragment com título e tipo de transição específico
+     * @param fragment fragment a ser carregado
+     * @param title título do header
+     * @param transitionType tipo de transição
+     */
+    public void loadFragmentWithTransition(Fragment fragment, String title, TransitionType transitionType) {
+        MainActivity activity = getActivity();
+        if (activity != null) {
+            activity.loadFragment(fragment, transitionType);
             activity.updateHeaderTitle(title);
         }
     }

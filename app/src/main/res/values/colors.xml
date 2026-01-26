@@ -109,4 +109,12 @@
 
     <!-- Status bar HILAVA -->
     <color name="hilava_status_bar_overlay">#66000000</color>
+
+    <!-- Cores adicionais HILAVA (Effects screen) -->
+    <color name="hilava_background">#FF121212</color>
+    <color name="hilava_card_background">#FF1E1E1E</color>
+    <color name="hilava_text_disabled">#FF4A4A4A</color>
+    <color name="hilava_success">#FF34C759</color>
+    <color name="hilava_warning">#FFFF9500</color>
+    <color name="hilava_error">#FFFF3B30</color>
 </resources>
