@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -100,6 +101,16 @@ public abstract class BaseFragment<P extends BasePresenter> extends Fragment imp
         if (getView() == null || loadingOverlay != null) return;
 
         ViewGroup root = (ViewGroup) getView();
+
+        // ScrollView only accepts one child, so add overlay to its child instead
+        ViewGroup targetContainer = root;
+        if (root instanceof ScrollView && root.getChildCount() > 0) {
+            View child = root.getChildAt(0);
+            if (child instanceof ViewGroup) {
+                targetContainer = (ViewGroup) child;
+            }
+        }
+
         FrameLayout overlay = new FrameLayout(requireContext());
         overlay.setBackgroundColor(0x80000000);
         overlay.setClickable(true);
@@ -112,7 +123,7 @@ public abstract class BaseFragment<P extends BasePresenter> extends Fragment imp
         );
         overlay.addView(progressBar, params);
 
-        root.addView(overlay, new ViewGroup.LayoutParams(
+        targetContainer.addView(overlay, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
@@ -121,8 +132,8 @@ public abstract class BaseFragment<P extends BasePresenter> extends Fragment imp
 
     @Override
     public void hideLoading() {
-        if (loadingOverlay != null && getView() != null) {
-            ((ViewGroup) getView()).removeView(loadingOverlay);
+        if (loadingOverlay != null && loadingOverlay.getParent() != null) {
+            ((ViewGroup) loadingOverlay.getParent()).removeView(loadingOverlay);
             loadingOverlay = null;
         }
     }
