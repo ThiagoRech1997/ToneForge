@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import androidx.annotation.Nullable;
@@ -467,6 +468,7 @@ public class WaveformView extends View {
         
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                 if (editMode) {
                     // Iniciar seleção
                     isSelecting = true;

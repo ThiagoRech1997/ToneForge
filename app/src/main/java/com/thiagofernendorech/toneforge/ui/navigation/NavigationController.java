@@ -13,6 +13,7 @@ import com.thiagofernendorech.toneforge.ui.fragments.learning.LearningFragmentRe
 import com.thiagofernendorech.toneforge.RecorderFragment;
 import com.thiagofernendorech.toneforge.ui.fragments.settings.SettingsFragmentRefactored;
 import com.thiagofernendorech.toneforge.LoopLibraryFragment;
+import android.os.SystemClock;
 import java.lang.ref.WeakReference;
 
 /**
@@ -20,9 +21,12 @@ import java.lang.ref.WeakReference;
  * Gerencia a navegação entre fragments de forma desacoplada
  */
 public class NavigationController {
-    
+
+    private static final long NAV_DEBOUNCE_MS = 500;
+
     private static NavigationController instance;
     private WeakReference<MainActivity> mainActivityRef;
+    private long lastNavigationTime = 0;
     
     /**
      * Obtém a instância singleton do NavigationController
@@ -143,6 +147,10 @@ public class NavigationController {
      * @param title título do header
      */
     public void loadFragment(Fragment fragment, String title) {
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastNavigationTime < NAV_DEBOUNCE_MS) return;
+        lastNavigationTime = now;
+
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.loadFragment(fragment);

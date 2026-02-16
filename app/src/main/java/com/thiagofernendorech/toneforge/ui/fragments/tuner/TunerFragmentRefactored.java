@@ -533,8 +533,14 @@ public class TunerFragmentRefactored extends BaseFragment<TunerPresenter> implem
     public void showPermissionError() {
         new AlertDialog.Builder(requireContext())
             .setTitle("Permissão Necessária")
-            .setMessage("O afinador precisa de permissão para acessar o microfone")
-            .setPositiveButton("OK", null)
+            .setMessage("O afinador precisa de permissão para acessar o microfone. Habilite em Configurações > Apps > ToneForge > Permissões.")
+            .setPositiveButton("Configurações", (dialog, which) -> {
+                android.content.Intent intent = new android.content.Intent(
+                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(android.net.Uri.parse("package:" + requireContext().getPackageName()));
+                startActivity(intent);
+            })
+            .setNegativeButton("Cancelar", null)
             .show();
     }
     

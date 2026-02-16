@@ -9,6 +9,7 @@ import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -17,6 +18,7 @@ public class RealisticKnob extends View {
     private Paint indicatorPaint;
     private Paint shadowPaint;
     private Paint highlightPaint;
+    private Paint glowPaint;
     
     private float progress = 0.5f; // 0.0 to 1.0
     private float knobRadius;
@@ -64,6 +66,13 @@ public class RealisticKnob extends View {
         highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         highlightPaint.setColor(Color.WHITE);
         highlightPaint.setAlpha(80);
+
+        // Paint para glow durante arraste
+        glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glowPaint.setColor(Color.parseColor("#00FF88"));
+        glowPaint.setAlpha(60);
+        glowPaint.setStyle(Paint.Style.STROKE);
+        glowPaint.setStrokeWidth(4f);
     }
     
     @Override
@@ -95,6 +104,11 @@ public class RealisticKnob extends View {
         
         // Desenhar corpo do knob
         canvas.drawCircle(centerX, centerY, knobRadius, knobPaint);
+
+        // Desenhar glow durante interação
+        if (isDragging) {
+            canvas.drawCircle(centerX, centerY, knobRadius + 3, glowPaint);
+        }
         
         // Desenhar highlight superior
         float highlightRadius = knobRadius * 0.3f;
@@ -157,6 +171,8 @@ public class RealisticKnob extends View {
             case MotionEvent.ACTION_DOWN:
                 isDragging = true;
                 lastAngle = getAngleFromPoint(event.getX(), event.getY());
+                performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                invalidate();
                 return true;
                 
             case MotionEvent.ACTION_MOVE:
@@ -179,6 +195,7 @@ public class RealisticKnob extends View {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 isDragging = false;
+                invalidate();
                 return true;
         }
         return super.onTouchEvent(event);

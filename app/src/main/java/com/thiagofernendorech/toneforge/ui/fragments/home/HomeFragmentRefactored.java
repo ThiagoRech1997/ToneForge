@@ -106,33 +106,33 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
      * Configura os listeners dos botões
      */
     private void setupClickListeners() {
-        // Botões principais
+        // Botões principais (com debounce para prevenir toques duplos)
         if (btnTuner != null) {
-            btnTuner.setOnClickListener(v -> presenter.onTunerClicked());
+            btnTuner.setOnClickListener(debounced(v -> presenter.onTunerClicked()));
         }
-        
+
         if (btnEffects != null) {
-            btnEffects.setOnClickListener(v -> presenter.onEffectsClicked());
+            btnEffects.setOnClickListener(debounced(v -> presenter.onEffectsClicked()));
         }
-        
+
         if (btnLooper != null) {
-            btnLooper.setOnClickListener(v -> presenter.onLooperClicked());
+            btnLooper.setOnClickListener(debounced(v -> presenter.onLooperClicked()));
         }
-        
+
         if (btnMetronome != null) {
-            btnMetronome.setOnClickListener(v -> presenter.onMetronomeClicked());
+            btnMetronome.setOnClickListener(debounced(v -> presenter.onMetronomeClicked()));
         }
-        
+
         if (btnLearning != null) {
-            btnLearning.setOnClickListener(v -> presenter.onLearningClicked());
+            btnLearning.setOnClickListener(debounced(v -> presenter.onLearningClicked()));
         }
-        
+
         if (btnRecorder != null) {
-            btnRecorder.setOnClickListener(v -> presenter.onRecorderClicked());
+            btnRecorder.setOnClickListener(debounced(v -> presenter.onRecorderClicked()));
         }
-        
+
         if (btnSettings != null) {
-            btnSettings.setOnClickListener(v -> presenter.onSettingsClicked());
+            btnSettings.setOnClickListener(debounced(v -> presenter.onSettingsClicked()));
         }
         
         // Botões do header (apenas no layout Lava)
@@ -214,11 +214,10 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
         // Por exemplo, mudar cores dos botões baseado no estado
         
         if (audioState.isPipelineRunning()) {
-            // Pipeline ativo - botões podem ficar com cor normal
             setButtonsEnabled(true);
         } else {
-            // Pipeline inativo - botões podem ficar com cor mais fraca
             setButtonsEnabled(false);
+            showMessage("Pipeline de áudio inicializando. Aguarde...");
         }
         
         // Mostrar informações de status se necessário

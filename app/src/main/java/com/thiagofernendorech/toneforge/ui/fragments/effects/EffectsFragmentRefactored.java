@@ -428,9 +428,16 @@ public class EffectsFragmentRefactored extends BaseFragment<EffectsPresenter> im
             });
         }
         
-        // Reset
+        // Reset (com confirmação)
         if (btnResetAll != null) {
-            btnResetAll.setOnClickListener(v -> presenter.resetAllEffects());
+            btnResetAll.setOnClickListener(v -> {
+                new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Resetar Efeitos")
+                    .setMessage("Tem certeza que deseja resetar todos os efeitos? Esta ação não pode ser desfeita.")
+                    .setPositiveButton("Sim", (dialog, which) -> presenter.resetAllEffects())
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+            });
         }
         
         // MIDI

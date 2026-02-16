@@ -83,6 +83,10 @@ public abstract class BaseActivity extends AppCompatActivity
         try {
             FragmentManager fragmentManager = getSupportFragmentManager();
             FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.setCustomAnimations(
+                R.anim.slide_in_right, R.anim.slide_out_left,
+                R.anim.slide_in_left, R.anim.slide_out_right
+            );
             transaction.replace(getFragmentContainerId(), fragment);
             
             // Adicionar à pilha apenas se necessário

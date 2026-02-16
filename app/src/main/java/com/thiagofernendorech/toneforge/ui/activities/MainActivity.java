@@ -6,6 +6,7 @@ import android.widget.Toast;
 import android.widget.ImageView;
 import androidx.fragment.app.Fragment;
 import java.util.List;
+import com.thiagofernendorech.toneforge.infrastructure.ui.DebounceClickListener;
 
 // Clean Architecture imports
 import com.thiagofernendorech.toneforge.ui.activities.BaseActivity;
@@ -202,17 +203,17 @@ public class MainActivity extends BaseActivity {
     }
     
     private void setupNavigation() {
-        // Botão Home
-        findViewById(R.id.btnHome).setOnClickListener(v -> {
+        // Botão Home (com debounce para prevenir toques duplos)
+        findViewById(R.id.btnHome).setOnClickListener(new DebounceClickListener(v -> {
             loadFragment(new HomeFragmentRefactored());
             updateHeaderTitle("ToneForge");
-        });
-        
+        }));
+
         // Botão Pedaleira
-        findViewById(R.id.btnPedalboard).setOnClickListener(v -> {
+        findViewById(R.id.btnPedalboard).setOnClickListener(new DebounceClickListener(v -> {
             loadFragment(new PedalboardFragment());
             updateHeaderTitle("🎸 Pedaleira");
-        });
+        }));
     }
     
     public void updateHeaderTitle(String title) {

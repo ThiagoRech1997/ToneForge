@@ -105,7 +105,7 @@ public class RecorderFragmentRefactored extends Fragment implements RecorderCont
     @Override
     public void showNoRecordingsPlaceholder() {
         if (listPlaceholder != null) {
-            listPlaceholder.setText("(Nenhuma gravação ainda)");
+            listPlaceholder.setText("Nenhuma gravação ainda.\nToque no botão de gravar para começar.");
         }
     }
 

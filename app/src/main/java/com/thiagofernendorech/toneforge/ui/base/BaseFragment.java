@@ -1,11 +1,19 @@
 package com.thiagofernendorech.toneforge.ui.base;
 
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import com.google.android.material.snackbar.Snackbar;
 import com.thiagofernendorech.toneforge.MainActivity;
+import com.thiagofernendorech.toneforge.R;
+import com.thiagofernendorech.toneforge.infrastructure.ui.DebounceClickListener;
 
 /**
  * Fragment base que implementa funcionalidades comuns
@@ -16,6 +24,7 @@ public abstract class BaseFragment<P extends BasePresenter> extends Fragment imp
     
     protected P presenter;
     private boolean isViewActive = false;
+    private View loadingOverlay;
     
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -88,18 +97,44 @@ public abstract class BaseFragment<P extends BasePresenter> extends Fragment imp
     
     @Override
     public void showLoading() {
-        // Implementação padrão - pode ser sobrescrita
+        if (getView() == null || loadingOverlay != null) return;
+
+        ViewGroup root = (ViewGroup) getView();
+        FrameLayout overlay = new FrameLayout(requireContext());
+        overlay.setBackgroundColor(0x80000000);
+        overlay.setClickable(true);
+
+        ProgressBar progressBar = new ProgressBar(requireContext());
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+        );
+        overlay.addView(progressBar, params);
+
+        root.addView(overlay, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        loadingOverlay = overlay;
     }
-    
+
     @Override
     public void hideLoading() {
-        // Implementação padrão - pode ser sobrescrita
+        if (loadingOverlay != null && getView() != null) {
+            ((ViewGroup) getView()).removeView(loadingOverlay);
+            loadingOverlay = null;
+        }
     }
-    
+
     @Override
     public void showError(String message) {
-        if (getContext() != null) {
-            Toast.makeText(getContext(), "Erro: " + message, Toast.LENGTH_LONG).show();
+        if (getView() != null) {
+            Snackbar snackbar = Snackbar.make(getView(), message, Snackbar.LENGTH_LONG);
+            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.accent_red));
+            snackbar.show();
+        } else if (getContext() != null) {
+            Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
         }
     }
     
@@ -120,5 +155,12 @@ public abstract class BaseFragment<P extends BasePresenter> extends Fragment imp
     @Override
     public boolean isViewActive() {
         return isViewActive && !isDetached() && getActivity() != null;
+    }
+
+    /**
+     * Cria um click listener com debounce para prevenir toques duplos
+     */
+    protected View.OnClickListener debounced(View.OnClickListener listener) {
+        return new DebounceClickListener(listener);
     }
 } 

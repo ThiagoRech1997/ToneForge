@@ -800,7 +800,7 @@ public class LooperFragmentRefactored extends BaseFragment<LooperPresenter>
             .setTitle("Limpar Loop")
             .setMessage("Tem certeza que deseja limpar o loop atual? Esta ação não pode ser desfeita.")
             .setPositiveButton("Sim", (dialog, which) -> {
-                // TODO: Implementar limpeza do loop
+                if (presenter != null) presenter.executeClearLoop();
             })
             .setNegativeButton("Não", null)
             .show();

@@ -34,8 +34,9 @@
 
             <ImageView
                 android:id="@+id/btnSettings"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_settings"
                 android:tint="#FFFFFF"
                 android:alpha="0.8"
@@ -43,8 +44,9 @@
 
             <ImageView
                 android:id="@+id/btnFullscreen"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_fullscreen"
                 android:tint="#FFFFFF"
                 android:alpha="0.8" />

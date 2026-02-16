@@ -92,8 +92,9 @@
             <!-- Botão Renomear -->
             <ImageButton
                 android:id="@+id/renameButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="4dp"
                 android:src="@android:drawable/ic_menu_edit"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="@color/accent_blue"
@@ -103,8 +104,9 @@
             <!-- Botão Excluir -->
             <ImageButton
                 android:id="@+id/deleteButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="4dp"
                 android:src="@android:drawable/ic_menu_delete"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="@color/accent_red"

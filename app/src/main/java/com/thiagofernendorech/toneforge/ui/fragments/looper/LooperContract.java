@@ -284,9 +284,14 @@ public interface LooperContract {
         void togglePlayback();
         
         /**
-         * Limpa o loop atual
+         * Limpa o loop atual (mostra confirmação)
          */
         void clearLoop();
+
+        /**
+         * Executa a limpeza do loop após confirmação do usuário
+         */
+        void executeClearLoop();
         
         /**
          * Executa undo

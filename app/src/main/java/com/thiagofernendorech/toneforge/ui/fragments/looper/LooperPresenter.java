@@ -230,6 +230,38 @@ public class LooperPresenter extends BasePresenter<LooperContract.View> implemen
             getView().showClearConfirmation();
         }
     }
+
+    @Override
+    public void executeClearLoop() {
+        // Parar gravação/reprodução se ativas
+        if (isRecording) stopRecording();
+        if (isPlaying) stopPlayback();
+
+        // Resetar estado
+        loopLength = 0;
+        currentPosition = 0;
+        beatCount = 0;
+        tracks.clear();
+        markers.clear();
+        currentMarkerIndex = -1;
+        undoStack.clear();
+        redoStack.clear();
+
+        // Limpar no engine nativo
+        AudioEngine.clearLooper();
+
+        if (isViewAttached()) {
+            getView().updateTracksList(tracks);
+            getView().updateLooperTimer(0, 0);
+            getView().updateProgress(0);
+            getView().updateBeatCount(0);
+            getView().updateWaveformData(new float[0]);
+            getView().updateMarkersInfo(0, -1, 0);
+            getView().updateMarkerButtons(false, false, false);
+            getView().updateLooperStatus("Pronto", false, false);
+            getView().showSuccessMessage("Loop limpo com sucesso");
+        }
+    }
     
     @Override
     public void undo() {
