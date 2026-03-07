@@ -67,4 +67,54 @@
     <color name="switch_track_off">#FF6B7280</color>     <!-- Track do switch off -->
     <color name="switch_track_on">#FF10B981</color>      <!-- Track do switch on -->
     <color name="switch_thumb">#FFFFFFFF</color>         <!-- Thumb do switch -->
+
+    <!-- ========================================== -->
+    <!-- HILAVA UI - Nova Interface Inspirada no Lava ME 3 -->
+    <!-- ========================================== -->
+
+    <!-- Cores de fundo HILAVA -->
+    <color name="hilava_background_start">#FF1A1A2E</color>
+    <color name="hilava_background_end">#FF0F0F1A</color>
+    <color name="hilava_surface">#FF2A2A3A</color>
+    <color name="hilava_surface_elevated">#FF3A3A4A</color>
+    <color name="hilava_surface_pressed">#FF4A4A5A</color>
+
+    <!-- Cores de texto HILAVA -->
+    <color name="hilava_text_primary">#FFFFFFFF</color>
+    <color name="hilava_text_secondary">#FF888888</color>
+    <color name="hilava_text_hint">#FF666666</color>
+
+    <!-- Cores de acento por app HILAVA -->
+    <color name="hilava_tuner">#FFFF9500</color>
+    <color name="hilava_tuner_dark">#FFCC7600</color>
+    <color name="hilava_tempo">#FF5856D6</color>
+    <color name="hilava_tempo_dark">#FF3634A3</color>
+    <color name="hilava_recorder">#FFFF3B30</color>
+    <color name="hilava_recorder_dark">#FFCC2F26</color>
+    <color name="hilava_effects">#FF007AFF</color>
+    <color name="hilava_effects_dark">#FF0062CC</color>
+    <color name="hilava_practice">#FF34C759</color>
+    <color name="hilava_practice_dark">#FF248A3D</color>
+    <color name="hilava_loops">#FFAF52DE</color>
+    <color name="hilava_loops_dark">#FF8E44AD</color>
+    <color name="hilava_settings">#FF8E8E93</color>
+    <color name="hilava_settings_dark">#FF636366</color>
+    <color name="hilava_library">#FF00C7BE</color>
+    <color name="hilava_library_dark">#FF009F98</color>
+
+    <!-- Indicadores HILAVA -->
+    <color name="hilava_indicator_active">#FFFFFFFF</color>
+    <color name="hilava_indicator_inactive">#4DFFFFFF</color>
+    <color name="hilava_recording_active">#FFFF3B30</color>
+
+    <!-- Status bar HILAVA -->
+    <color name="hilava_status_bar_overlay">#66000000</color>
+
+    <!-- Cores adicionais HILAVA (Effects screen) -->
+    <color name="hilava_background">#FF121212</color>
+    <color name="hilava_card_background">#FF1E1E1E</color>
+    <color name="hilava_text_disabled">#FF4A4A4A</color>
+    <color name="hilava_success">#FF34C759</color>
+    <color name="hilava_warning">#FFFF9500</color>
+    <color name="hilava_error">#FFFF3B30</color>
 </resources>

@@ -71,35 +71,99 @@ public abstract class BaseActivity extends AppCompatActivity
     }
     
     /**
-     * Carrega um fragment na activity
+     * Carrega um fragment na activity com animação padrão (fade)
      * @param fragment fragment a ser carregado
      */
     public void loadFragment(Fragment fragment) {
+        loadFragment(fragment, TransitionType.FADE);
+    }
+
+    /**
+     * Carrega um fragment na activity com tipo de animação específico
+     * @param fragment fragment a ser carregado
+     * @param transitionType tipo de transição a ser aplicada
+     */
+    public void loadFragment(Fragment fragment, TransitionType transitionType) {
         if (isDestroyed() || isFinishing()) {
             LogManager.w(TAG, "Tentativa de carregar fragment em activity destruída");
             return;
         }
-        
+
         try {
             FragmentManager fragmentManager = getSupportFragmentManager();
             FragmentTransaction transaction = fragmentManager.beginTransaction();
-            transaction.setCustomAnimations(
-                R.anim.slide_in_right, R.anim.slide_out_left,
-                R.anim.slide_in_left, R.anim.slide_out_right
-            );
+
+            // Aplicar animação baseada no tipo de transição
+            applyTransitionAnimation(transaction, transitionType);
+
             transaction.replace(getFragmentContainerId(), fragment);
-            
+
             // Adicionar à pilha apenas se necessário
             if (shouldAddToBackStack(fragment)) {
                 transaction.addToBackStack(null);
             }
-            
+
             transaction.commit();
             LogManager.d(TAG, "Fragment carregado: " + fragment.getClass().getSimpleName());
-            
+
         } catch (Exception e) {
             LogManager.e(TAG, "Erro ao carregar fragment", e);
         }
+    }
+
+    /**
+     * Aplica animação de transição à transação de fragment
+     * @param transaction transação do fragment
+     * @param transitionType tipo de transição
+     */
+    private void applyTransitionAnimation(FragmentTransaction transaction, TransitionType transitionType) {
+        switch (transitionType) {
+            case SLIDE_RIGHT:
+                // Entrar da direita, sair pela esquerda (navegação para frente)
+                transaction.setCustomAnimations(
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left,
+                    R.anim.slide_in_left,
+                    R.anim.slide_out_right
+                );
+                break;
+            case SLIDE_LEFT:
+                // Entrar da esquerda, sair pela direita (navegação para trás)
+                transaction.setCustomAnimations(
+                    R.anim.slide_in_left,
+                    R.anim.slide_out_right,
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
+                );
+                break;
+            case FADE:
+                // Fade in/out suave
+                transaction.setCustomAnimations(
+                    R.anim.fade_in,
+                    R.anim.fade_out,
+                    R.anim.fade_in,
+                    R.anim.fade_out
+                );
+                break;
+            case NONE:
+            default:
+                // Sem animação
+                break;
+        }
+    }
+
+    /**
+     * Tipos de transição disponíveis para fragments
+     */
+    public enum TransitionType {
+        /** Slide entrando pela direita (navegação para frente) */
+        SLIDE_RIGHT,
+        /** Slide entrando pela esquerda (navegação para trás) */
+        SLIDE_LEFT,
+        /** Fade in/out suave */
+        FADE,
+        /** Sem animação */
+        NONE
     }
     
     /**

@@ -1,6 +1,10 @@
 package com.thiagofernendorech.toneforge;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ImageView;
@@ -46,16 +50,20 @@ public class MainActivity extends BaseActivity {
     
     private StateRecoveryManager stateRecoveryManager;
     private LatencyManager latencyManager;
+    private ViewGroup headerContainer;
     private TextView headerTitle;
     private ImageView btnWifi;
     private ImageView btnVolume;
     private ImageView btnPower;
-    
+
     // Clean Architecture components
     private NavigationController navigationController;
     private AudioRepository audioRepository;
     private SystemStatusController systemStatusController;
     private AudioInitializer audioInitializer;
+
+    // Header animation duration
+    private static final int HEADER_ANIMATION_DURATION = 200;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,11 +127,12 @@ public class MainActivity extends BaseActivity {
     private void initializeViews() {
         try {
             LogManager.d(TAG, "Inicializando views");
+            headerContainer = findViewById(R.id.headerContainer);
             headerTitle = findViewById(R.id.headerTitle);
             btnWifi = findViewById(R.id.btnWifi);
             btnVolume = findViewById(R.id.btnVolume);
             btnPower = findViewById(R.id.btnPower);
-            
+
             LogManager.d(TAG, "Views inicializadas com sucesso");
         } catch (Exception e) {
             LogManager.e(TAG, "Erro ao inicializar views: " + e.getMessage(), e);
@@ -174,16 +183,21 @@ public class MainActivity extends BaseActivity {
     private void setupUI() {
         try {
             LogManager.d(TAG, "Configurando UI");
-            
+
             // Configurar controladores UI
             systemStatusController = new SystemStatusController(this, btnWifi, btnVolume, btnPower);
-            
+
             // Configurar navegação
             setupNavigation();
-            
-            // Carregar fragment inicial
-            loadFragment(new HomeFragmentRefactored());
-            
+
+            // Esconder header na Home (já tem status card próprio)
+            if (headerContainer != null) {
+                headerContainer.setVisibility(View.GONE);
+            }
+
+            // Carregar fragment inicial (Home)
+            loadFragment(new HomeFragmentRefactored(), TransitionType.NONE);
+
             LogManager.d(TAG, "UI configurada com sucesso");
         } catch (Exception e) {
             LogManager.e(TAG, "Erro ao configurar UI: " + e.getMessage(), e);
@@ -203,16 +217,18 @@ public class MainActivity extends BaseActivity {
     }
     
     private void setupNavigation() {
-        // Botão Home (com debounce para prevenir toques duplos)
+        // Botão Home
         findViewById(R.id.btnHome).setOnClickListener(new DebounceClickListener(v -> {
-            loadFragment(new HomeFragmentRefactored());
+            hideHeader();
+            loadFragment(new HomeFragmentRefactored(), TransitionType.SLIDE_LEFT);
             updateHeaderTitle("ToneForge");
         }));
 
         // Botão Pedaleira
         findViewById(R.id.btnPedalboard).setOnClickListener(new DebounceClickListener(v -> {
-            loadFragment(new PedalboardFragment());
-            updateHeaderTitle("🎸 Pedaleira");
+            showHeader();
+            loadFragment(new PedalboardFragment(), TransitionType.SLIDE_RIGHT);
+            updateHeaderTitle("Pedaleira");
         }));
     }
     
@@ -220,6 +236,59 @@ public class MainActivity extends BaseActivity {
         if (headerTitle != null) {
             headerTitle.setText(title);
         }
+    }
+
+    /**
+     * Mostra o header com animação
+     */
+    public void showHeader() {
+        if (headerContainer != null && headerContainer.getVisibility() != View.VISIBLE) {
+            headerContainer.setAlpha(0f);
+            headerContainer.setVisibility(View.VISIBLE);
+            headerContainer.animate()
+                .alpha(1f)
+                .setDuration(HEADER_ANIMATION_DURATION)
+                .setListener(null)
+                .start();
+        }
+    }
+
+    /**
+     * Esconde o header com animação
+     */
+    public void hideHeader() {
+        if (headerContainer != null && headerContainer.getVisibility() == View.VISIBLE) {
+            headerContainer.animate()
+                .alpha(0f)
+                .setDuration(HEADER_ANIMATION_DURATION)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        headerContainer.setVisibility(View.GONE);
+                    }
+                })
+                .start();
+        }
+    }
+
+    /**
+     * Define a visibilidade do header (com animação)
+     * @param visible true para mostrar, false para esconder
+     */
+    public void setHeaderVisible(boolean visible) {
+        if (visible) {
+            showHeader();
+        } else {
+            hideHeader();
+        }
+    }
+
+    /**
+     * Verifica se o header está visível
+     * @return true se visível
+     */
+    public boolean isHeaderVisible() {
+        return headerContainer != null && headerContainer.getVisibility() == View.VISIBLE;
     }
 
     // Callbacks de permissão sobrescrevem os da BaseActivity

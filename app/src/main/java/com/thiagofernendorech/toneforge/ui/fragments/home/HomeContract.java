@@ -95,7 +95,17 @@ public interface HomeContract {
          * Chamado quando o usuário clica no botão Configurações
          */
         void onSettingsClicked();
-        
+
+        /**
+         * Chamado quando o usuário clica no botão Biblioteca
+         */
+        void onLibraryClicked();
+
+        /**
+         * Chamado quando o usuário clica no botão Presets
+         */
+        void onPresetsClicked();
+
         /**
          * Chamado quando o usuário clica no botão Wi-Fi
          */
