@@ -103,9 +103,8 @@ public class HomePresenter extends BasePresenter<HomeContract.View> implements H
 
     @Override
     public void onPresetsClicked() {
-        // Navegar para a tela de efeitos com foco em presets
         if (navigationController.isMainActivityAvailable()) {
-            navigationController.navigateToEffects();
+            navigationController.navigateToPresets();
         }
     }
 

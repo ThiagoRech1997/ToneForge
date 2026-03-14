@@ -2,7 +2,9 @@ package com.thiagofernendorech.toneforge.ui.navigation;
 
 import androidx.fragment.app.Fragment;
 import com.thiagofernendorech.toneforge.MainActivity;
+import com.thiagofernendorech.toneforge.R;
 import com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.home.HomeFragmentRefactored;
 import com.thiagofernendorech.toneforge.HomeFragment;
 import com.thiagofernendorech.toneforge.LooperFragment;
 import com.thiagofernendorech.toneforge.TunerFragment;
@@ -54,16 +56,33 @@ public class NavigationController {
     public void navigateToHome() {
         MainActivity activity = getActivity();
         if (activity != null) {
-            activity.hideHeader(); // Home tem seu próprio status card
-            activity.loadFragment(new HomeFragment(), TransitionType.SLIDE_LEFT);
+            activity.hideHeader();
+            activity.loadFragment(new HomeFragmentRefactored(), TransitionType.SLIDE_LEFT);
             activity.updateHeaderTitle("ToneForge");
+            activity.selectBottomNavItem(R.id.nav_home);
         }
     }
 
     /**
-     * Navega para o fragment de Efeitos
+     * Navega para o fragment de Efeitos (view de categorias)
      */
     public void navigateToEffects() {
+        MainActivity activity = getActivity();
+        if (activity != null) {
+            activity.showHeader();
+            activity.updateHeaderButtons(true);
+            activity.loadFragment(
+                new com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsCategoriesFragment(),
+                TransitionType.SLIDE_RIGHT);
+            activity.updateHeaderTitle("Efeitos");
+            activity.selectBottomNavItem(R.id.nav_effects);
+        }
+    }
+
+    /**
+     * Navega para a view completa de efeitos (legacy, com todos os controles)
+     */
+    public void navigateToEffectsFull() {
         navigateWithHeader(new EffectsFragmentRefactored(), "Efeitos");
     }
 
@@ -74,6 +93,7 @@ public class NavigationController {
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.showHeader();
+            activity.updateHeaderButtons(true);
             com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored looperFragment =
                 new com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored();
             activity.loadFragment(looperFragment, TransitionType.SLIDE_RIGHT);
@@ -88,6 +108,7 @@ public class NavigationController {
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.showHeader();
+            activity.updateHeaderButtons(true);
             TunerFragmentRefactored tunerFragment = new TunerFragmentRefactored();
             activity.loadFragment(tunerFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Afinador");
@@ -101,6 +122,7 @@ public class NavigationController {
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.showHeader();
+            activity.updateHeaderButtons(true);
             MetronomeFragmentRefactored metronomeFragment = new MetronomeFragmentRefactored();
             activity.loadFragment(metronomeFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Metrônomo");
@@ -121,6 +143,7 @@ public class NavigationController {
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.showHeader();
+            activity.updateHeaderButtons(true);
             RecorderFragmentRefactored recorderFragment = new RecorderFragmentRefactored();
             activity.loadFragment(recorderFragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle("Gravador");
@@ -150,6 +173,7 @@ public class NavigationController {
         MainActivity activity = getActivity();
         if (activity != null) {
             activity.showHeader();
+            activity.updateHeaderButtons(true);
             activity.loadFragment(fragment, TransitionType.SLIDE_RIGHT);
             activity.updateHeaderTitle(title);
         }
@@ -223,6 +247,46 @@ public class NavigationController {
         return mainActivityRef != null ? mainActivityRef.get() : null;
     }
     
+    /**
+     * Navega para uma categoria de efeitos específica
+     * @param category nome da categoria (distortion, modulation, time, filter, dynamics, ambient)
+     */
+    public void navigateToEffectCategory(String category) {
+        MainActivity activity = getActivity();
+        if (activity != null) {
+            activity.showHeader();
+            activity.updateHeaderButtons(true);
+            com.thiagofernendorech.toneforge.ui.fragments.effects.EffectCategoryFragment categoryFragment =
+                com.thiagofernendorech.toneforge.ui.fragments.effects.EffectCategoryFragment.newInstance(category);
+            activity.loadFragment(categoryFragment, TransitionType.SLIDE_RIGHT);
+            activity.updateHeaderTitle(getCategoryTitle(category));
+            activity.selectBottomNavItem(R.id.nav_effects);
+        }
+    }
+
+    /**
+     * Navega para a tela de Presets
+     */
+    public void navigateToPresets() {
+        navigateToEffects();
+        MainActivity activity = getActivity();
+        if (activity != null) {
+            activity.selectBottomNavItem(R.id.nav_presets);
+        }
+    }
+
+    private String getCategoryTitle(String category) {
+        switch (category) {
+            case "distortion": return "Distortion";
+            case "modulation": return "Modulation";
+            case "time": return "Time Effects";
+            case "filter": return "Filter";
+            case "dynamics": return "Dynamics";
+            case "ambient": return "Ambient";
+            default: return "Efeitos";
+        }
+    }
+
     /**
      * Limpa a referência da MainActivity
      */

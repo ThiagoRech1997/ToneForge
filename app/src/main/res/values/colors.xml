@@ -117,4 +117,15 @@
     <color name="hilava_success">#FF34C759</color>
     <color name="hilava_warning">#FFFF9500</color>
     <color name="hilava_error">#FFFF3B30</color>
+
+    <!-- Bottom Navigation -->
+    <color name="bottom_nav_active">#FF8B5CF6</color>
+    <color name="bottom_nav_inactive">#FF6B7280</color>
+
+    <!-- Hero section -->
+    <color name="hero_stat_bg">#33FFFFFF</color>
+    <color name="hero_text_subtitle">#CCEEDDFF</color>
+
+    <!-- Recent activity -->
+    <color name="recent_activity_bg">#FF1F2937</color>
 </resources>

@@ -3,13 +3,18 @@ package com.thiagofernendorech.toneforge;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ImageView;
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import java.util.List;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.thiagofernendorech.toneforge.infrastructure.ui.DebounceClickListener;
 
 // Clean Architecture imports
@@ -29,6 +34,7 @@ import com.thiagofernendorech.toneforge.ui.components.AudioInitializer;
 // Refactored Fragments
 import com.thiagofernendorech.toneforge.ui.fragments.home.HomeFragmentRefactored;
 import com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsFragmentRefactored;
+import com.thiagofernendorech.toneforge.ui.fragments.effects.EffectsCategoriesFragment;
 import com.thiagofernendorech.toneforge.ui.fragments.looper.LooperFragmentRefactored;
 import com.thiagofernendorech.toneforge.ui.fragments.tuner.TunerFragmentRefactored;
 import com.thiagofernendorech.toneforge.ui.fragments.metronome.MetronomeFragmentRefactored;
@@ -47,20 +53,23 @@ import com.thiagofernendorech.toneforge.PedalboardFragment;
 public class MainActivity extends BaseActivity {
     
     private static final String TAG = "MainActivity";
-    
+
     private StateRecoveryManager stateRecoveryManager;
     private LatencyManager latencyManager;
     private ViewGroup headerContainer;
     private TextView headerTitle;
-    private ImageView btnWifi;
-    private ImageView btnVolume;
-    private ImageView btnPower;
+    private ImageButton btnBack;
+    private ImageButton btnHome;
+    private BottomNavigationView bottomNavigation;
 
     // Clean Architecture components
     private NavigationController navigationController;
     private AudioRepository audioRepository;
     private SystemStatusController systemStatusController;
     private AudioInitializer audioInitializer;
+
+    // Track if we're programmatically selecting bottom nav to avoid loops
+    private boolean isBottomNavProgrammatic = false;
 
     // Header animation duration
     private static final int HEADER_ANIMATION_DURATION = 200;
@@ -129,9 +138,9 @@ public class MainActivity extends BaseActivity {
             LogManager.d(TAG, "Inicializando views");
             headerContainer = findViewById(R.id.headerContainer);
             headerTitle = findViewById(R.id.headerTitle);
-            btnWifi = findViewById(R.id.btnWifi);
-            btnVolume = findViewById(R.id.btnVolume);
-            btnPower = findViewById(R.id.btnPower);
+            btnBack = findViewById(R.id.btnBack);
+            btnHome = findViewById(R.id.btnHome);
+            bottomNavigation = findViewById(R.id.bottomNavigation);
 
             LogManager.d(TAG, "Views inicializadas com sucesso");
         } catch (Exception e) {
@@ -184,10 +193,7 @@ public class MainActivity extends BaseActivity {
         try {
             LogManager.d(TAG, "Configurando UI");
 
-            // Configurar controladores UI
-            systemStatusController = new SystemStatusController(this, btnWifi, btnVolume, btnPower);
-
-            // Configurar navegação
+            // Configurar navegação (header + bottom nav)
             setupNavigation();
 
             // Esconder header na Home (já tem status card próprio)
@@ -217,19 +223,86 @@ public class MainActivity extends BaseActivity {
     }
     
     private void setupNavigation() {
-        // Botão Home
-        findViewById(R.id.btnHome).setOnClickListener(new DebounceClickListener(v -> {
-            hideHeader();
-            loadFragment(new HomeFragmentRefactored(), TransitionType.SLIDE_LEFT);
-            updateHeaderTitle("ToneForge");
-        }));
+        // Botão Voltar no header
+        if (btnBack != null) {
+            btnBack.setOnClickListener(new DebounceClickListener(v -> {
+                onBackPressed();
+            }));
+        }
 
-        // Botão Pedaleira
-        findViewById(R.id.btnPedalboard).setOnClickListener(new DebounceClickListener(v -> {
-            showHeader();
-            loadFragment(new PedalboardFragment(), TransitionType.SLIDE_RIGHT);
-            updateHeaderTitle("Pedaleira");
-        }));
+        // Botão Home no header
+        if (btnHome != null) {
+            btnHome.setOnClickListener(new DebounceClickListener(v -> {
+                navigateToHomeFromBottomNav();
+            }));
+        }
+
+        // Bottom Navigation
+        if (bottomNavigation != null) {
+            bottomNavigation.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
+                @Override
+                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                    if (isBottomNavProgrammatic) return true;
+
+                    int itemId = item.getItemId();
+                    if (itemId == R.id.nav_home) {
+                        navigateToHomeFromBottomNav();
+                        return true;
+                    } else if (itemId == R.id.nav_effects) {
+                        showHeader();
+                        loadFragment(new EffectsCategoriesFragment(), TransitionType.FADE);
+                        updateHeaderTitle("Efeitos");
+                        updateHeaderButtons(true);
+                        return true;
+                    } else if (itemId == R.id.nav_presets) {
+                        showHeader();
+                        loadFragment(new EffectsFragmentRefactored(), TransitionType.FADE);
+                        updateHeaderTitle("Presets");
+                        updateHeaderButtons(true);
+                        return true;
+                    } else if (itemId == R.id.nav_settings) {
+                        showHeader();
+                        loadFragment(new SettingsFragmentRefactored(), TransitionType.FADE);
+                        updateHeaderTitle("Configurações");
+                        updateHeaderButtons(true);
+                        return true;
+                    }
+                    return false;
+                }
+            });
+        }
+    }
+
+    private void navigateToHomeFromBottomNav() {
+        hideHeader();
+        loadFragment(new HomeFragmentRefactored(), TransitionType.FADE);
+        updateHeaderTitle("ToneForge");
+    }
+
+    /**
+     * Updates header back/home button visibility
+     * @param showBackButton true to show back button, false to hide
+     */
+    public void updateHeaderButtons(boolean showBackButton) {
+        if (btnBack != null) {
+            btnBack.setVisibility(showBackButton ? View.VISIBLE : View.GONE);
+        }
+        if (btnHome != null) {
+            btnHome.setVisibility(showBackButton ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /**
+     * Syncs the bottom navigation selected item to match the current fragment.
+     * Called by NavigationController when navigating programmatically.
+     * @param itemId the menu item id to select
+     */
+    public void selectBottomNavItem(int itemId) {
+        if (bottomNavigation != null) {
+            isBottomNavProgrammatic = true;
+            bottomNavigation.setSelectedItemId(itemId);
+            isBottomNavProgrammatic = false;
+        }
     }
     
     public void updateHeaderTitle(String title) {
@@ -312,15 +385,10 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        
+
         // Recuperar estado se necessário
         if (stateRecoveryManager != null) {
             stateRecoveryManager.restoreState();
-        }
-        
-        // Atualizar status icons
-        if (systemStatusController != null) {
-            systemStatusController.updateStatusIcons();
         }
     }
     

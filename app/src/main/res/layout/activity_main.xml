@@ -6,19 +6,30 @@
     android:orientation="vertical"
     android:background="@color/lava_dark_bg">
 
-    <!-- Header com Navegação -->
+    <!-- Header com Navegação (novo design com gradient) -->
     <LinearLayout
         android:id="@+id/headerContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/header_background"
+        android:background="@drawable/bg_header_gradient_new"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="12dp"
         android:paddingEnd="12dp"
+        android:paddingTop="4dp"
         android:paddingBottom="8dp"
         android:elevation="4dp"
         android:minHeight="56dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/lava_text_primary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Voltar"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/btnHome"
@@ -27,17 +38,8 @@
             android:src="@drawable/ic_home"
             android:tint="@color/lava_text_primary"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Home"/>
-
-        <ImageButton
-            android:id="@+id/btnPedalboard"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_graphic_eq"
-            android:tint="@color/lava_purple"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Pedaleira"
-            android:layout_marginStart="8dp"/>
+            android:contentDescription="Home"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/headerTitle"
@@ -46,38 +48,10 @@
             android:layout_weight="1"
             android:text="ToneForge"
             android:textColor="@color/lava_text_primary"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:textStyle="bold"
-            android:gravity="center"/>
+            android:gravity="center" />
 
-        <ImageButton
-            android:id="@+id/btnWifi"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_wifi"
-            android:tint="@color/lava_text_primary"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Wi-Fi"
-            android:layout_marginEnd="8dp"/>
-
-        <ImageButton
-            android:id="@+id/btnVolume"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_volume_up"
-            android:tint="@color/lava_text_primary"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Volume"
-            android:layout_marginEnd="8dp"/>
-
-        <ImageButton
-            android:id="@+id/btnPower"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_power"
-            android:tint="@color/lava_text_primary"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Power"/>
     </LinearLayout>
 
     <!-- Container Principal -->
@@ -85,6 +59,18 @@
         android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
+
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/lava_dark_bg"
+        app:itemIconTint="@color/bottom_nav_selector"
+        app:itemTextColor="@color/bottom_nav_selector"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu"
+        app:elevation="8dp" />
 
 </LinearLayout>

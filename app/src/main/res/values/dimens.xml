@@ -89,4 +89,11 @@
     <dimen name="breakpoint_medium">480dp</dimen>
     <dimen name="breakpoint_large">720dp</dimen>
     <dimen name="breakpoint_xlarge">960dp</dimen>
+
+    <!-- New Layout -->
+    <dimen name="card_radius_large">16dp</dimen>
+    <dimen name="bottom_nav_height">56dp</dimen>
+    <dimen name="hero_padding">24dp</dimen>
+    <dimen name="hero_corner_radius">24dp</dimen>
+    <dimen name="effect_chain_chip_radius">20dp</dimen>
 </resources> 

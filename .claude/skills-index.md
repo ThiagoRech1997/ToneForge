@@ -15,6 +15,11 @@
 | [mvp-scaffold](skills/mvp-scaffold.md) | Scaffold MVP | Criar novo fragment |
 | [refactor-legacy](skills/refactor-legacy.md) | Refatorar | Modernizar código legado |
 
+### Design
+| Skill | Descrição | Quando Usar |
+|-------|-----------|-------------|
+| [design-system](skills/design-system/SKILL.md) | Design System HILAVA | Criar/modificar UI, garantir consistência visual |
+
 ### Qualidade
 | Skill | Descrição | Quando Usar |
 |-------|-----------|-------------|
@@ -51,7 +56,7 @@ Agents: audio-dsp-engineer, android-ui-designer, android-qa-engineer
 
 ### Criar Nova Tela
 ```
-Skill: mvp-scaffold
+Skills: mvp-scaffold, design-system
 Agents: android-architecture-reviewer, android-ui-designer
 ```
 

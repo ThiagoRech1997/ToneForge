@@ -29,12 +29,13 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
 
     private static final String TAG = "HomeFragmentRefactored";
 
-    // Design flag - usar nova interface HILAVA
+    // Design flag - usar nova interface
     public static final int DESIGN_LEGACY = 0;
     public static final int DESIGN_LAVA = 1;
     public static final int DESIGN_HILAVA = 2;
+    public static final int DESIGN_NEW = 3;
 
-    private int currentDesign = DESIGN_HILAVA; // Nova interface HILAVA por padrão
+    private int currentDesign = DESIGN_NEW; // Novo layout por padrao
 
     // Views - HILAVA Design
     private TextView titleText;
@@ -50,6 +51,10 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
     private HilavaAppButton hilavaButtonTuner, hilavaButtonEffects, hilavaButtonLooper;
     private HilavaAppButton hilavaButtonMetronome, hilavaButtonRecorder, hilavaButtonLearning;
     private HilavaAppButton hilavaButtonSettings, hilavaButtonLibrary, hilavaButtonPresets;
+
+    // Views - New Design (cards)
+    private View cardTuner, cardEffects, cardLooper, cardMetronome;
+    private View cardLearning, cardRecorder, cardPresets, cardSettings;
 
     // Views - Legacy Design (mantidas para compatibilidade)
     private View btnTuner, btnEffects, btnLooper, btnMetronome;
@@ -82,6 +87,8 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
 
     private int getLayoutForDesign() {
         switch (currentDesign) {
+            case DESIGN_NEW:
+                return R.layout.fragment_home_new;
             case DESIGN_HILAVA:
                 return R.layout.fragment_home_hilava;
             case DESIGN_LAVA:
@@ -122,11 +129,33 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
      * Inicializa as views do fragment baseado no design atual
      */
     private void initializeViews(View view) {
-        if (currentDesign == DESIGN_HILAVA) {
+        if (currentDesign == DESIGN_NEW) {
+            initializeNewViews(view);
+        } else if (currentDesign == DESIGN_HILAVA) {
             initializeHilavaViews(view);
         } else {
             initializeLegacyViews(view);
         }
+    }
+
+    private void initializeNewViews(View view) {
+        // Cards de ferramentas
+        cardTuner = view.findViewById(R.id.cardTuner);
+        cardEffects = view.findViewById(R.id.cardEffects);
+        cardLooper = view.findViewById(R.id.cardLooper);
+        cardMetronome = view.findViewById(R.id.cardMetronome);
+
+        // Cards de biblioteca
+        cardLearning = view.findViewById(R.id.cardLearning);
+        cardRecorder = view.findViewById(R.id.cardRecorder);
+        cardPresets = view.findViewById(R.id.cardPresets);
+        cardSettings = view.findViewById(R.id.cardSettings);
+
+        // Status views (reutilizadas do HILAVA)
+        pipelineIndicator = view.findViewById(R.id.pipelineIndicator);
+        batteryIcon = view.findViewById(R.id.batteryIcon);
+        batteryText = view.findViewById(R.id.batteryText);
+        audioStatusText = view.findViewById(R.id.recentAudioStatus);
     }
 
     private void initializeHilavaViews(View view) {
@@ -175,11 +204,24 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
      * Configura os listeners dos botões
      */
     private void setupClickListeners() {
-        if (currentDesign == DESIGN_HILAVA) {
+        if (currentDesign == DESIGN_NEW) {
+            setupNewClickListeners();
+        } else if (currentDesign == DESIGN_HILAVA) {
             setupHilavaClickListeners();
         } else {
             setupLegacyClickListeners();
         }
+    }
+
+    private void setupNewClickListeners() {
+        if (cardTuner != null) cardTuner.setOnClickListener(v -> presenter.onTunerClicked());
+        if (cardEffects != null) cardEffects.setOnClickListener(v -> presenter.onEffectsClicked());
+        if (cardLooper != null) cardLooper.setOnClickListener(v -> presenter.onLooperClicked());
+        if (cardMetronome != null) cardMetronome.setOnClickListener(v -> presenter.onMetronomeClicked());
+        if (cardLearning != null) cardLearning.setOnClickListener(v -> presenter.onLearningClicked());
+        if (cardRecorder != null) cardRecorder.setOnClickListener(v -> presenter.onRecorderClicked());
+        if (cardPresets != null) cardPresets.setOnClickListener(v -> presenter.onPresetsClicked());
+        if (cardSettings != null) cardSettings.setOnClickListener(v -> presenter.onSettingsClicked());
     }
 
     private void setupHilavaClickListeners() {
@@ -304,7 +346,7 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
 
     @Override
     public void updateBatteryStatus(int level, boolean isCharging) {
-        if (currentDesign == DESIGN_HILAVA) {
+        if (currentDesign == DESIGN_HILAVA || currentDesign == DESIGN_NEW) {
             updateHilavaBatteryStatus(level, isCharging);
         } else {
             updateLegacyBatteryStatus(level, isCharging);
@@ -365,7 +407,7 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
     }
 
     private void updateAudioStatusUI(boolean isRunning, String statusText) {
-        if (currentDesign == DESIGN_HILAVA) {
+        if (currentDesign == DESIGN_HILAVA || currentDesign == DESIGN_NEW) {
             // Atualizar indicador de pipeline
             if (pipelineIndicator != null) {
                 pipelineIndicator.setActivated(isRunning);
@@ -373,7 +415,7 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
 
             // Atualizar texto de status
             if (audioStatusText != null) {
-                audioStatusText.setText(isRunning ? "Áudio ativo" : statusText);
+                audioStatusText.setText(isRunning ? "Ativo" : statusText);
             }
         }
     }
@@ -434,7 +476,16 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
     private void setButtonsEnabled(boolean enabled) {
         float alpha = enabled ? 1.0f : 0.7f;
 
-        if (currentDesign == DESIGN_HILAVA) {
+        if (currentDesign == DESIGN_NEW) {
+            if (cardTuner != null) cardTuner.setAlpha(alpha);
+            if (cardEffects != null) cardEffects.setAlpha(alpha);
+            if (cardLooper != null) cardLooper.setAlpha(alpha);
+            if (cardMetronome != null) cardMetronome.setAlpha(alpha);
+            if (cardLearning != null) cardLearning.setAlpha(alpha);
+            if (cardRecorder != null) cardRecorder.setAlpha(alpha);
+            if (cardPresets != null) cardPresets.setAlpha(alpha);
+            if (cardSettings != null) cardSettings.setAlpha(alpha);
+        } else if (currentDesign == DESIGN_HILAVA) {
             if (hilavaButtonTuner != null) hilavaButtonTuner.setAlpha(alpha);
             if (hilavaButtonEffects != null) hilavaButtonEffects.setAlpha(alpha);
             if (hilavaButtonLooper != null) hilavaButtonLooper.setAlpha(alpha);
@@ -460,7 +511,7 @@ public class HomeFragmentRefactored extends BaseFragment<HomePresenter> implemen
      * @param design DESIGN_LEGACY, DESIGN_LAVA ou DESIGN_HILAVA
      */
     public void setDesign(int design) {
-        if (design >= DESIGN_LEGACY && design <= DESIGN_HILAVA) {
+        if (design >= DESIGN_LEGACY && design <= DESIGN_NEW) {
             this.currentDesign = design;
         }
     }
