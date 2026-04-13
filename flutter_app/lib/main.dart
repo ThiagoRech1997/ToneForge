@@ -11,6 +11,7 @@ import 'features/effects/effects_screen.dart';
 import 'features/loop_library/loop_library_screen.dart';
 import 'features/looper/looper_screen.dart';
 import 'features/metronome/metronome_screen.dart';
+import 'features/midi/midi_screen.dart';
 import 'features/recorder/recorder_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tuner/tuner_screen.dart';
@@ -95,6 +96,13 @@ class HomeScreen extends StatelessWidget {
             title: 'Automation',
             subtitle: 'Grava e reproduz movimentos de parâmetros',
             destination: const AutomationScreen(),
+          ),
+          const SizedBox(height: 12),
+          _FeatureCard(
+            icon: Icons.piano,
+            title: 'MIDI Learn',
+            subtitle: 'Conecta controlador MIDI e mapeia CCs aos parâmetros',
+            destination: const MidiScreen(),
           ),
           const SizedBox(height: 12),
           _FeatureCard(
