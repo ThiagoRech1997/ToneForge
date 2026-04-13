@@ -102,25 +102,38 @@ public class DebugBenchmarkActivity extends AppCompatActivity {
         group.setOrientation(RadioGroup.HORIZONTAL);
 
         rbLegacy = new RadioButton(this);
+        // IDs únicos são obrigatórios para o RadioGroup gerenciar
+        // mutual exclusion quando as views são criadas programaticamente.
+        rbLegacy.setId(View.generateViewId());
         rbLegacy.setText("Java legado");
         rbLegacy.setTextColor(Color.WHITE);
-        rbLegacy.setChecked(!repo.isUsingCppPipeline());
 
         rbCpp = new RadioButton(this);
+        rbCpp.setId(View.generateViewId());
         rbCpp.setText("C++ (Oboe)");
         rbCpp.setTextColor(Color.WHITE);
-        rbCpp.setChecked(repo.isUsingCppPipeline());
 
         group.addView(rbLegacy);
         group.addView(rbCpp);
+        // setChecked precisa acontecer DEPOIS do addView para o grupo
+        // conseguir des-selecionar a outra opção via mutual exclusion.
+        if (repo.isUsingCppPipeline()) {
+            rbCpp.setChecked(true);
+        } else {
+            rbLegacy.setChecked(true);
+        }
         group.setOnCheckedChangeListener((g, id) -> {
+            if (id == -1) return; // race quando setChecked(false) cai no listener
             boolean useCpp = (id == rbCpp.getId());
             boolean ok = repo.setUseCppPipeline(useCpp);
             if (!ok) {
                 Toast.makeText(this, "Pare o pipeline antes de trocar o backend", Toast.LENGTH_SHORT).show();
                 // Revert visual state
-                rbLegacy.setChecked(!repo.isUsingCppPipeline());
-                rbCpp.setChecked(repo.isUsingCppPipeline());
+                if (repo.isUsingCppPipeline()) {
+                    rbCpp.setChecked(true);
+                } else {
+                    rbLegacy.setChecked(true);
+                }
             }
             updateStats();
         });
@@ -149,9 +162,11 @@ public class DebugBenchmarkActivity extends AppCompatActivity {
 
     private void toggleStartStop() {
         if (repo.isAudioPipelineRunning()) {
+            // Captura telemetria ANTES do stop — os getters do Oboe retornam
+            // -1 / 0 depois que os streams foram liberados.
+            logFinalReport();
             repo.stopAudioPipeline();
             btnStartStop.setText("START");
-            logFinalReport();
             runStartMs = 0L;
         } else {
             if (!ensureRecordPermission()) return;
