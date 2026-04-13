@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'features/benchmark/benchmark_screen.dart';
 import 'features/effects/effects_screen.dart';
 import 'features/metronome/metronome_screen.dart';
+import 'features/recorder/recorder_screen.dart';
 import 'features/tuner/tuner_screen.dart';
 
 void main() {
@@ -62,6 +63,13 @@ class HomeScreen extends StatelessWidget {
             title: 'Metronome',
             subtitle: 'BPM, compasso e volume com pulso visual',
             destination: const MetronomeScreen(),
+          ),
+          const SizedBox(height: 12),
+          _FeatureCard(
+            icon: Icons.fiber_manual_record,
+            title: 'Recorder',
+            subtitle: 'Captura WAV pós-FX no engine C++',
+            destination: const RecorderScreen(),
           ),
           const SizedBox(height: 12),
           _FeatureCard(

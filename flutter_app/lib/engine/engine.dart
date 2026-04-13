@@ -13,6 +13,8 @@
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 
+import 'package:ffi/ffi.dart';
+
 import 'bindings.dart';
 
 class ToneforgeEngine {
@@ -169,5 +171,31 @@ class ToneforgeEngine {
   void setCompressorAttack(double ms) => _bindings.setCompressorAttack(ms);
   void setCompressorRelease(double ms) => _bindings.setCompressorRelease(ms);
   void setCompressorMix(double v) => _bindings.setCompressorMix(v);
+
+  // ========================================================================
+  // Recorder — captura mono pós-FX no buffer interno do engine. O callback
+  // Oboe alimenta automaticamente quando ativo. Ver Fase 3.Recorder.
+  // ========================================================================
+
+  /// Inicia a captura. Retorna 0 em sucesso ou um TF_RECORDER_ERR_* negativo.
+  int startRecording({required int sampleRate, int maxSeconds = 600}) {
+    return _bindings.recorder_start(sampleRate, maxSeconds);
+  }
+
+  /// Encerra a captura e escreve um WAV mono PCM 16-bit em [path].
+  /// Retorna 0 em sucesso ou um TF_RECORDER_ERR_* negativo.
+  int stopRecordingAndSave(String path) {
+    final pathPtr = path.toNativeUtf8();
+    try {
+      return _bindings.recorder_stop_and_save(pathPtr.cast());
+    } finally {
+      malloc.free(pathPtr);
+    }
+  }
+
+  void discardRecording() => _bindings.recorder_discard();
+  bool get isRecording => _bindings.recorder_is_active();
+  int get recordedFrames => _bindings.recorder_recorded_frames();
+  double get recordedSeconds => _bindings.recorder_recorded_seconds();
 }
 

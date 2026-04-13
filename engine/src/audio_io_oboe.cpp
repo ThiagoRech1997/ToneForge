@@ -1,5 +1,6 @@
 #include "toneforge/audio_io.h"
 #include "toneforge/audio_engine.h"
+#include "toneforge/recorder.h"
 
 #include <oboe/Oboe.h>
 #include <android/log.h>
@@ -158,6 +159,13 @@ public:
 
         // Chama o DSP existente sem cópia intermediária.
         processBuffer(in, out, numFrames, numFrames, numFrames);
+
+        // Captura pós-FX para o recorder (se ativo). É essencial estar
+        // depois do processBuffer para o usuário gravar o sinal processado,
+        // não o sinal limpo. Lock-free no caminho quente. Fase 3.Recorder.
+        if (recorder_is_active()) {
+            recorder_feed(out, numFrames);
+        }
 
         return oboe::DataCallbackResult::Continue;
     }

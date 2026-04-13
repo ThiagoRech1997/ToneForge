@@ -1762,4 +1762,99 @@ class ToneforgeEngineBindings {
       );
   late final _audio_engine_get_sample_rate = _audio_engine_get_sample_ratePtr
       .asFunction<int Function()>();
+
+  /// Pré-aloca buffer para até max_seconds de áudio mono no sample_rate dado e
+  /// ativa a captura. Chamadas subsequentes ao recorder_feed do callback Oboe
+  /// vão acumulando samples no buffer.
+  int recorder_start(int sample_rate, int max_seconds) {
+    return _recorder_start(sample_rate, max_seconds);
+  }
+
+  late final _recorder_startPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int, ffi.Int)>>(
+        'recorder_start',
+      );
+  late final _recorder_start = _recorder_startPtr
+      .asFunction<int Function(int, int)>();
+
+  /// Encerra a captura e serializa o conteúdo gravado em path como WAV. Libera
+  /// o buffer interno depois de escrever.
+  int recorder_stop_and_save(ffi.Pointer<ffi.Char> path) {
+    return _recorder_stop_and_save(path);
+  }
+
+  late final _recorder_stop_and_savePtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Pointer<ffi.Char>)>>(
+        'recorder_stop_and_save',
+      );
+  late final _recorder_stop_and_save = _recorder_stop_and_savePtr
+      .asFunction<int Function(ffi.Pointer<ffi.Char>)>();
+
+  /// Encerra e descarta o buffer sem escrever em disco.
+  void recorder_discard() {
+    return _recorder_discard();
+  }
+
+  late final _recorder_discardPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('recorder_discard');
+  late final _recorder_discard = _recorder_discardPtr
+      .asFunction<void Function()>();
+
+  bool recorder_is_active() {
+    return _recorder_is_active();
+  }
+
+  late final _recorder_is_activePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function()>>('recorder_is_active');
+  late final _recorder_is_active = _recorder_is_activePtr
+      .asFunction<bool Function()>();
+
+  int recorder_recorded_frames() {
+    return _recorder_recorded_frames();
+  }
+
+  late final _recorder_recorded_framesPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>(
+        'recorder_recorded_frames',
+      );
+  late final _recorder_recorded_frames = _recorder_recorded_framesPtr
+      .asFunction<int Function()>();
+
+  double recorder_recorded_seconds() {
+    return _recorder_recorded_seconds();
+  }
+
+  late final _recorder_recorded_secondsPtr =
+      _lookup<ffi.NativeFunction<ffi.Double Function()>>(
+        'recorder_recorded_seconds',
+      );
+  late final _recorder_recorded_seconds = _recorder_recorded_secondsPtr
+      .asFunction<double Function()>();
+
+  /// Chamada pelo callback de áudio (audio_io_oboe.cpp). NÃO é parte da API
+  /// pública para o Dart — só existe para o engine pegar samples. Lock-free.
+  void recorder_feed(ffi.Pointer<ffi.Float> samples, int num_samples) {
+    return _recorder_feed(samples, num_samples);
+  }
+
+  late final _recorder_feedPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Int)>
+      >('recorder_feed');
+  late final _recorder_feed = _recorder_feedPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Float>, int)>();
 }
+
+const int TF_RECORDER_OK = 0;
+
+const int TF_RECORDER_ERR_ALREADY_ACTIVE = -1;
+
+const int TF_RECORDER_ERR_NOT_ACTIVE = -2;
+
+const int TF_RECORDER_ERR_OOM = -3;
+
+const int TF_RECORDER_ERR_OPEN_FILE = -4;
+
+const int TF_RECORDER_ERR_WRITE_FILE = -5;
+
+const int TF_RECORDER_ERR_INVALID_ARG = -6;
