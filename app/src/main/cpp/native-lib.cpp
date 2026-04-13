@@ -2,8 +2,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "audio_engine.h"
-#include "audio_io.h"
+#include "toneforge/audio_engine.h"
+#include "toneforge/audio_io.h"
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_thiagofernendorech_toneforge_MainActivity_stringFromJNI(

@@ -1,5 +1,5 @@
-#include "audio_io.h"
-#include "audio_engine.h"
+#include "toneforge/audio_io.h"
+#include "toneforge/audio_engine.h"
 
 #include <oboe/Oboe.h>
 #include <android/log.h>
