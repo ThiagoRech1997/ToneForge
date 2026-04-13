@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import 'features/benchmark/benchmark_screen.dart';
+import 'features/effects/effects_screen.dart';
 import 'features/metronome/metronome_screen.dart';
 import 'features/tuner/tuner_screen.dart';
 
@@ -42,6 +43,13 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _FeatureCard(
+            icon: Icons.tune,
+            title: 'Effects',
+            subtitle: '9 efeitos: Gain, Dist, Delay, Reverb, Chorus, Flanger, Phaser, EQ, Comp',
+            destination: const EffectsScreen(),
+          ),
+          const SizedBox(height: 12),
           _FeatureCard(
             icon: Icons.graphic_eq,
             title: 'Tuner',

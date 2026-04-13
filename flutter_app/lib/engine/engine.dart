@@ -80,9 +80,6 @@ class ToneforgeEngine {
   set eqEnabled(bool v) => _bindings.setEQEnabled(v);
   set compressorEnabled(bool v) => _bindings.setCompressorEnabled(v);
 
-  void setGain(double gain) => _bindings.setGain(gain);
-  void setDistortionAmount(double amount) => _bindings.setDistortion(amount);
-
   // ========================================================================
   // Tuner — modo passivo. Quando ativo, audio_io_oboe.cpp encadeia os samples
   // de entrada para processTunerBuffer automaticamente (Fase 3.Tuner). Basta
@@ -106,5 +103,71 @@ class ToneforgeEngine {
   bool get isMetronomeActive => _bindings.isMetronomeActive();
   set metronomeVolume(double v) => _bindings.setMetronomeVolume(v);
   set metronomeTimeSignature(int beats) => _bindings.setMetronomeTimeSignature(beats);
+
+  // ========================================================================
+  // Effects — parâmetros completos dos 9 efeitos. Faixas e defaults são
+  // mantidos no Cubit / models.dart; aqui só forwardamos para o native.
+  // Ver Fase 3.Effects.
+  // ========================================================================
+
+  // Gain
+  void setGainLevel(double v) => _bindings.setGain(v);
+
+  // Distortion
+  void setDistortionAmount(double v) => _bindings.setDistortion(v);
+  void setDistortionType(int type) => _bindings.setDistortionType(type);
+  void setDistortionMix(double v) => _bindings.setDistortionMix(v);
+
+  // Delay
+  void setDelayTimeMs(double ms) => _bindings.setDelayTime(ms);
+  void setDelayFeedback(double v) {
+    // setDelay(time, feedback) é a única forma de setar feedback no native;
+    // re-aplicamos o tempo atual lido pelo getter para não perdê-lo.
+    final currentTime = _bindings.getDelayTime();
+    _bindings.setDelay(currentTime, v);
+  }
+  void setDelayMix(double v) => _bindings.setDelayMix(v);
+
+  // Reverb
+  void setReverbRoomSize(double v) {
+    final currentDamping = _bindings.getReverbDamping();
+    _bindings.setReverb(v, currentDamping);
+  }
+  void setReverbDamping(double v) {
+    final currentRoom = _bindings.getReverbRoomSize();
+    _bindings.setReverb(currentRoom, v);
+  }
+  void setReverbType(int type) => _bindings.setReverbType(type);
+  void setReverbMix(double v) => _bindings.setReverbMix(v);
+
+  // Chorus
+  void setChorusDepth(double v) => _bindings.setChorusDepth(v);
+  void setChorusRate(double v) => _bindings.setChorusRate(v);
+  void setChorusMix(double v) => _bindings.setChorusMix(v);
+
+  // Flanger
+  void setFlangerDepth(double v) => _bindings.setFlangerDepth(v);
+  void setFlangerRate(double v) => _bindings.setFlangerRate(v);
+  void setFlangerFeedback(double v) => _bindings.setFlangerFeedback(v);
+  void setFlangerMix(double v) => _bindings.setFlangerMix(v);
+
+  // Phaser
+  void setPhaserDepth(double v) => _bindings.setPhaserDepth(v);
+  void setPhaserRate(double v) => _bindings.setPhaserRate(v);
+  void setPhaserFeedback(double v) => _bindings.setPhaserFeedback(v);
+  void setPhaserMix(double v) => _bindings.setPhaserMix(v);
+
+  // EQ (3-band)
+  void setEqLow(double db) => _bindings.setEQLow(db);
+  void setEqMid(double db) => _bindings.setEQMid(db);
+  void setEqHigh(double db) => _bindings.setEQHigh(db);
+  void setEqMix(double v) => _bindings.setEQMix(v);
+
+  // Compressor
+  void setCompressorThreshold(double db) => _bindings.setCompressorThreshold(db);
+  void setCompressorRatio(double r) => _bindings.setCompressorRatio(r);
+  void setCompressorAttack(double ms) => _bindings.setCompressorAttack(ms);
+  void setCompressorRelease(double ms) => _bindings.setCompressorRelease(ms);
+  void setCompressorMix(double v) => _bindings.setCompressorMix(v);
 }
 
