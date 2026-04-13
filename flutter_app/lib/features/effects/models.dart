@@ -1,6 +1,11 @@
 // Modelos imutáveis dos parâmetros dos 9 efeitos. Faixas e defaults
 // reproduzem o EffectParameters.java + arrays.xml do app legado.
-// Ver Fase 3.Effects.
+// toJson/fromJson dão suporte ao PresetManager (Fase 3.Presets) sem
+// dependências externas — usa apenas dart:convert.
+
+double _d(Object? v, double fallback) => v is num ? v.toDouble() : fallback;
+int _i(Object? v, int fallback) => v is num ? v.toInt() : fallback;
+bool _b(Object? v, bool fallback) => v is bool ? v : fallback;
 
 class GainConfig {
   const GainConfig({this.enabled = true, this.level = 0.5});
@@ -8,6 +13,9 @@ class GainConfig {
   final double level;
   GainConfig copyWith({bool? enabled, double? level}) =>
       GainConfig(enabled: enabled ?? this.enabled, level: level ?? this.level);
+  Map<String, dynamic> toJson() => {'enabled': enabled, 'level': level};
+  factory GainConfig.fromJson(Map<String, dynamic> j) =>
+      GainConfig(enabled: _b(j['enabled'], true), level: _d(j['level'], 0.5));
 }
 
 class DistortionConfig {
@@ -27,6 +35,14 @@ class DistortionConfig {
         amount: amount ?? this.amount,
         type: type ?? this.type,
         mix: mix ?? this.mix,
+      );
+  Map<String, dynamic> toJson() =>
+      {'enabled': enabled, 'amount': amount, 'type': type, 'mix': mix};
+  factory DistortionConfig.fromJson(Map<String, dynamic> j) => DistortionConfig(
+        enabled: _b(j['enabled'], false),
+        amount: _d(j['amount'], 0),
+        type: _i(j['type'], 0),
+        mix: _d(j['mix'], 0),
       );
   static const types = ['Soft Clip', 'Hard Clip', 'Fuzz', 'Overdrive'];
 }
@@ -48,6 +64,14 @@ class DelayConfig {
         timeMs: timeMs ?? this.timeMs,
         feedback: feedback ?? this.feedback,
         mix: mix ?? this.mix,
+      );
+  Map<String, dynamic> toJson() =>
+      {'enabled': enabled, 'timeMs': timeMs, 'feedback': feedback, 'mix': mix};
+  factory DelayConfig.fromJson(Map<String, dynamic> j) => DelayConfig(
+        enabled: _b(j['enabled'], false),
+        timeMs: _d(j['timeMs'], 0),
+        feedback: _d(j['feedback'], 0),
+        mix: _d(j['mix'], 0),
       );
 }
 
@@ -77,6 +101,20 @@ class ReverbConfig {
         damping: damping ?? this.damping,
         type: type ?? this.type,
         mix: mix ?? this.mix,
+      );
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'roomSize': roomSize,
+        'damping': damping,
+        'type': type,
+        'mix': mix,
+      };
+  factory ReverbConfig.fromJson(Map<String, dynamic> j) => ReverbConfig(
+        enabled: _b(j['enabled'], false),
+        roomSize: _d(j['roomSize'], 0),
+        damping: _d(j['damping'], 0),
+        type: _i(j['type'], 0),
+        mix: _d(j['mix'], 0),
       );
   static const types = ['Hall', 'Plate', 'Spring'];
 }
@@ -110,6 +148,20 @@ class ModConfig {
         feedback: feedback ?? this.feedback,
         mix: mix ?? this.mix,
       );
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'depth': depth,
+        'rate': rate,
+        'feedback': feedback,
+        'mix': mix,
+      };
+  factory ModConfig.fromJson(Map<String, dynamic> j) => ModConfig(
+        enabled: _b(j['enabled'], false),
+        depth: _d(j['depth'], 0),
+        rate: _d(j['rate'], 0),
+        feedback: _d(j['feedback'], 0),
+        mix: _d(j['mix'], 0),
+      );
 }
 
 class EqConfig {
@@ -132,6 +184,15 @@ class EqConfig {
         mid: mid ?? this.mid,
         high: high ?? this.high,
         mix: mix ?? this.mix,
+      );
+  Map<String, dynamic> toJson() =>
+      {'enabled': enabled, 'low': low, 'mid': mid, 'high': high, 'mix': mix};
+  factory EqConfig.fromJson(Map<String, dynamic> j) => EqConfig(
+        enabled: _b(j['enabled'], false),
+        low: _d(j['low'], 0),
+        mid: _d(j['mid'], 0),
+        high: _d(j['high'], 0),
+        mix: _d(j['mix'], 0),
       );
 }
 
@@ -165,5 +226,21 @@ class CompressorConfig {
         attackMs: attackMs ?? this.attackMs,
         releaseMs: releaseMs ?? this.releaseMs,
         mix: mix ?? this.mix,
+      );
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'thresholdDb': thresholdDb,
+        'ratio': ratio,
+        'attackMs': attackMs,
+        'releaseMs': releaseMs,
+        'mix': mix,
+      };
+  factory CompressorConfig.fromJson(Map<String, dynamic> j) => CompressorConfig(
+        enabled: _b(j['enabled'], false),
+        thresholdDb: _d(j['thresholdDb'], -20),
+        ratio: _d(j['ratio'], 2),
+        attackMs: _d(j['attackMs'], 10),
+        releaseMs: _d(j['releaseMs'], 100),
+        mix: _d(j['mix'], 0),
       );
 }

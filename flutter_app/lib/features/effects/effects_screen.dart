@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'effects_cubit.dart';
 import 'models.dart';
+import 'preset_manager.dart';
 
 class EffectsScreen extends StatelessWidget {
   const EffectsScreen({super.key});
@@ -44,10 +45,125 @@ class _EffectsView extends StatelessWidget {
     await cubit.startPipeline();
   }
 
+  Future<void> _onSavePreset(BuildContext context) async {
+    final cubit = context.read<EffectsCubit>();
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Salvar preset'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nome'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    try {
+      await PresetManager.save(name, cubit.state);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Preset "$name" salvo')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Falha ao salvar: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _onLoadPreset(BuildContext context) async {
+    final cubit = context.read<EffectsCubit>();
+    final presets = await PresetManager.list();
+    if (!context.mounted) return;
+    if (presets.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhum preset salvo ainda')),
+      );
+      return;
+    }
+    final picked = await showModalBottomSheet<PresetSummary>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => ListView(
+        shrinkWrap: true,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('Carregar preset', style: Theme.of(ctx).textTheme.titleMedium),
+          ),
+          for (final p in presets)
+            ListTile(
+              leading: const Icon(Icons.tune),
+              title: Text(p.name),
+              subtitle: Text('${p.modified.toLocal()}'.split('.').first),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () async {
+                  await PresetManager.delete(p.file);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
+              onTap: () => Navigator.pop(ctx, p),
+            ),
+        ],
+      ),
+    );
+    if (picked == null) return;
+    try {
+      final loaded = await PresetManager.load(picked.file);
+      if (loaded == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Preset inválido')),
+          );
+        }
+        return;
+      }
+      cubit.applySnapshot(loaded);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Preset "${picked.name}" aplicado')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Falha ao carregar: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Effects')),
+      appBar: AppBar(
+        title: const Text('Effects'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save_outlined),
+            tooltip: 'Salvar preset',
+            onPressed: () => _onSavePreset(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            tooltip: 'Carregar preset',
+            onPressed: () => _onLoadPreset(context),
+          ),
+        ],
+      ),
       floatingActionButton: BlocBuilder<EffectsCubit, EffectsState>(
         builder: (context, state) => FloatingActionButton.extended(
           onPressed: () => _togglePipeline(context, state),

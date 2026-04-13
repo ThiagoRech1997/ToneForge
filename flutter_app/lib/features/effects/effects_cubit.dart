@@ -113,6 +113,16 @@ class EffectsCubit extends Cubit<EffectsState> {
     emit(state.copyWith(pipelineRunning: false));
   }
 
+  /// Aplica um snapshot completo (vindo de um preset, por exemplo) e
+  /// sincroniza tudo com o engine. Usado pelo PresetManager.load().
+  void applySnapshot(EffectsState snapshot) {
+    emit(snapshot.copyWith(
+      pipelineRunning: state.pipelineRunning,
+      clearError: true,
+    ));
+    _pushAll();
+  }
+
   /// Empurra todos os parâmetros + flags pra o native. Usado no init e
   /// quando o pipeline reconecta — o engine pode ter perdido estado.
   void _pushAll() {
