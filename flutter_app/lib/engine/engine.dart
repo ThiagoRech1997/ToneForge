@@ -197,5 +197,52 @@ class ToneforgeEngine {
   bool get isRecording => _bindings.recorder_is_active();
   int get recordedFrames => _bindings.recorder_recorded_frames();
   double get recordedSeconds => _bindings.recorder_recorded_seconds();
+
+  // ========================================================================
+  // Looper — MVP. Apenas o fluxo essencial (record/play/stop/clear/length/
+  // position/waveform). Multi-track, slicing, pitch shift, reverse,
+  // quantização, MIDI, etc. ficam para iterações futuras. Ver Fase 3.Looper.
+  // ========================================================================
+
+  void startLooperRecording() => _bindings.startLooperRecording();
+  void stopLooperRecording() => _bindings.stopLooperRecording();
+  void startLooperPlayback() => _bindings.startLooperPlayback();
+  void stopLooperPlayback() => _bindings.stopLooperPlayback();
+  void clearLooper() => _bindings.clearLooper();
+  bool get isLooperRecording => _bindings.isLooperRecording();
+  bool get isLooperPlaying => _bindings.isLooperPlaying();
+  int get looperLength => _bindings.getLooperLength();
+  int get looperPosition => _bindings.getLooperPosition();
+
+  /// Snapshot do mix do looper para visualização. O ponteiro retornado pelo
+  /// engine é gerenciado pelo C++; copiamos o conteúdo num Float32List Dart
+  /// e devolvemos o ownership imediatamente. Devolve null se vazio.
+  List<double>? snapshotLooperMix({int targetPoints = 200}) {
+    final outLen = malloc<ffi.Int>();
+    try {
+      final ptr = _bindings.getLooperMix(outLen);
+      final len = outLen.value;
+      if (ptr == ffi.nullptr || len <= 0) return null;
+      final samples = ptr.asTypedList(len);
+      // Downsampling peak-based: divide em targetPoints buckets, tira o
+      // peak absoluto de cada. Simples, sem aliasing visual e barato.
+      final pts = targetPoints.clamp(1, len);
+      final out = List<double>.filled(pts, 0.0);
+      final bucket = len / pts;
+      for (var i = 0; i < pts; i++) {
+        final start = (i * bucket).floor();
+        final end = ((i + 1) * bucket).floor().clamp(start + 1, len);
+        var peak = 0.0;
+        for (var j = start; j < end; j++) {
+          final a = samples[j].abs();
+          if (a > peak) peak = a;
+        }
+        out[i] = peak;
+      }
+      return out;
+    } finally {
+      malloc.free(outLen);
+    }
+  }
 }
 

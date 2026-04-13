@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'features/benchmark/benchmark_screen.dart';
 import 'features/effects/effects_screen.dart';
+import 'features/looper/looper_screen.dart';
 import 'features/metronome/metronome_screen.dart';
 import 'features/recorder/recorder_screen.dart';
 import 'features/tuner/tuner_screen.dart';
@@ -70,6 +71,13 @@ class HomeScreen extends StatelessWidget {
             title: 'Recorder',
             subtitle: 'Captura WAV pós-FX no engine C++',
             destination: const RecorderScreen(),
+          ),
+          const SizedBox(height: 12),
+          _FeatureCard(
+            icon: Icons.loop,
+            title: 'Looper',
+            subtitle: 'MVP: gravar / tocar / limpar com waveform',
+            destination: const LooperScreen(),
           ),
           const SizedBox(height: 12),
           _FeatureCard(
