@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../loop_library/loop_library_cubit.dart';
 import 'looper_cubit.dart';
 
 class LooperScreen extends StatelessWidget {
@@ -43,10 +44,64 @@ class _LooperView extends StatelessWidget {
     return true;
   }
 
+  Future<void> _onSaveLoop(BuildContext context, LooperState state) async {
+    if (!state.hasContent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Grave um loop primeiro')),
+      );
+      return;
+    }
+    final controller = TextEditingController(text: 'loop_${DateTime.now().millisecondsSinceEpoch}');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Salvar loop'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nome'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+
+    // Cria um Cubit transiente só para o save — não instalamos na árvore.
+    final lib = LoopLibraryCubit();
+    try {
+      final filename = await lib.saveCurrentLoop(name);
+      if (context.mounted) {
+        final msg = filename != null
+            ? 'Loop salvo como "$filename"'
+            : (lib.state.errorMessage ?? 'Falha ao salvar');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } finally {
+      await lib.close();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Looper')),
+      appBar: AppBar(
+        title: const Text('Looper'),
+        actions: [
+          BlocBuilder<LooperCubit, LooperState>(
+            builder: (context, state) => IconButton(
+              icon: const Icon(Icons.save_outlined),
+              tooltip: 'Salvar loop como WAV',
+              onPressed: state.hasContent ? () => _onSaveLoop(context, state) : null,
+            ),
+          ),
+        ],
+      ),
       body: BlocBuilder<LooperCubit, LooperState>(
         builder: (context, state) {
           final cubit = context.read<LooperCubit>();

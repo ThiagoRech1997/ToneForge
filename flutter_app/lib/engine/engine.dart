@@ -12,6 +12,7 @@
 
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
+import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
@@ -213,6 +214,32 @@ class ToneforgeEngine {
   bool get isLooperPlaying => _bindings.isLooperPlaying();
   int get looperLength => _bindings.getLooperLength();
   int get looperPosition => _bindings.getLooperPosition();
+
+  /// Salva o mix atual do looper em [path] como WAV mono PCM 16-bit.
+  /// Retorna 0 em sucesso ou um TF_LOOP_IO_ERR_* negativo.
+  int saveLooperToWav(String path, {int? sampleRate}) {
+    final sr = sampleRate ?? (this.sampleRate > 0 ? this.sampleRate : 48000);
+    final pathPtr = path.toNativeUtf8();
+    try {
+      return _bindings.looper_save_wav(pathPtr.cast(), sr);
+    } finally {
+      malloc.free(pathPtr);
+    }
+  }
+
+  /// Carrega samples float[-1,1] no buffer do looper. Aloca um
+  /// `Pointer<Float>` temporário, copia os samples e libera após a chamada
+  /// nativa retornar.
+  void loadLooperFromFloats(Float32List samples) {
+    if (samples.isEmpty) return;
+    final ptr = malloc<ffi.Float>(samples.length);
+    try {
+      ptr.asTypedList(samples.length).setAll(0, samples);
+      _bindings.loadLooperFromAudio(ptr, samples.length);
+    } finally {
+      malloc.free(ptr);
+    }
+  }
 
   /// Snapshot do mix do looper para visualização. O ponteiro retornado pelo
   /// engine é gerenciado pelo C++; copiamos o conteúdo num Float32List Dart

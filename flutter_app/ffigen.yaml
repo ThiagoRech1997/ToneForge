@@ -12,10 +12,12 @@ headers:
     - '../engine/include/toneforge/audio_engine.h'
     - '../engine/include/toneforge/audio_io.h'
     - '../engine/include/toneforge/recorder.h'
+    - '../engine/include/toneforge/loop_io.h'
   include-directives:
     - '../engine/include/toneforge/audio_engine.h'
     - '../engine/include/toneforge/audio_io.h'
     - '../engine/include/toneforge/recorder.h'
+    - '../engine/include/toneforge/loop_io.h'
 compiler-opts:
   - '-I../engine/include'
   - '-I/home/thiago/Android/Sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/include'

@@ -14,6 +14,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(TONEFORGE_ENGINE_SOURCES
     src/audio_engine.cpp
     src/recorder.cpp
+    src/loop_io.cpp
+    src/wav_writer.cpp
 )
 
 # Backends de I/O — seleção por plataforma. Cada backend é compilado só

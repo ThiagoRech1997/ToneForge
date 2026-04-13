@@ -1843,6 +1843,19 @@ class ToneforgeEngineBindings {
       >('recorder_feed');
   late final _recorder_feed = _recorder_feedPtr
       .asFunction<void Function(ffi.Pointer<ffi.Float>, int)>();
+
+  /// Serializa o mix atual do looper em path como WAV mono PCM 16-bit. Retorna
+  /// 0 em sucesso ou um TF_LOOP_IO_ERR_* negativo.
+  int looper_save_wav(ffi.Pointer<ffi.Char> path, int sample_rate) {
+    return _looper_save_wav(path, sample_rate);
+  }
+
+  late final _looper_save_wavPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Int Function(ffi.Pointer<ffi.Char>, ffi.Int)>
+      >('looper_save_wav');
+  late final _looper_save_wav = _looper_save_wavPtr
+      .asFunction<int Function(ffi.Pointer<ffi.Char>, int)>();
 }
 
 const int TF_RECORDER_OK = 0;
@@ -1858,3 +1871,13 @@ const int TF_RECORDER_ERR_OPEN_FILE = -4;
 const int TF_RECORDER_ERR_WRITE_FILE = -5;
 
 const int TF_RECORDER_ERR_INVALID_ARG = -6;
+
+const int TF_LOOP_IO_OK = 0;
+
+const int TF_LOOP_IO_ERR_EMPTY = -1;
+
+const int TF_LOOP_IO_ERR_OPEN_FILE = -2;
+
+const int TF_LOOP_IO_ERR_WRITE_FILE = -3;
+
+const int TF_LOOP_IO_ERR_INVALID_ARG = -4;
