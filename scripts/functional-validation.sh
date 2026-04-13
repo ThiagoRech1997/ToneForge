@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # 🧪 Script de Validação Funcional - ToneForge
-# Valida todas as funcionalidades após a refatoração MVP
+# Valida o engine portátil + o app Android legado + o flutter_app (quando
+# o Flutter estiver no PATH). Não remove o legado enquanto a Fase 4.7
+# (iOS) não validar — ver docs/migration-status.md.
 
 set -e  # Para em caso de erro
 
@@ -41,13 +43,41 @@ fi
 echo ""
 log_info "Iniciando validação funcional..."
 
-# 1. Verificar se o projeto compila
+# 0. Engine portátil — verifica que os headers C estão no lugar e que o
+# build nativo do projeto Android atravessa add_subdirectory(engine) sem
+# erros. Esse é o componente canônico; tanto o app legado quanto o
+# flutter_app consomem ele.
 echo ""
-log_info "1. Verificando compilação do projeto..."
-if ./gradlew assembleDebug; then
-    log_success "Projeto compila com sucesso"
+log_info "0. Verificando engine/ portátil..."
+ENGINE_HEADERS=(
+    "engine/include/toneforge/audio_engine.h"
+    "engine/include/toneforge/audio_io.h"
+    "engine/include/toneforge/recorder.h"
+    "engine/include/toneforge/loop_io.h"
+)
+for h in "${ENGINE_HEADERS[@]}"; do
+    if [ -f "$h" ]; then
+        log_success "Header $h presente"
+    else
+        log_error "Header $h ausente"
+        exit 1
+    fi
+done
+if [ -f "engine/CMakeLists.txt" ] && [ -f "engine/toneforge_engine.podspec" ]; then
+    log_success "engine/CMakeLists.txt e toneforge_engine.podspec presentes"
 else
-    log_error "Falha na compilação do projeto"
+    log_error "Configuração de build do engine incompleta"
+    exit 1
+fi
+
+# 1. Verificar se o app legado compila (via gradle, que consome engine/
+# via add_subdirectory)
+echo ""
+log_info "1. Verificando compilação do app Android legado..."
+if ./gradlew assembleDebug; then
+    log_success "App legado compila com sucesso (engine + JNI shim + Java)"
+else
+    log_error "Falha na compilação do app legado"
     exit 1
 fi
 
@@ -74,12 +104,46 @@ fi
 echo ""
 log_info "4. Verificando geração do APK..."
 if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-    log_success "APK gerado com sucesso"
+    log_success "APK legado gerado com sucesso"
     APK_SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-    echo "📱 Tamanho do APK: $APK_SIZE"
+    echo "📱 Tamanho do APK legado: $APK_SIZE"
 else
-    log_error "APK não foi gerado"
+    log_error "APK legado não foi gerado"
     exit 1
+fi
+
+# 4b. Valida flutter_app/ quando o Flutter está disponível no PATH.
+# Roda analyze + build APK debug. Se o Flutter não estiver instalado,
+# apenas avisa — não é erro fatal, porque nem todo ambiente de build
+# tem Flutter configurado.
+echo ""
+log_info "4b. Verificando flutter_app/..."
+if command -v flutter >/dev/null 2>&1 || command -v fvm >/dev/null 2>&1; then
+    FLUTTER_CMD=$(command -v fvm >/dev/null 2>&1 && echo "fvm flutter" || echo "flutter")
+    (
+        cd flutter_app || exit 1
+        log_info "   rodando: $FLUTTER_CMD analyze"
+        if $FLUTTER_CMD analyze; then
+            log_success "flutter analyze: 0 issues"
+        else
+            log_error "flutter analyze reportou problemas"
+            exit 1
+        fi
+        log_info "   rodando: $FLUTTER_CMD build apk --debug"
+        if $FLUTTER_CMD build apk --debug; then
+            log_success "flutter_app debug APK compilou com sucesso"
+            if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+                F_APK_SIZE=$(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
+                echo "📱 Tamanho do APK Flutter: $F_APK_SIZE"
+            fi
+        else
+            log_error "Falha ao buildar flutter_app"
+            exit 1
+        fi
+    ) || exit 1
+else
+    log_warning "Flutter não encontrado no PATH — pulando validação do flutter_app"
+    log_info "   Instale via fvm (https://fvm.app) ou pela distribuição oficial"
 fi
 
 # 5. Verificar estrutura de arquivos refatorados
@@ -233,19 +297,23 @@ echo ""
 log_info "11. Verificando documentação..."
 
 DOCS=(
-    "architecture-refactoring-plan.md"
-    "refactoring-progress-summary.md"
-    "implementation-guide.md"
-    "testing-strategy.md"
+    "migration-status.md"
+    "ios-build.md"
 )
 
 for doc in "${DOCS[@]}"; do
     if [ -f "docs/$doc" ]; then
-        log_success "Documentação $doc encontrada"
+        log_success "Documentação docs/$doc encontrada"
     else
-        log_warning "Documentação $doc não encontrada"
+        log_warning "Documentação docs/$doc não encontrada"
     fi
 done
+
+if [ -f "app/DEPRECATED.md" ]; then
+    log_success "app/DEPRECATED.md presente (política de Fase 5)"
+else
+    log_warning "app/DEPRECATED.md ausente — app legado deveria ter a política"
+fi
 
 # 12. Resumo final
 echo ""

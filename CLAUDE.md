@@ -2,13 +2,59 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ Migration status — READ THIS FIRST
+
+The project is **mid-migration** from a native Android Java app to a Flutter
+cross-platform app sharing the same C++ audio engine. When making changes,
+know which frontend you are touching:
+
+- **`engine/`** — portable C++17 library. Single source of truth for DSP and
+  audio I/O backends. Consumed by both frontends.
+- **`flutter_app/`** — **canonical frontend going forward**. New features
+  belong here. Consumes the engine via Dart FFI.
+- **`app/`** — **legacy Android Java app, deprecated**. Still builds, still
+  runs, kept as fallback until iOS is validated. **Do not add new features
+  here.** See [`app/DEPRECATED.md`](app/DEPRECATED.md) for the full policy.
+
+Live migration dashboard: [`docs/migration-status.md`](docs/migration-status.md).
+Strategic plan (phases 0–5) is what drove the work and decisions.
+
+Current phase: **Fase 5** (deprecating `app/` via docs and policy, not code
+removal — removal is blocked on Fase 4.7 iOS validation).
+
 ## Project Overview
 
-ToneForge is a digital multi-effects pedalboard for Android featuring real-time audio processing with native C++ code. The app allows guitarists to process their instrument through various effects like distortion, delay, reverb, chorus, and more, with a modern interface and professional-grade audio processing.
+ToneForge is a real-time digital multi-effects pedalboard for guitar. The
+audio engine is written in portable C++17 (`engine/`) and supports low-latency
+I/O on Android (Oboe) and iOS (AudioUnit/AVAudioSession). The same engine is
+consumed by a legacy Android Java frontend (`app/`, deprecated) and a Flutter
+frontend (`flutter_app/`, canonical).
 
 ## Development Commands
 
-### Build and Testing
+### Flutter app (canonical frontend)
+
+```bash
+# All Flutter commands run from flutter_app/
+cd flutter_app
+export PATH="$HOME/fvm/bin:$PATH"
+
+fvm flutter pub get
+fvm flutter analyze
+fvm flutter build apk --debug
+fvm flutter install              # to a connected device
+fvm flutter run                  # hot reload
+
+# Regenerate FFI bindings after changing engine/ headers
+fvm flutter pub run ffigen --config ffigen.yaml
+
+# iOS — only on macOS, see docs/ios-build.md
+cd ios && pod install && cd ..
+fvm flutter build ios --debug --no-codesign
+```
+
+### Legacy Android (maintenance only)
+
 ```bash
 # Build debug APK
 ./gradlew assembleDebug
@@ -334,23 +380,50 @@ Output (Speaker/Headphones)
 
 ```
 ToneForge/
-├── app/                    # Android application source
+├── engine/                 # Portable C++ audio engine (canonical)
+│   ├── include/toneforge/  # Public C API headers (audio_engine, audio_io,
+│   │                       #   recorder, loop_io)
+│   ├── src/
+│   │   ├── audio_engine.cpp     # DSP (~1.9k lines, platform-agnostic)
+│   │   ├── audio_io_oboe.cpp    # Android backend (Oboe)
+│   │   ├── audio_io_coreaudio.mm  # iOS backend (AudioUnit/CoreAudio)
+│   │   ├── recorder.cpp         # Post-FX WAV recorder
+│   │   ├── loop_io.cpp          # Looper WAV save
+│   │   └── wav_writer.{h,cpp}   # Shared WAV writer
+│   ├── CMakeLists.txt       # Cross-platform (Android builds via this)
+│   └── toneforge_engine.podspec  # iOS build via CocoaPods
+│
+├── flutter_app/             # Canonical Flutter frontend
+│   ├── lib/
+│   │   ├── engine/          # Dart FFI bindings + ToneforgeEngine wrapper
+│   │   ├── features/        # One subdir per feature: tuner, metronome,
+│   │   │                    #   effects, recorder, looper, loop_library,
+│   │   │                    #   presets (inside effects), automation, midi,
+│   │   │                    #   settings, benchmark
+│   │   └── main.dart        # HomeScreen + navigation
+│   ├── android/             # Flutter Android project (consumes engine/)
+│   ├── ios/                 # Flutter iOS project (consumes engine/ via pod)
+│   ├── ffigen.yaml          # Bindings config
+│   └── pubspec.yaml
+│
+├── app/                    # LEGACY Android Java app — deprecated
 │   ├── src/main/
-│   │   ├── cpp/           # Native C++ audio processing
-│   │   ├── java/          # Java/Kotlin source (Clean Architecture layers)
-│   │   └── res/           # Android resources
-│   └── build.gradle.kts
-├── docs/                   # Complete documentation
-│   ├── setup/             # Environment setup guides
-│   ├── testing/           # Test reports and validation
-│   └── README.md          # Documentation index
-├── scripts/               # Development scripts
-│   ├── setup/             # Setup automation
-│   ├── functional-validation.sh
-│   └── test-app-device.sh
-├── logs/                  # Build and test logs (git ignored)
-├── CLAUDE.md             # This file
-└── README.md             # Project overview
+│   │   ├── cpp/            # JNI shim only (uses ../../../../engine via CMake)
+│   │   ├── java/           # MVP fragments, AudioRepository, JNI bindings
+│   │   └── res/            # Android layouts and resources
+│   ├── build.gradle.kts
+│   └── DEPRECATED.md       # Deprecation policy
+│
+├── docs/                   # Documentation
+│   ├── migration-status.md # Live dashboard of the migration
+│   ├── ios-build.md        # First-build guide on macOS
+│   ├── QUICKSTART.md
+│   ├── setup/
+│   └── testing/
+├── scripts/                # Development scripts
+├── logs/                   # Build/test logs (git ignored)
+├── CLAUDE.md               # This file
+└── README.md               # Project overview
 ```
 
 ## Security Considerations
