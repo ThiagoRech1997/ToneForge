@@ -6,11 +6,13 @@
 import 'package:flutter/material.dart';
 
 import 'features/benchmark/benchmark_screen.dart';
+import 'features/automation/automation_screen.dart';
 import 'features/effects/effects_screen.dart';
 import 'features/loop_library/loop_library_screen.dart';
 import 'features/looper/looper_screen.dart';
 import 'features/metronome/metronome_screen.dart';
 import 'features/recorder/recorder_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/tuner/tuner_screen.dart';
 
 void main() {
@@ -86,6 +88,20 @@ class HomeScreen extends StatelessWidget {
             title: 'Loop Library',
             subtitle: 'WAVs salvos do Looper — carregar e deletar',
             destination: const LoopLibraryScreen(),
+          ),
+          const SizedBox(height: 12),
+          _FeatureCard(
+            icon: Icons.timeline,
+            title: 'Automation',
+            subtitle: 'Grava e reproduz movimentos de parâmetros',
+            destination: const AutomationScreen(),
+          ),
+          const SizedBox(height: 12),
+          _FeatureCard(
+            icon: Icons.settings,
+            title: 'Settings',
+            subtitle: 'Info do engine e telemetria',
+            destination: const SettingsScreen(),
           ),
           const SizedBox(height: 12),
           _FeatureCard(
