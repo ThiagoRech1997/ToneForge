@@ -95,5 +95,16 @@ class ToneforgeEngine {
 
   /// Última frequência fundamental detectada em Hz, ou 0 se sem sinal.
   double get detectedFrequency => _bindings.getDetectedFrequency();
+
+  // ========================================================================
+  // Metronome — gera samples no DSP e mistura na saída do pipeline. Como o
+  // tuner, requer o pipeline de áudio rodando. Ver Fase 3.Metronome.
+  // ========================================================================
+
+  void startMetronome(int bpm) => _bindings.startMetronome(bpm);
+  void stopMetronome() => _bindings.stopMetronome();
+  bool get isMetronomeActive => _bindings.isMetronomeActive();
+  set metronomeVolume(double v) => _bindings.setMetronomeVolume(v);
+  set metronomeTimeSignature(int beats) => _bindings.setMetronomeTimeSignature(beats);
 }
 
