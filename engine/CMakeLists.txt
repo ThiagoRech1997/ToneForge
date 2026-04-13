@@ -23,7 +23,17 @@ elseif(APPLE)
     # Placeholder Fase 4: src/audio_io_coreaudio.mm
 endif()
 
-add_library(toneforge_engine STATIC ${TONEFORGE_ENGINE_SOURCES})
+# Biblioteca SHARED vs STATIC — controlado pelo consumidor.
+# - App Android legado (app/src/main/cpp): STATIC, symbols ficam dentro
+#   de libtoneforge.so via JNI shim em native-lib.cpp.
+# - Flutter via Dart FFI (flutter_app/): SHARED, Dart carrega
+#   libtoneforge_engine.so direto via DynamicLibrary.open().
+option(TONEFORGE_ENGINE_SHARED "Build toneforge_engine as SHARED library" OFF)
+if(TONEFORGE_ENGINE_SHARED)
+    add_library(toneforge_engine SHARED ${TONEFORGE_ENGINE_SOURCES})
+else()
+    add_library(toneforge_engine STATIC ${TONEFORGE_ENGINE_SOURCES})
+endif()
 
 target_include_directories(toneforge_engine
     PUBLIC

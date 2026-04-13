@@ -1,7 +1,12 @@
 #ifndef TONEFORGE_AUDIO_ENGINE_H
 #define TONEFORGE_AUDIO_ENGINE_H
 
+#include <stdbool.h>
+
+#ifdef __cplusplus
 extern "C" {
+#endif
+
     // Controles básicos
     void setGain(float gain);
     void setDistortion(float amount);
@@ -226,6 +231,9 @@ extern "C" {
     float getReverbDamping();
     bool isOversamplingEnabled();
     int getOversamplingFactor();
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif //TONEFORGE_AUDIO_ENGINE_H

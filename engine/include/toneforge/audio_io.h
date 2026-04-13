@@ -1,6 +1,8 @@
 #ifndef TONEFORGE_AUDIO_IO_H
 #define TONEFORGE_AUDIO_IO_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,0 +1,31 @@
+# ffigen — gera bindings Dart a partir dos headers C do toneforge_engine.
+# Consumido pelo código em lib/engine/bindings.dart. A regeneração é
+# manual via: `fvm flutter pub run ffigen --config ffigen.yaml`.
+# Ver plano .claude/plans/cuddly-jumping-wolf.md Fase 2.
+name: ToneforgeEngineBindings
+description: |
+  FFI bindings para o engine nativo do ToneForge (DSP + Oboe backend).
+  Gerado a partir dos headers em ../engine/include/toneforge/.
+output: 'lib/engine/bindings.dart'
+headers:
+  entry-points:
+    - '../engine/include/toneforge/audio_engine.h'
+    - '../engine/include/toneforge/audio_io.h'
+  include-directives:
+    - '../engine/include/toneforge/audio_engine.h'
+    - '../engine/include/toneforge/audio_io.h'
+compiler-opts:
+  - '-I../engine/include'
+  - '-I/home/thiago/Android/Sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/include'
+  - '-std=c17'
+# NDK libclang (musl-linked) — fallback porque o sistema não tem clang-devel.
+# Se o usuário instalar `dnf install clang-devel`, remover esta linha.
+llvm-path:
+  - '/home/thiago/Android/Sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/musl/lib/libclang.so'
+preamble: |
+  // GENERATED FILE. DO NOT EDIT.
+  // Regenerar via: fvm flutter pub run ffigen --config ffigen.yaml
+  // ignore_for_file: type=lint, unused_field, unused_element
+comments:
+  style: any
+  length: brief
