@@ -149,6 +149,13 @@ public:
             for (int32_t i = inputFrames; i < numFrames; ++i) in[i] = 0.0f;
         }
 
+        // Alimenta o tuner com uma cópia dos samples de entrada, se ativo.
+        // O tuner legado (Java) usava um AudioRecord dedicado; aqui o pipeline
+        // C++ já tem os samples, então basta encadear. Fase 3.Tuner.
+        if (isTunerActive()) {
+            processTunerBuffer(in, numFrames);
+        }
+
         // Chama o DSP existente sem cópia intermediária.
         processBuffer(in, out, numFrames, numFrames, numFrames);
 

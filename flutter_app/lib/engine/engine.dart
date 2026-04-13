@@ -82,4 +82,18 @@ class ToneforgeEngine {
 
   void setGain(double gain) => _bindings.setGain(gain);
   void setDistortionAmount(double amount) => _bindings.setDistortion(amount);
+
+  // ========================================================================
+  // Tuner — modo passivo. Quando ativo, audio_io_oboe.cpp encadeia os samples
+  // de entrada para processTunerBuffer automaticamente (Fase 3.Tuner). Basta
+  // ligar a flag e ler getDetectedFrequency periodicamente.
+  // ========================================================================
+
+  void startTuner() => _bindings.startTuner();
+  void stopTuner() => _bindings.stopTuner();
+  bool get isTunerActive => _bindings.isTunerActive();
+
+  /// Última frequência fundamental detectada em Hz, ou 0 se sem sinal.
+  double get detectedFrequency => _bindings.getDetectedFrequency();
 }
+
