@@ -20,10 +20,15 @@ set(TONEFORGE_ENGINE_SOURCES
 
 # Backends de I/O — seleção por plataforma. Cada backend é compilado só
 # na sua plataforma-alvo; o DSP (audio_engine.cpp) é sempre incluído.
+#
+# Para iOS, o build real é feito via CocoaPods (engine/toneforge_engine.podspec)
+# consumido pelo flutter_app/ios/Podfile. Esta branch APPLE existe para
+# quem usar um toolchain CMake para iOS/macOS manualmente — o podspec é
+# a fonte da verdade oficial na Fase 4.
 if(ANDROID)
     list(APPEND TONEFORGE_ENGINE_SOURCES src/audio_io_oboe.cpp)
 elseif(APPLE)
-    # Placeholder Fase 4: src/audio_io_coreaudio.mm
+    list(APPEND TONEFORGE_ENGINE_SOURCES src/audio_io_coreaudio.mm)
 endif()
 
 # Biblioteca SHARED vs STATIC — controlado pelo consumidor.

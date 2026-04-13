@@ -4,6 +4,20 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Fase 4 — microfone obrigatório para todo o pipeline de áudio -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ToneForge precisa do microfone para processar o sinal da guitarra.</string>
+	<!-- Mantém o pipeline de áudio rodando em background e permite
+	     tocar com o app no segundo plano. Fase 4. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<!-- BLE MIDI central (flutter_midi_command). -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ToneForge usa Bluetooth para conectar controladores MIDI via BLE.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>ToneForge usa Bluetooth para conectar controladores MIDI via BLE.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
