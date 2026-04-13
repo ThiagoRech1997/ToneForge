@@ -21,12 +21,12 @@ import java.util.ArrayList;
  * Abstrai a complexidade dos managers de áudio e fornece interface unificada
  */
 public class AudioRepository {
-    
+
     private static final String TAG = "AudioRepository";
-    
+
     private static AudioRepository instance;
     private Context context;
-    
+
     // Managers de áudio
     private AudioEngine audioEngine;
     private PipelineManager pipelineManager;
@@ -36,6 +36,13 @@ public class AudioRepository {
     private PresetManager presetManager;
     private AutomationManager automationManager;
     private ToneForgeMidiManager midiManager;
+
+    // Fase 0 — feature flag pipeline C++ (Oboe). Default false = pipeline legado
+    // AudioRecord/AudioTrack intacto. Alternado pela tela de benchmark ou por
+    // debug menu; só muda com o pipeline parado. Ver plano em
+    // .claude/plans/cuddly-jumping-wolf.md e memória
+    // constraint_audio_no_regression.md — zero regressão tolerada.
+    private volatile boolean useCppPipeline = false;
     
     private AudioRepository(Context context) {
         this.context = context.getApplicationContext();
@@ -164,20 +171,45 @@ public class AudioRepository {
      */
     public boolean startAudioPipeline() {
         try {
-            Log.d(TAG, "Iniciando pipeline de áudio...");
-            
+            Log.d(TAG, "Iniciando pipeline de áudio (cpp=" + useCppPipeline + ")...");
+
             // Verificar se a biblioteca nativa está carregada
             if (!AudioEngine.isNativeLibraryLoaded()) {
                 Log.e(TAG, "Biblioteca nativa não está carregada");
                 return false;
             }
-            
+
+            // Fase 0 — pipeline C++ (Oboe)
+            if (useCppPipeline) {
+                if (AudioEngine.isCppPipelineRunning()) {
+                    Log.d(TAG, "Pipeline C++ já está rodando");
+                    return true;
+                }
+                try {
+                    audioEngine.initAudioEngine();
+                } catch (Exception e) {
+                    Log.e(TAG, "Erro ao inicializar engine (cpp): " + e.getMessage(), e);
+                    return false;
+                }
+                int result = AudioEngine.startCppPipeline(0, 0); // Oboe escolhe sample rate/frames nativos
+                boolean ok = (result == 0);
+                if (ok) {
+                    int sr = AudioEngine.getCppPipelineSampleRate();
+                    Log.d(TAG, "Pipeline C++ iniciado com sucesso. sr=" + sr + "Hz latency=" +
+                            AudioEngine.getCppPipelineLatencyMs() + "ms");
+                    updateAudioState();
+                } else {
+                    Log.e(TAG, "Falha ao iniciar pipeline C++ (oboe::Result=" + result + ")");
+                }
+                return ok;
+            }
+
             // Verificar se o pipeline já está rodando
             if (pipelineManager.isRunning()) {
                 Log.d(TAG, "Pipeline já está rodando");
                 return true;
             }
-            
+
             // Inicializar engine de áudio
             try {
                 audioEngine.initAudioEngine();
@@ -235,14 +267,33 @@ public class AudioRepository {
      */
     public void stopAudioPipeline() {
         try {
-            Log.d(TAG, "Parando pipeline de áudio...");
-            
+            Log.d(TAG, "Parando pipeline de áudio (cpp=" + useCppPipeline + ")...");
+
+            // Fase 0 — pipeline C++ (Oboe)
+            if (useCppPipeline) {
+                if (!AudioEngine.isCppPipelineRunning()) {
+                    Log.d(TAG, "Pipeline C++ já estava parado");
+                    return;
+                }
+                AudioEngine.stopCppPipeline();
+                if (AudioEngine.isNativeLibraryLoaded()) {
+                    try {
+                        audioEngine.cleanupAudioEngine();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Erro ao limpar engine (cpp): " + e.getMessage(), e);
+                    }
+                }
+                Log.d(TAG, "Pipeline C++ parado. xruns=" + AudioEngine.getCppPipelineXrunCount());
+                updateAudioState();
+                return;
+            }
+
             // Verificar se o pipeline está rodando antes de parar
             if (!pipelineManager.isRunning()) {
                 Log.d(TAG, "Pipeline já estava parado");
                 return;
             }
-            
+
             // Parar pipeline
             try {
                 pipelineManager.stopPipeline();
@@ -250,7 +301,7 @@ public class AudioRepository {
                 Log.e(TAG, "Erro ao parar pipeline: " + e.getMessage(), e);
                 // Continuar com a limpeza mesmo se houver erro
             }
-            
+
             // Limpar engine de áudio
             if (AudioEngine.isNativeLibraryLoaded()) {
                 try {
@@ -259,10 +310,10 @@ public class AudioRepository {
                     Log.e(TAG, "Erro ao limpar engine de áudio: " + e.getMessage(), e);
                 }
             }
-            
+
             Log.d(TAG, "Pipeline de áudio parado");
             updateAudioState();
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Erro ao parar pipeline de áudio: " + e.getMessage(), e);
         }
@@ -279,42 +330,100 @@ public class AudioRepository {
                 Log.d(TAG, "Biblioteca nativa não carregada, pipeline não pode estar rodando");
                 return false;
             }
-            
+
+            if (useCppPipeline) {
+                return AudioEngine.isCppPipelineRunning();
+            }
+
             // Verificar estado do pipeline
             boolean isRunning = pipelineManager.isRunning();
             Log.d(TAG, "Estado do pipeline: " + (isRunning ? "rodando" : "parado"));
             return isRunning;
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Erro ao verificar estado do pipeline: " + e.getMessage(), e);
             return false;
         }
     }
-    
+
     /**
      * Pausa o pipeline de áudio
      */
     public void pauseAudioPipeline() {
         try {
             Log.d(TAG, "Pausando pipeline de áudio...");
+            // Oboe não tem pause nativo; stop() libera recursos e start() reabre streams.
+            // Para o pipeline C++, pause é equivalente a stop.
+            if (useCppPipeline) {
+                stopAudioPipeline();
+                return;
+            }
             pipelineManager.pausePipeline();
             updateAudioState();
         } catch (Exception e) {
             Log.e(TAG, "Erro ao pausar pipeline de áudio: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Resume o pipeline de áudio
      */
     public void resumeAudioPipeline() {
         try {
             Log.d(TAG, "Resumindo pipeline de áudio...");
+            if (useCppPipeline) {
+                startAudioPipeline();
+                return;
+            }
             pipelineManager.resumePipeline();
             updateAudioState();
         } catch (Exception e) {
             Log.e(TAG, "Erro ao resumir pipeline de áudio: " + e.getMessage(), e);
         }
+    }
+
+    // ========================================================================
+    // Fase 0 — Feature flag pipeline C++ (Oboe). A troca só é permitida com
+    // o pipeline parado — caso contrário a chamada é ignorada com warning.
+    // Telemetria pro benchmark vive aqui também.
+    // ========================================================================
+
+    /**
+     * Habilita/desabilita o pipeline C++ (Oboe) como backend de áudio.
+     * Requer que o pipeline esteja parado. Retorna true se a troca foi aceita.
+     */
+    public boolean setUseCppPipeline(boolean enabled) {
+        if (isAudioPipelineRunning()) {
+            Log.w(TAG, "setUseCppPipeline ignorado: pipeline rodando. Pare antes de alternar.");
+            return false;
+        }
+        if (this.useCppPipeline != enabled) {
+            this.useCppPipeline = enabled;
+            Log.d(TAG, "Pipeline backend alternado para: " + (enabled ? "C++ (Oboe)" : "Java (AudioRecord/AudioTrack)"));
+        }
+        return true;
+    }
+
+    public boolean isUsingCppPipeline() {
+        return useCppPipeline;
+    }
+
+    /** Latência round-trip medida pelo Oboe (ms). -1 se não disponível/legado. */
+    public double getCppPipelineLatencyMs() {
+        if (!useCppPipeline || !AudioEngine.isNativeLibraryLoaded()) return -1.0;
+        return AudioEngine.getCppPipelineLatencyMs();
+    }
+
+    /** Contador de xruns/desconexões do pipeline C++ desde o último start. */
+    public int getCppPipelineXrunCount() {
+        if (!useCppPipeline || !AudioEngine.isNativeLibraryLoaded()) return 0;
+        return AudioEngine.getCppPipelineXrunCount();
+    }
+
+    /** Sample rate efetivo escolhido pelo Oboe. 0 se não rodando ou legado. */
+    public int getCppPipelineSampleRate() {
+        if (!useCppPipeline || !AudioEngine.isNativeLibraryLoaded()) return 0;
+        return AudioEngine.getCppPipelineSampleRate();
     }
     
     // === PARÂMETROS DE EFEITOS ===

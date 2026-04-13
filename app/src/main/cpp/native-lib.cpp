@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include "audio_engine.h"
+#include "audio_io.h"
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_thiagofernendorech_toneforge_MainActivity_stringFromJNI(
@@ -1256,4 +1257,42 @@ Java_com_thiagofernendorech_toneforge_AudioEngine_applyLooperFadeIn(JNIEnv* env,
 extern "C" JNIEXPORT void JNICALL
 Java_com_thiagofernendorech_toneforge_AudioEngine_applyLooperFadeOut(JNIEnv* env, jclass clazz, jfloat start, jfloat end) {
     applyLooperFadeOut(start, end);
+}
+
+// ============================================================================
+// Fase 0 — Oboe pipeline (C++ I/O). Bindings temporários enquanto o pipeline
+// legado AudioRecord/AudioTrack continua intocado em PipelineManager.java.
+// AudioRepository decide qual pipeline usar via feature flag. Ver plano em
+// .claude/plans/cuddly-jumping-wolf.md.
+// ============================================================================
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_startCppPipelineNative(
+        JNIEnv* env, jclass clazz, jint sampleRate, jint framesPerCallback) {
+    return audio_engine_start(sampleRate, framesPerCallback);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_stopCppPipelineNative(JNIEnv* env, jclass clazz) {
+    audio_engine_stop();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_isCppPipelineRunningNative(JNIEnv* env, jclass clazz) {
+    return audio_engine_is_running() ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jdouble JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getCppPipelineLatencyMsNative(JNIEnv* env, jclass clazz) {
+    return audio_engine_get_latency_ms();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getCppPipelineXrunCountNative(JNIEnv* env, jclass clazz) {
+    return audio_engine_get_xrun_count();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_thiagofernendorech_toneforge_AudioEngine_getCppPipelineSampleRateNative(JNIEnv* env, jclass clazz) {
+    return audio_engine_get_sample_rate();
 }

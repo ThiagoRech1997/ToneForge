@@ -71,6 +71,14 @@
             android:theme="@style/Theme.ToneForge"
             android:label="" />
 
+        <!-- Fase 0 — activity de debug para benchmark do pipeline Oboe.
+             Lançar via: adb shell am start -n com.thiagofernendorech.toneforge/com.thiagofernendorech.toneforge.ui.debug.DebugBenchmarkActivity -->
+        <activity
+            android:name="com.thiagofernendorech.toneforge.ui.debug.DebugBenchmarkActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ToneForge"
+            android:label="Oboe Benchmark" />
+
         <!-- Serviço de áudio em background com permissões mínimas -->
         <service
             android:name=".AudioBackgroundService"

@@ -352,6 +352,18 @@ public class AudioEngine {
         return 1;
     }
 
+    // ========================================================================
+    // Fase 0 — Pipeline C++ (Oboe). Métodos nativos do novo backend de I/O.
+    // Não substituem o pipeline legado (PipelineManager/AudioRecord); o
+    // AudioRepository escolhe qual usar via feature flag.
+    // ========================================================================
+    private static native int startCppPipelineNative(int sampleRate, int framesPerCallback);
+    private static native void stopCppPipelineNative();
+    private static native boolean isCppPipelineRunningNative();
+    private static native double getCppPipelineLatencyMsNative();
+    private static native int getCppPipelineXrunCountNative();
+    private static native int getCppPipelineSampleRateNative();
+
     // Declarações dos métodos nativos (com sufixo Native para diferenciação)
     private static native void setGainEnabledNative(boolean enabled);
     private static native void setGainLevelNative(float level);
@@ -618,6 +630,68 @@ public class AudioEngine {
         }
         if (damping != null) {
             setReverbDamping(damping);
+        }
+    }
+
+    // ========================================================================
+    // Fase 0 — wrappers Java do pipeline C++ (Oboe).
+    // ========================================================================
+
+    /**
+     * Inicia o pipeline de áudio em C++ via Oboe. Retorna 0 em sucesso, código
+     * de erro Oboe (oboe::Result) caso falhe. Passe sampleRate=0 e
+     * framesPerCallback=0 para deixar o Oboe escolher valores nativos do device.
+     */
+    public static int startCppPipeline(int sampleRate, int framesPerCallback) {
+        if (!isNativeLibraryLoaded()) return -1;
+        try {
+            return startCppPipelineNative(sampleRate, framesPerCallback);
+        } catch (UnsatisfiedLinkError e) {
+            return -1;
+        }
+    }
+
+    public static void stopCppPipeline() {
+        if (!isNativeLibraryLoaded()) return;
+        try {
+            stopCppPipelineNative();
+        } catch (UnsatisfiedLinkError ignored) {
+        }
+    }
+
+    public static boolean isCppPipelineRunning() {
+        if (!isNativeLibraryLoaded()) return false;
+        try {
+            return isCppPipelineRunningNative();
+        } catch (UnsatisfiedLinkError e) {
+            return false;
+        }
+    }
+
+    public static double getCppPipelineLatencyMs() {
+        if (!isNativeLibraryLoaded()) return -1.0;
+        try {
+            return getCppPipelineLatencyMsNative();
+        } catch (UnsatisfiedLinkError e) {
+            return -1.0;
+        }
+    }
+
+    public static int getCppPipelineXrunCount() {
+        if (!isNativeLibraryLoaded()) return 0;
+        try {
+            return getCppPipelineXrunCountNative();
+        } catch (UnsatisfiedLinkError e) {
+            return 0;
+        }
+    }
+
+    public static int getCppPipelineSampleRate() {
+        if (!isNativeLibraryLoaded()) return 0;
+        try {
+            return getCppPipelineSampleRateNative();
+        } catch (UnsatisfiedLinkError e) {
+            return 0;
         }
     }
 } 
