@@ -83,6 +83,37 @@ class ToneforgeEngine {
   set eqEnabled(bool v) => _bindings.setEQEnabled(v);
   set compressorEnabled(bool v) => _bindings.setCompressorEnabled(v);
 
+  /// Empurra a nova ordem da cadeia de efeitos para o engine. As strings em
+  /// [order] precisam bater exatamente com as keys esperadas pelo native
+  /// (definidas em `engine/src/audio_engine.cpp`, `effectOrder`):
+  ///   "Ganho", "Distorção", "Delay", "Reverb", "Chorus", "Flanger",
+  ///   "Phaser", "EQ", "Compressor".
+  /// Divergências são silenciosamente ignoradas pelo C++.
+  ///
+  /// Aloca um `Pointer<Pointer<Char>>` + um `Pointer<Utf8>` por entrada,
+  /// chama o native e libera tudo em `finally`. Chamada non-blocking (só
+  /// mexe no vetor effectOrder), mas segura contra alocação em hot path
+  /// porque o pipeline de áudio só consulta o vetor em snapshot.
+  void setEffectOrder(List<String> order) {
+    if (order.isEmpty) return;
+    final count = order.length;
+    final arrayPtr = malloc<ffi.Pointer<ffi.Char>>(count);
+    final stringPtrs = <ffi.Pointer<Utf8>>[];
+    try {
+      for (var i = 0; i < count; i++) {
+        final strPtr = order[i].toNativeUtf8();
+        stringPtrs.add(strPtr);
+        arrayPtr[i] = strPtr.cast<ffi.Char>();
+      }
+      _bindings.setEffectOrder(arrayPtr, count);
+    } finally {
+      for (final p in stringPtrs) {
+        malloc.free(p);
+      }
+      malloc.free(arrayPtr);
+    }
+  }
+
   // ========================================================================
   // Tuner — modo passivo. Quando ativo, audio_io_oboe.cpp encadeia os samples
   // de entrada para processTunerBuffer automaticamente (Fase 3.Tuner). Basta

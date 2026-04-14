@@ -170,6 +170,36 @@ class EffectsScreen extends StatelessWidget {
                         : TfSignalChainStrip(nodes: chain),
                   ),
                   const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const TfSectionLabel('Chain Order'),
+                      TextButton.icon(
+                        onPressed: () =>
+                            context.read<EffectsCubit>().resetOrder(),
+                        icon: const Icon(
+                          Icons.restart_alt_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          'Reset',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: Text(
+                      'Arraste para reordenar a cadeia.',
+                      style: AppTypography.caption,
+                    ),
+                  ),
+                  _ChainReorderList(state: state),
+                  const SizedBox(height: AppSpacing.xl),
                   TfPrimaryButton(
                     label: state.pipelineRunning
                         ? 'Parar áudio'
@@ -247,6 +277,165 @@ class _ActiveBadge extends StatelessWidget {
             color: AppColors.primary,
             fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChainReorderList extends StatelessWidget {
+  const _ChainReorderList({required this.state});
+
+  final EffectsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<EffectsCubit>();
+    // ReorderableListView precisa de altura finita dentro de um
+    // SingleChildScrollView. shrinkWrap + NeverScrollableScrollPhysics
+    // deixa o pai cuidar do scroll e dimensiona pela soma dos itens.
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: state.order.length,
+      onReorder: cubit.reorderEffects,
+      proxyDecorator: (child, index, animation) {
+        return Material(
+          color: Colors.transparent,
+          elevation: 4,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: child,
+        );
+      },
+      itemBuilder: (context, index) {
+        final kind = state.order[index];
+        final enabled = _enabledFor(state, kind);
+        final accent = _accentFor(kind);
+        return _ChainTile(
+          key: ValueKey('chain-${kind.name}'),
+          index: index,
+          kind: kind,
+          accent: accent,
+          enabled: enabled,
+        );
+      },
+    );
+  }
+
+  static bool _enabledFor(EffectsState s, EffectKind k) {
+    switch (k) {
+      case EffectKind.gain:
+        return s.gain.enabled;
+      case EffectKind.distortion:
+        return s.distortion.enabled;
+      case EffectKind.delay:
+        return s.delay.enabled;
+      case EffectKind.reverb:
+        return s.reverb.enabled;
+      case EffectKind.chorus:
+        return s.chorus.enabled;
+      case EffectKind.flanger:
+        return s.flanger.enabled;
+      case EffectKind.phaser:
+        return s.phaser.enabled;
+      case EffectKind.eq:
+        return s.eq.enabled;
+      case EffectKind.compressor:
+        return s.compressor.enabled;
+    }
+  }
+
+  static Color _accentFor(EffectKind k) {
+    switch (k) {
+      case EffectKind.gain:
+      case EffectKind.distortion:
+        return AppColors.warning;
+      case EffectKind.compressor:
+        return AppColors.accentRecorder;
+      case EffectKind.eq:
+        return AppColors.accentMidi;
+      case EffectKind.chorus:
+      case EffectKind.flanger:
+      case EffectKind.phaser:
+        return AppColors.primary;
+      case EffectKind.delay:
+        return AppColors.success;
+      case EffectKind.reverb:
+        return AppColors.accentTuner;
+    }
+  }
+}
+
+class _ChainTile extends StatelessWidget {
+  const _ChainTile({
+    super.key,
+    required this.index,
+    required this.kind,
+    required this.accent,
+    required this.enabled,
+  });
+
+  final int index;
+  final EffectKind kind;
+  final Color accent;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: TfCard(
+        accent: enabled ? accent : null,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            ReorderableDragStartListener(
+              index: index,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  Icons.drag_indicator_rounded,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Container(
+              width: 28,
+              alignment: Alignment.center,
+              child: Text(
+                '${index + 1}',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                kind.label,
+                style: AppTypography.body.copyWith(
+                  color: enabled
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: enabled ? accent : AppColors.muted,
+              ),
+            ),
+          ],
         ),
       ),
     );

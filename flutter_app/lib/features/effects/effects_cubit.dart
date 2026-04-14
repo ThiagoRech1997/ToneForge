@@ -6,6 +6,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../engine/engine.dart';
+import 'effects_categories.dart';
 import 'models.dart';
 
 class EffectsState {
@@ -20,6 +21,7 @@ class EffectsState {
     required this.phaser,
     required this.eq,
     required this.compressor,
+    required this.order,
     this.errorMessage,
   });
 
@@ -34,6 +36,7 @@ class EffectsState {
     phaser: ModConfig(),
     eq: EqConfig(),
     compressor: CompressorConfig(),
+    order: kDefaultEffectOrder,
   );
 
   final bool pipelineRunning;
@@ -46,6 +49,7 @@ class EffectsState {
   final ModConfig phaser;
   final EqConfig eq;
   final CompressorConfig compressor;
+  final List<EffectKind> order;
   final String? errorMessage;
 
   EffectsState copyWith({
@@ -59,6 +63,7 @@ class EffectsState {
     ModConfig? phaser,
     EqConfig? eq,
     CompressorConfig? compressor,
+    List<EffectKind>? order,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -73,6 +78,7 @@ class EffectsState {
       phaser: phaser ?? this.phaser,
       eq: eq ?? this.eq,
       compressor: compressor ?? this.compressor,
+      order: order ?? this.order,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -168,6 +174,36 @@ class EffectsCubit extends Cubit<EffectsState> {
       ..setCompressorAttack(s.compressor.attackMs)
       ..setCompressorRelease(s.compressor.releaseMs)
       ..setCompressorMix(s.compressor.mix);
+    _pushOrder(s.order);
+  }
+
+  void _pushOrder(List<EffectKind> order) {
+    _engine.setEffectOrder(order.map((e) => e.engineKey).toList(growable: false));
+  }
+
+  /// Move o efeito em [oldIndex] para [newIndex] (semântica idêntica à do
+  /// `ReorderableListView.onReorder`: quando oldIndex < newIndex, a lista
+  /// removeu o item antes de reinserir, então decrementamos newIndex).
+  /// Em seguida empurra a ordem completa pra engine.
+  void reorderEffects(int oldIndex, int newIndex) {
+    final current = state.order;
+    if (oldIndex < 0 || oldIndex >= current.length) return;
+    var target = newIndex;
+    if (oldIndex < target) target -= 1;
+    if (target < 0) target = 0;
+    if (target > current.length - 1) target = current.length - 1;
+    if (target == oldIndex) return;
+    final next = List<EffectKind>.of(current);
+    final moved = next.removeAt(oldIndex);
+    next.insert(target, moved);
+    _pushOrder(next);
+    emit(state.copyWith(order: next));
+  }
+
+  /// Restaura a ordem canônica que o engine tem hardcoded.
+  void resetOrder() {
+    _pushOrder(kDefaultEffectOrder);
+    emit(state.copyWith(order: kDefaultEffectOrder));
   }
 
   // ----- Gain -----

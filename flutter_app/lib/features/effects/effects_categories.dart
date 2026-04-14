@@ -48,7 +48,49 @@ extension EffectKindLabel on EffectKind {
         return label;
     }
   }
+
+  /// Chave esperada pelo native `setEffectOrder` (veja o vetor
+  /// `effectOrder` em `engine/src/audio_engine.cpp`). Strings têm que
+  /// bater byte-a-byte, incluindo acentos — divergências são ignoradas
+  /// silenciosamente pelo C++.
+  String get engineKey {
+    switch (this) {
+      case EffectKind.gain:
+        return 'Ganho';
+      case EffectKind.distortion:
+        return 'Distorção';
+      case EffectKind.delay:
+        return 'Delay';
+      case EffectKind.reverb:
+        return 'Reverb';
+      case EffectKind.chorus:
+        return 'Chorus';
+      case EffectKind.flanger:
+        return 'Flanger';
+      case EffectKind.phaser:
+        return 'Phaser';
+      case EffectKind.eq:
+        return 'EQ';
+      case EffectKind.compressor:
+        return 'Compressor';
+    }
+  }
 }
+
+/// Ordem default da cadeia de efeitos. Precisa espelhar a inicialização
+/// estática de `effectOrder` em `engine/src/audio_engine.cpp:262` para
+/// que o estado inicial do Cubit coincida com o que o native reporta.
+const List<EffectKind> kDefaultEffectOrder = [
+  EffectKind.gain,
+  EffectKind.distortion,
+  EffectKind.chorus,
+  EffectKind.flanger,
+  EffectKind.phaser,
+  EffectKind.eq,
+  EffectKind.compressor,
+  EffectKind.delay,
+  EffectKind.reverb,
+];
 
 class EffectCategoryInfo {
   const EffectCategoryInfo({

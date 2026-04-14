@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import 'effects_categories.dart';
 import 'effects_cubit.dart';
 import 'models.dart';
 
@@ -45,6 +46,10 @@ class PresetManager {
   static Future<File> save(String name, EffectsState state) async {
     final dir = await _dir();
     final file = File('${dir.path}/${_sanitize(name)}.json');
+    // Schema mantido em v1: o campo `effectOrder` é opcional e retrocompa-
+    // tível — presets antigos sem o campo reaproveitam a ordem default do
+    // engine (via EffectsState.initial.order) ao carregar. Isso evita um
+    // bump de versão e migração só pelo reorder.
     final payload = <String, dynamic>{
       'schema': 1,
       'name': name,
@@ -60,6 +65,7 @@ class PresetManager {
         'eq': state.eq.toJson(),
         'compressor': state.compressor.toJson(),
       },
+      'effectOrder': state.order.map((e) => e.name).toList(),
     };
     await file.writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
     return file;
@@ -71,6 +77,7 @@ class PresetManager {
     if (json is! Map<String, dynamic>) return null;
     final effects = json['effects'];
     if (effects is! Map<String, dynamic>) return null;
+    final order = _parseOrder(json['effectOrder']);
     return EffectsState.initial.copyWith(
       gain: GainConfig.fromJson(_obj(effects['gain'])),
       distortion: DistortionConfig.fromJson(_obj(effects['distortion'])),
@@ -81,7 +88,31 @@ class PresetManager {
       phaser: ModConfig.fromJson(_obj(effects['phaser'])),
       eq: EqConfig.fromJson(_obj(effects['eq'])),
       compressor: CompressorConfig.fromJson(_obj(effects['compressor'])),
+      order: order,
     );
+  }
+
+  /// Converte a lista de strings de `effectOrder` (se presente) em
+  /// `List<EffectKind>`. Retorna a ordem default se o campo estiver
+  /// ausente, inválido, duplicado ou incompleto — presets antigos não
+  /// carregavam o campo e devem abrir sem erro.
+  static List<EffectKind> _parseOrder(Object? raw) {
+    if (raw is! List) return kDefaultEffectOrder;
+    final byName = <String, EffectKind>{
+      for (final k in EffectKind.values) k.name: k,
+    };
+    final parsed = <EffectKind>[];
+    final seen = <EffectKind>{};
+    for (final entry in raw) {
+      if (entry is! String) return kDefaultEffectOrder;
+      final kind = byName[entry];
+      if (kind == null || !seen.add(kind)) return kDefaultEffectOrder;
+      parsed.add(kind);
+    }
+    if (parsed.length != EffectKind.values.length) {
+      return kDefaultEffectOrder;
+    }
+    return parsed;
   }
 
   static Future<void> delete(File file) async {
