@@ -222,6 +222,53 @@
                         android:checked="false" />
                 </LinearLayout>
 
+                <!-- Divisor -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/hilava_surface_elevated"
+                    android:layout_marginVertical="16dp" />
+
+                <!-- Pipeline C++ experimental (Fase 5 beta mitigação).
+                     Expõe o toggle que antes só era alcançável via DebugBenchmarkActivity.
+                     Ver app/DEPRECATED.md e docs/migration-status.md. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:minHeight="48dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pipeline C++ (experimental)"
+                            android:textColor="@color/hilava_text_primary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Usa o novo backend Oboe em C++ em vez do AudioRecord/AudioTrack. Pode ter latência menor em alguns devices. Pare o áudio antes de alternar."
+                            android:textColor="@color/hilava_text_secondary"
+                            android:textSize="12sp"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginEnd="12dp" />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switchCppPipeline"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false" />
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- ========================================== -->

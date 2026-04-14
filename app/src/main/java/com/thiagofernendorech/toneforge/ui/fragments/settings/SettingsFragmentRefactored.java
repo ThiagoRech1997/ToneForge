@@ -20,6 +20,7 @@ import androidx.fragment.app.Fragment;
 import com.thiagofernendorech.toneforge.LatencyManager;
 import com.thiagofernendorech.toneforge.R;
 import com.thiagofernendorech.toneforge.ToneForgeMidiManager;
+import com.thiagofernendorech.toneforge.data.repository.AudioRepository;
 import com.thiagofernendorech.toneforge.ui.base.BaseFragment;
 
 import java.util.Map;
@@ -38,6 +39,10 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
 
     // Componentes de UI
     private Switch switchDarkTheme, switchVibration, switchAutoSave, switchAudioBackground, switchMidiEnabled;
+    // Fase 5 beta mitigação: toggle experimental C++/Oboe pipeline. Normalmente
+    // só acessível via DebugBenchmarkActivity (adb); expor no Settings permite
+    // que beta testers ativem sem ferramentas externas. Ver app/DEPRECATED.md.
+    private Switch switchCppPipeline;
     private Switch switchVerboseLogging, switchDebugLogging;
     private RadioGroup radioGroupLatency, radioGroupLogLevel;
     private RadioButton radioLowLatency, radioBalanced, radioStability;
@@ -87,7 +92,17 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
         switchVibration = view.findViewById(R.id.switchVibration);
         switchAutoSave = view.findViewById(R.id.switchAutoSave);
         switchAudioBackground = view.findViewById(R.id.switchAudioBackground);
+        switchCppPipeline = view.findViewById(R.id.switchCppPipeline);
         switchMidiEnabled = view.findViewById(R.id.switchMidiEnabled);
+
+        // Sincroniza o switch com o estado atual do AudioRepository. A MVP
+        // aqui é deliberadamente fina: o valor não passa pelo presenter
+        // porque o AudioRepository já é singleton e a feature é apenas
+        // ponte pra um toggle já existente.
+        if (getContext() != null && switchCppPipeline != null) {
+            AudioRepository repo = AudioRepository.getInstance(requireContext());
+            switchCppPipeline.setChecked(repo.isUsingCppPipeline());
+        }
 
         // Componentes de latência
         radioGroupLatency = view.findViewById(R.id.radioGroupLatency);
@@ -137,6 +152,30 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
         switchAudioBackground.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (presenter != null) presenter.setAudioBackground(isChecked);
         });
+
+        // Pipeline C++ (experimental) — Fase 5 beta mitigação.
+        // setUseCppPipeline retorna false se o áudio está rodando: nesse
+        // caso revertemos o switch e avisamos o usuário. Sem isso o switch
+        // ficaria visualmente dessincronizado do estado real do repo.
+        if (switchCppPipeline != null) {
+            switchCppPipeline.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (getContext() == null) return;
+                AudioRepository repo = AudioRepository.getInstance(requireContext());
+                boolean accepted = repo.setUseCppPipeline(isChecked);
+                if (!accepted) {
+                    // Rollback silencioso do switch — listener não re-dispara
+                    // porque estamos setando o mesmo valor anterior.
+                    switchCppPipeline.setOnCheckedChangeListener(null);
+                    switchCppPipeline.setChecked(repo.isUsingCppPipeline());
+                    setupCppPipelineListener();
+                    showMessage("Pare o áudio antes de alternar o backend");
+                } else {
+                    showMessage(isChecked
+                            ? "Pipeline C++ ativo (experimental). Reinicie o áudio."
+                            : "Pipeline legado restaurado. Reinicie o áudio.");
+                }
+            });
+        }
 
         // Latência
         radioGroupLatency.setOnCheckedChangeListener((group, checkedId) -> {
@@ -399,6 +438,29 @@ public class SettingsFragmentRefactored extends BaseFragment<SettingsPresenter>
     @Override
     public void hideLoading() {
         // Implementação básica - pode ser expandida com ProgressBar
+    }
+
+    /**
+     * Refaz o listener do switch C++ após um rollback manual. Extraído
+     * para evitar duplicação do fluxo de rollback no caller.
+     */
+    private void setupCppPipelineListener() {
+        if (switchCppPipeline == null) return;
+        switchCppPipeline.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (getContext() == null) return;
+            AudioRepository repo = AudioRepository.getInstance(requireContext());
+            boolean accepted = repo.setUseCppPipeline(isChecked);
+            if (!accepted) {
+                switchCppPipeline.setOnCheckedChangeListener(null);
+                switchCppPipeline.setChecked(repo.isUsingCppPipeline());
+                setupCppPipelineListener();
+                showMessage("Pare o áudio antes de alternar o backend");
+            } else {
+                showMessage(isChecked
+                        ? "Pipeline C++ ativo (experimental). Reinicie o áudio."
+                        : "Pipeline legado restaurado. Reinicie o áudio.");
+            }
+        });
     }
     
     @Override
