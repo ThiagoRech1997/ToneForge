@@ -350,6 +350,14 @@ static std::vector<float> phaserBuffer;
 static std::atomic<int> phaserBufferIndex{0};
 static std::atomic<float> phaserPhase{0.0f};
 static std::atomic<float> phaserLfo{0.0f};      // Valor atual do LFO
+// Estado dos 4 estágios de all-pass do phaser (x[n-1], y[n-1] por estágio).
+// Usado pelo processSample no audio thread — sequencial por amostra,
+// atomic usado só por consistência com o resto do arquivo.
+static std::atomic<float> phaserAp1X{0.0f}, phaserAp1Y{0.0f};
+static std::atomic<float> phaserAp2X{0.0f}, phaserAp2Y{0.0f};
+static std::atomic<float> phaserAp3X{0.0f}, phaserAp3Y{0.0f};
+static std::atomic<float> phaserAp4X{0.0f}, phaserAp4Y{0.0f};
+static std::atomic<float> phaserFbState{0.0f}; // saída anterior pro feedback
 
 // Equalizer (EQ)
 static std::atomic<bool> eqEnabled{false};
@@ -359,10 +367,26 @@ static std::atomic<float> eqHighGain{0.0f};     // Ganho para agudos (8kHz)
 static std::atomic<float> eqMix{1.0f};          // Mix dry/wet
 static std::atomic<int> eqSampleRate{48000};
 
-// Filtros do EQ (estados dos filtros)
+// Filtros do EQ (estados dos filtros biquad x[n-1], x[n-2], y[n-1], y[n-2])
 static std::atomic<float> eqLowX1{0.0f}, eqLowX2{0.0f}, eqLowY1{0.0f}, eqLowY2{0.0f};
 static std::atomic<float> eqMidX1{0.0f}, eqMidX2{0.0f}, eqMidY1{0.0f}, eqMidY2{0.0f};
 static std::atomic<float> eqHighX1{0.0f}, eqHighX2{0.0f}, eqHighY1{0.0f}, eqHighY2{0.0f};
+
+// EQ coefficient cache — populado pelos setters eqLow/Mid/High e por
+// updateEqBandCoefs no init. Evita recalcular coeficientes biquad per-sample.
+static std::atomic<float> eqLowB0{1.0f}, eqLowB1{0.0f}, eqLowB2{0.0f};
+static std::atomic<float> eqLowA1{0.0f}, eqLowA2{0.0f};
+static std::atomic<float> eqMidB0{1.0f}, eqMidB1{0.0f}, eqMidB2{0.0f};
+static std::atomic<float> eqMidA1{0.0f}, eqMidA2{0.0f};
+static std::atomic<float> eqHighB0{1.0f}, eqHighB1{0.0f}, eqHighB2{0.0f};
+static std::atomic<float> eqHighA1{0.0f}, eqHighA2{0.0f};
+
+// Forward declaration — usada por initAudioEngine e setSampleRate, com
+// definição mais abaixo junto dos setters dos efeitos.
+static void updateEqBandCoefs(std::atomic<float>& B0, std::atomic<float>& B1,
+                              std::atomic<float>& B2, std::atomic<float>& A1,
+                              std::atomic<float>& A2,
+                              float freq_hz, float gain_db, float sr);
 
 // Compressor
 static std::atomic<bool> compressorEnabled{false};
@@ -523,6 +547,16 @@ void initAudioEngine() {
     effectOrderPacked.store(packEffectOrder(kDefaultOrder, 9),
                             std::memory_order_release);
 
+    // Inicializar coeficientes das 3 bandas do EQ em unity (0 dB) para
+    // que o filtro seja transparente antes do usuário mexer nos knobs.
+    const float initSr = (float)currentSampleRate;
+    updateEqBandCoefs(eqLowB0, eqLowB1, eqLowB2, eqLowA1, eqLowA2,
+                      60.0f, 0.0f, initSr);
+    updateEqBandCoefs(eqMidB0, eqMidB1, eqMidB2, eqMidA1, eqMidA2,
+                      1000.0f, 0.0f, initSr);
+    updateEqBandCoefs(eqHighB0, eqHighB1, eqHighB2, eqHighA1, eqHighA2,
+                      8000.0f, 0.0f, initSr);
+
     // Marcar engine como inicializado
     isEngineInitialized.store(true);
 }
@@ -657,6 +691,15 @@ void setSampleRate(int rate) {
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
         looperTracks[i].resizeBuffer(looperMaxSamples);
     }
+
+    // Recalcular coeficientes biquad do EQ pra nova sample rate.
+    const float newSr = (float)rate;
+    updateEqBandCoefs(eqLowB0, eqLowB1, eqLowB2, eqLowA1, eqLowA2,
+                      60.0f, eqLowGain.load(), newSr);
+    updateEqBandCoefs(eqMidB0, eqMidB1, eqMidB2, eqMidA1, eqMidA2,
+                      1000.0f, eqMidGain.load(), newSr);
+    updateEqBandCoefs(eqHighB0, eqHighB1, eqHighB2, eqHighA1, eqHighA2,
+                      8000.0f, eqHighGain.load(), newSr);
 
     int oversampleSize = std::min(4096 * oversamplingFactor.load(), (int)oversampleBuffer.size());
     oversampleBufferSize.store(oversampleSize);
@@ -875,10 +918,49 @@ void setPhaserRate(float rate) { phaserRate = rate; }
 void setPhaserFeedback(float feedback) { phaserFeedback = feedback; }
 void setPhaserMix(float mix) { phaserMix = mix; }
 
+// Recalcula coeficientes biquad peaking EQ (RBJ Audio EQ Cookbook) para
+// uma banda e publica nos atomics correspondentes. Chamado pelos setters
+// e pelo init — nunca pelo audio callback. Q fixo em ~0.707 (uma oitava).
+// TFR-53.
+static void updateEqBandCoefs(std::atomic<float>& B0, std::atomic<float>& B1,
+                              std::atomic<float>& B2, std::atomic<float>& A1,
+                              std::atomic<float>& A2,
+                              float freq_hz, float gain_db, float sr) {
+    if (sr <= 0.0f) return;
+    const float Q = 0.707f;
+    const float A = powf(10.0f, gain_db * 0.025f); // 10^(gain/40)
+    const float w0 = 2.0f * 3.14159265f * freq_hz / sr;
+    const float cos_w0 = cosf(w0);
+    const float sin_w0 = sinf(w0);
+    const float alpha = sin_w0 / (2.0f * Q);
+
+    const float a0 = 1.0f + alpha / A;
+    if (a0 < 1e-9f) return; // safety
+    const float inv_a0 = 1.0f / a0;
+
+    B0.store((1.0f + alpha * A) * inv_a0);
+    B1.store((-2.0f * cos_w0) * inv_a0);
+    B2.store((1.0f - alpha * A) * inv_a0);
+    A1.store((-2.0f * cos_w0) * inv_a0);
+    A2.store((1.0f - alpha / A) * inv_a0);
+}
+
 void setEQEnabled(bool enabled) { eqEnabled = enabled; }
-void setEQLow(float gain) { eqLowGain = gain; }
-void setEQMid(float gain) { eqMidGain = gain; }
-void setEQHigh(float gain) { eqHighGain = gain; }
+void setEQLow(float gain) {
+    eqLowGain = gain;
+    updateEqBandCoefs(eqLowB0, eqLowB1, eqLowB2, eqLowA1, eqLowA2,
+                      60.0f, gain, (float)eqSampleRate.load());
+}
+void setEQMid(float gain) {
+    eqMidGain = gain;
+    updateEqBandCoefs(eqMidB0, eqMidB1, eqMidB2, eqMidA1, eqMidA2,
+                      1000.0f, gain, (float)eqSampleRate.load());
+}
+void setEQHigh(float gain) {
+    eqHighGain = gain;
+    updateEqBandCoefs(eqHighB0, eqHighB1, eqHighB2, eqHighA1, eqHighA2,
+                      8000.0f, gain, (float)eqSampleRate.load());
+}
 void setEQMix(float mix) { eqMix = mix; }
 
 void setCompressorEnabled(bool enabled) { compressorEnabled = enabled; }
@@ -960,17 +1042,260 @@ float processSample(float input) {
                 }
                 break;
             }
-            case EFFECT_CHORUS:
-            case EFFECT_FLANGER:
-            case EFFECT_PHASER:
-            case EFFECT_EQ:
-            case EFFECT_COMPRESSOR:
-                // TODO(TFR-53): DSP destes 5 efeitos não foi implementado.
-                // Os setters e flags *Enabled existem e o state é persistido,
-                // mas nada é aplicado ao sinal. O slot é mantido na cadeia
-                // para que o usuário possa reordená-lo — quando o DSP chegar,
-                // basta preencher os casos aqui sem mudar nada em UI/FFI.
+            case EFFECT_CHORUS: {
+                // Chorus — delay modulado por LFO senoidal, sem feedback.
+                // Depth em segundos define a amplitude da modulação.
+                // TFR-53.
+                if (chorusEnabled.load()) {
+                    const int bufSize = chorusBufferSize.load();
+                    if (bufSize > 0 && bufSize <= (int)chorusBuffer.size()) {
+                        const float depth_s = chorusDepth.load();
+                        const float rate_hz = chorusRate.load();
+                        const float mix = chorusMix.load();
+                        const float sr = (float)chorusSampleRate.load();
+
+                        int wi = chorusBufferIndex.load();
+                        chorusBuffer[wi] = output;
+
+                        float phase = chorusPhase.load();
+                        phase += (2.0f * 3.14159265f * rate_hz) / sr;
+                        if (phase > 2.0f * 3.14159265f) phase -= 2.0f * 3.14159265f;
+                        chorusPhase.store(phase);
+
+                        // Delay central = depth/2, modulação ±depth/2.
+                        const float mod = 0.5f + 0.5f * sinf(phase);
+                        const float delay_samples = depth_s * sr * mod;
+
+                        float rf = (float)wi - delay_samples;
+                        while (rf < 0.0f) rf += (float)bufSize;
+                        int ri0 = (int)rf;
+                        int ri1 = (ri0 + 1) % bufSize;
+                        float frac = rf - (float)ri0;
+                        const float delayed = chorusBuffer[ri0] * (1.0f - frac)
+                                            + chorusBuffer[ri1] * frac;
+
+                        wi = (wi + 1) % bufSize;
+                        chorusBufferIndex.store(wi);
+
+                        output = output * (1.0f - mix) + delayed * mix;
+                    }
+                }
                 break;
+            }
+            case EFFECT_FLANGER: {
+                // Flanger — igual ao chorus mas com delay menor e feedback.
+                // O feedback é clampado pra evitar divergência.
+                // TFR-53.
+                if (flangerEnabled.load()) {
+                    const int bufSize = flangerBufferSize.load();
+                    if (bufSize > 0 && bufSize <= (int)flangerBuffer.size()) {
+                        const float depth_s = flangerDepth.load();
+                        const float rate_hz = flangerRate.load();
+                        float fb = flangerFeedback.load();
+                        if (fb > 0.95f) fb = 0.95f;
+                        if (fb < -0.95f) fb = -0.95f;
+                        const float mix = flangerMix.load();
+                        const float sr = (float)flangerSampleRate.load();
+
+                        int wi = flangerBufferIndex.load();
+
+                        float phase = flangerPhase.load();
+                        phase += (2.0f * 3.14159265f * rate_hz) / sr;
+                        if (phase > 2.0f * 3.14159265f) phase -= 2.0f * 3.14159265f;
+                        flangerPhase.store(phase);
+
+                        const float mod = 0.5f + 0.5f * sinf(phase);
+                        const float delay_samples = depth_s * sr * mod;
+
+                        float rf = (float)wi - delay_samples;
+                        while (rf < 0.0f) rf += (float)bufSize;
+                        int ri0 = (int)rf;
+                        int ri1 = (ri0 + 1) % bufSize;
+                        float frac = rf - (float)ri0;
+                        const float delayed = flangerBuffer[ri0] * (1.0f - frac)
+                                            + flangerBuffer[ri1] * frac;
+
+                        // Write-back com feedback injetado.
+                        flangerBuffer[wi] = output + delayed * fb;
+
+                        wi = (wi + 1) % bufSize;
+                        flangerBufferIndex.store(wi);
+
+                        output = output * (1.0f - mix) + delayed * mix;
+                    }
+                }
+                break;
+            }
+            case EFFECT_PHASER: {
+                // Phaser — cascade de 4 all-pass filters com coeficiente
+                // `g` modulado por LFO senoidal. g varia entre 0.1 e 0.9.
+                // Feedback alimenta a saída anterior de volta na entrada.
+                // Cada all-pass: y[n] = -g*x[n] + x[n-1] + g*y[n-1]. TFR-53.
+                if (phaserEnabled.load()) {
+                    const float depth = phaserDepth.load();
+                    const float rate_hz = phaserRate.load();
+                    float fb = phaserFeedback.load();
+                    if (fb > 0.95f) fb = 0.95f;
+                    if (fb < -0.95f) fb = -0.95f;
+                    const float mix = phaserMix.load();
+                    const float sr = (float)phaserSampleRate.load();
+
+                    float phase = phaserPhase.load();
+                    phase += (2.0f * 3.14159265f * rate_hz) / sr;
+                    if (phase > 2.0f * 3.14159265f) phase -= 2.0f * 3.14159265f;
+                    phaserPhase.store(phase);
+
+                    // LFO entre 0 e 1, g varia entre 0.1 e 0.1 + 0.8*depth.
+                    const float lfo = 0.5f + 0.5f * sinf(phase);
+                    const float g = 0.1f + 0.8f * lfo * depth;
+
+                    // Entrada: dry + feedback da saída anterior.
+                    float x = output + phaserFbState.load() * fb;
+
+                    // Cascade de 4 all-pass.
+                    float x1 = phaserAp1X.load(), y1 = phaserAp1Y.load();
+                    float y = -g * x + x1 + g * y1;
+                    phaserAp1X.store(x); phaserAp1Y.store(y);
+
+                    x = y;
+                    x1 = phaserAp2X.load(); y1 = phaserAp2Y.load();
+                    y = -g * x + x1 + g * y1;
+                    phaserAp2X.store(x); phaserAp2Y.store(y);
+
+                    x = y;
+                    x1 = phaserAp3X.load(); y1 = phaserAp3Y.load();
+                    y = -g * x + x1 + g * y1;
+                    phaserAp3X.store(x); phaserAp3Y.store(y);
+
+                    x = y;
+                    x1 = phaserAp4X.load(); y1 = phaserAp4Y.load();
+                    y = -g * x + x1 + g * y1;
+                    phaserAp4X.store(x); phaserAp4Y.store(y);
+
+                    phaserFbState.store(y);
+
+                    output = output * (1.0f - mix) + y * mix;
+                }
+                break;
+            }
+            case EFFECT_EQ: {
+                // EQ 3-banda peaking (60 Hz / 1 kHz / 8 kHz, Q ~0.707).
+                // Biquad RBJ peaking, coeficientes cacheados via atomic
+                // pelos setters. As bandas são aplicadas em série.
+                // TFR-53.
+                if (eqEnabled.load()) {
+                    const float mix = eqMix.load();
+                    float processed = output;
+
+                    // --- Low band ---
+                    {
+                        const float b0 = eqLowB0.load();
+                        const float b1 = eqLowB1.load();
+                        const float b2 = eqLowB2.load();
+                        const float a1 = eqLowA1.load();
+                        const float a2 = eqLowA2.load();
+                        const float x1 = eqLowX1.load();
+                        const float x2 = eqLowX2.load();
+                        const float y1 = eqLowY1.load();
+                        const float y2 = eqLowY2.load();
+                        const float y = b0 * processed + b1 * x1 + b2 * x2
+                                      - a1 * y1 - a2 * y2;
+                        eqLowX2.store(x1);
+                        eqLowX1.store(processed);
+                        eqLowY2.store(y1);
+                        eqLowY1.store(y);
+                        processed = y;
+                    }
+                    // --- Mid band ---
+                    {
+                        const float b0 = eqMidB0.load();
+                        const float b1 = eqMidB1.load();
+                        const float b2 = eqMidB2.load();
+                        const float a1 = eqMidA1.load();
+                        const float a2 = eqMidA2.load();
+                        const float x1 = eqMidX1.load();
+                        const float x2 = eqMidX2.load();
+                        const float y1 = eqMidY1.load();
+                        const float y2 = eqMidY2.load();
+                        const float y = b0 * processed + b1 * x1 + b2 * x2
+                                      - a1 * y1 - a2 * y2;
+                        eqMidX2.store(x1);
+                        eqMidX1.store(processed);
+                        eqMidY2.store(y1);
+                        eqMidY1.store(y);
+                        processed = y;
+                    }
+                    // --- High band ---
+                    {
+                        const float b0 = eqHighB0.load();
+                        const float b1 = eqHighB1.load();
+                        const float b2 = eqHighB2.load();
+                        const float a1 = eqHighA1.load();
+                        const float a2 = eqHighA2.load();
+                        const float x1 = eqHighX1.load();
+                        const float x2 = eqHighX2.load();
+                        const float y1 = eqHighY1.load();
+                        const float y2 = eqHighY2.load();
+                        const float y = b0 * processed + b1 * x1 + b2 * x2
+                                      - a1 * y1 - a2 * y2;
+                        eqHighX2.store(x1);
+                        eqHighX1.store(processed);
+                        eqHighY2.store(y1);
+                        eqHighY1.store(y);
+                        processed = y;
+                    }
+
+                    output = output * (1.0f - mix) + processed * mix;
+                }
+                break;
+            }
+            case EFFECT_COMPRESSOR: {
+                // Compressor dinâmico simples — envelope follower com
+                // attack/release exponenciais, ratio linear em dB, mix dry/wet.
+                // TFR-53. Lock-free, sem alocação. expf/log10f/powf inline.
+                if (compressorEnabled.load()) {
+                    const float threshold_db = compressorThreshold.load();
+                    const float ratio = compressorRatio.load();
+                    const float attack_ms = compressorAttack.load();
+                    const float release_ms = compressorRelease.load();
+                    const float mix = compressorMix.load();
+                    const float sr = (float)compressorSampleRate.load();
+
+                    const float attack_coef = (attack_ms > 0.01f && sr > 0.0f)
+                        ? expf(-1.0f / (0.001f * attack_ms * sr))
+                        : 0.0f;
+                    const float release_coef = (release_ms > 0.01f && sr > 0.0f)
+                        ? expf(-1.0f / (0.001f * release_ms * sr))
+                        : 0.0f;
+
+                    const float abs_in = fabsf(output);
+                    float env = compressorEnvelope.load();
+                    // Envelope follower — sobe com attack, desce com release.
+                    if (abs_in > env) {
+                        env = attack_coef * env + (1.0f - attack_coef) * abs_in;
+                    } else {
+                        env = release_coef * env + (1.0f - release_coef) * abs_in;
+                    }
+                    compressorEnvelope.store(env);
+
+                    // Gain reduction: acima do threshold aplica ratio.
+                    const float env_db = (env > 1e-6f) ? 20.0f * log10f(env) : -120.0f;
+                    float gain_db = 0.0f;
+                    if (env_db > threshold_db && ratio > 0.0f) {
+                        gain_db = (threshold_db - env_db) * (1.0f - 1.0f / ratio);
+                    }
+                    const float target_gain = powf(10.0f, gain_db * 0.05f);
+
+                    // Smooth gain (evita zipper noise em mudança brusca).
+                    float cur_gain = compressorGain.load();
+                    cur_gain = release_coef * cur_gain + (1.0f - release_coef) * target_gain;
+                    compressorGain.store(cur_gain);
+
+                    const float wet = output * cur_gain;
+                    output = output * (1.0f - mix) + wet * mix;
+                }
+                break;
+            }
             default:
                 break;
         }
