@@ -114,8 +114,13 @@ extern "C" {
 
     void setReverbType(int type); // 0=Hall, 1=Plate, 2=Spring
 
+    // Retorna um buffer alocado pelo engine com o mix do looper. O caller
+    // DEVE liberar o buffer chamando releaseLooperMix quando terminar de
+    // usá-lo — caso contrário há leak de ~maxLength * sizeof(float) bytes
+    // por chamada. Retorna NULL com *outLength=0 se não houver conteúdo.
     float* getLooperMix(int* outLength);
-    
+    void releaseLooperMix(float* buffer);
+
     // Função para carregar áudio no looper
     void loadLooperFromAudio(const float* audioData, int length);
 

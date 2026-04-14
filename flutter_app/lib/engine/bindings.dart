@@ -837,6 +837,10 @@ class ToneforgeEngineBindings {
   late final _setReverbType = _setReverbTypePtr
       .asFunction<void Function(int)>();
 
+  /// Retorna um buffer alocado pelo engine com o mix do looper. O caller DEVE
+  /// liberar o buffer chamando releaseLooperMix quando terminar de usá-lo —
+  /// caso contrário há leak de ~maxLength * sizeof(float) bytes por chamada.
+  /// Retorna NULL com *outLength=0 se não houver conteúdo.
   ffi.Pointer<ffi.Float> getLooperMix(ffi.Pointer<ffi.Int> outLength) {
     return _getLooperMix(outLength);
   }
@@ -849,6 +853,17 @@ class ToneforgeEngineBindings {
       >('getLooperMix');
   late final _getLooperMix = _getLooperMixPtr
       .asFunction<ffi.Pointer<ffi.Float> Function(ffi.Pointer<ffi.Int>)>();
+
+  void releaseLooperMix(ffi.Pointer<ffi.Float> buffer) {
+    return _releaseLooperMix(buffer);
+  }
+
+  late final _releaseLooperMixPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Float>)>>(
+        'releaseLooperMix',
+      );
+  late final _releaseLooperMix = _releaseLooperMixPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Float>)>();
 
   /// Função para carregar áudio no looper
   void loadLooperFromAudio(ffi.Pointer<ffi.Float> audioData, int length) {

@@ -241,13 +241,15 @@ class ToneforgeEngine {
     }
   }
 
-  /// Snapshot do mix do looper para visualização. O ponteiro retornado pelo
-  /// engine é gerenciado pelo C++; copiamos o conteúdo num Float32List Dart
-  /// e devolvemos o ownership imediatamente. Devolve null se vazio.
+  /// Snapshot do mix do looper para visualização. O buffer nativo é alocado
+  /// pelo engine (`new float[]`) e precisa ser liberado via
+  /// `releaseLooperMix` — sem essa liberação o leak é ~maxLength*4 bytes por
+  /// chamada, e o poller do LooperCubit chama isso a cada 200ms.
   List<double>? snapshotLooperMix({int targetPoints = 200}) {
     final outLen = malloc<ffi.Int>();
+    ffi.Pointer<ffi.Float> ptr = ffi.nullptr;
     try {
-      final ptr = _bindings.getLooperMix(outLen);
+      ptr = _bindings.getLooperMix(outLen);
       final len = outLen.value;
       if (ptr == ffi.nullptr || len <= 0) return null;
       final samples = ptr.asTypedList(len);
@@ -268,6 +270,7 @@ class ToneforgeEngine {
       }
       return out;
     } finally {
+      if (ptr != ffi.nullptr) _bindings.releaseLooperMix(ptr);
       malloc.free(outLen);
     }
   }

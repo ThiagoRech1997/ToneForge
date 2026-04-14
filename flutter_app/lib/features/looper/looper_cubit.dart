@@ -147,6 +147,7 @@ class LooperCubit extends Cubit<LooperState> {
   void _startPositionPolling() {
     _positionTimer?.cancel();
     _positionTimer = Timer.periodic(_positionPollInterval, (_) {
+      if (isClosed) return;
       // Em recording, length cresce a cada callback; em playback, length é
       // fixo e a position dá voltas. Refletimos os dois casos uniformemente.
       emit(state.copyWith(
@@ -169,7 +170,10 @@ class LooperCubit extends Cubit<LooperState> {
 
   void _startWaveformPolling() {
     _waveformTimer?.cancel();
-    _waveformTimer = Timer.periodic(_waveformRefreshInterval, (_) => _refreshWaveform());
+    _waveformTimer = Timer.periodic(_waveformRefreshInterval, (_) {
+      if (isClosed) return;
+      _refreshWaveform();
+    });
   }
 
   void _stopWaveformPolling() {
@@ -179,6 +183,7 @@ class LooperCubit extends Cubit<LooperState> {
 
   void _refreshWaveform() {
     final samples = _engine.snapshotLooperMix(targetPoints: 240);
+    if (isClosed) return;
     if (samples != null) {
       emit(state.copyWith(waveform: samples));
     }

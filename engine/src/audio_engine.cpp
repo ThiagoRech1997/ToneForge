@@ -12,13 +12,12 @@
 // Flag de inicialização do engine
 static std::atomic<bool> isEngineInitialized{false};
 
-// Mutexes para proteção thread-safe
+// Mutexes. audioEngineMutex protege o lifecycle (init/setSampleRate).
+// looperMutex protege as operações do looper fora do hot path. Nenhum
+// destes pode ser pego pelo audio callback — os buffers do hot path são
+// pré-alocados e lidos lock-free via atomics.
 static std::mutex audioEngineMutex;
-static std::mutex oversamplingMutex;
-static std::mutex delayMutex;
 static std::mutex looperMutex;
-static std::mutex effectsMutex;
-static std::mutex tunerMutex;
 
 // Configurações de Oversampling com proteção thread-safe
 static std::atomic<int> oversamplingFactor{2}; // 2x, 4x, 8x
@@ -95,44 +94,38 @@ struct LooperTrack {
             buffer.resize(initialSize, 0.0f);
         } else {
             buffer.resize(MIN_BUFFER_SIZE, 0.0f);
-            printf("LooperTrack: Tamanho inicial inválido, usando %d\n", MIN_BUFFER_SIZE);
         }
     }
-    
+
     void resizeBuffer(int newSize) {
         if (newSize > 0 && newSize <= MAX_BUFFER_SIZE) {
             std::lock_guard<std::mutex> lock(looperMutex);
             buffer.resize(newSize, 0.0f);
-            printf("LooperTrack: Buffer redimensionado para %d amostras\n", newSize);
-        } else {
-            printf("LooperTrack: Tamanho de buffer inválido: %d\n", newSize);
         }
     }
-    
+
     void recordSample(float sample) {
         if (!isRecording.load()) return;
-        
+
         int currentLength = length.load();
         int currentPosition = position.load();
         int bufferSize = buffer.size();
-        
+
         if (currentPosition >= 0 && currentPosition < bufferSize) {
             buffer[currentPosition] = sample;
             currentPosition++;
-            
+
             if (currentPosition >= bufferSize) {
                 // Buffer cheio, parar gravação
                 isRecording.store(false);
                 currentLength = bufferSize;
-                printf("LooperTrack: Buffer cheio, gravação parada\n");
             } else {
                 currentLength = std::max(currentLength, currentPosition);
             }
-            
+
             position.store(currentPosition);
             length.store(currentLength);
         } else {
-            printf("LooperTrack: Índice de posição inválido: %d, resetando\n", currentPosition);
             position.store(0);
         }
     }
@@ -234,9 +227,25 @@ static std::atomic<int> looperReverbTailSize{0};
 static std::atomic<float> looperReverbTailDecayCoeff{0.0f};
 
 // --- Afinador ---
+// Forward declaration — a implementação fica depois de getDetectedFrequency
+// mas o consumer precisa chamar isso.
+static float detectPitch(const float* buffer, int numSamples, int sampleRate);
+
+// Ring buffer lock-free: o audio callback só escreve, um consumer (UI thread
+// via getDetectedFrequency) faz snapshot e roda a detecção de pitch fora do
+// hot path. Capacidade = potência de 2 para permitir wrap via bitmask.
+static constexpr int TUNER_RING_CAPACITY = 16384;
+static constexpr int TUNER_SCRATCH_MAX = TUNER_RING_CAPACITY / 2;
+static float tunerRing[TUNER_RING_CAPACITY];
+static std::atomic<uint32_t> tunerRingWrite{0};
+// Scratch buffer usado SOMENTE pela thread consumer. tunerScratchMutex
+// protege dos casos (raros) em que várias threads chamam
+// getDetectedFrequency concorrentemente — nunca é pego pelo audio callback.
+static float tunerScratch[TUNER_SCRATCH_MAX];
+static std::mutex tunerScratchMutex;
+
 static std::atomic<bool> tunerActive{false};
 static std::atomic<float> detectedFrequency{0.0f};
-static std::vector<float> tunerBuffer;
 static std::atomic<int> tunerSampleRate{48000};
 
 // Histórico de frequências para suavização
@@ -352,37 +361,46 @@ static std::string looperNotificationState = "stopped"; // stopped, recording, p
 
 void initAudioEngine() {
     std::lock_guard<std::mutex> lock(audioEngineMutex);
-    
-    // Inicializar buffers de oversampling
-    int oversampleSize = 4096 * oversamplingFactor.load();
-    oversampleBufferSize.store(oversampleSize);
-    oversampleBuffer.resize(oversampleSize);
-    downsampleBuffer.resize(oversampleSize);
-    
-    // Inicializar buffers de delay
+
+    // Pré-alocação dos buffers do hot path para o MÁXIMO que a engine pode
+    // precisar em qualquer sample rate suportada. Assim o audio callback
+    // nunca precisa pegar lock nem redimensionar buffers — ele só lê o
+    // tamanho ativo via atomic e o próprio vetor nunca muda de capacidade.
+
     int currentSampleRate = sampleRate.load();
+
+    // Delay: pior caso = MAX_DELAY_TIME * MAX_SAMPLE_RATE.
+    const int delayHardMax = (int)(MAX_DELAY_TIME * MAX_SAMPLE_RATE) + 1024;
+    delayBuffer.assign(delayHardMax, 0.0f);
     int delaySize = (int)(MAX_DELAY_TIME * currentSampleRate);
     MAX_DELAY_SAMPLES.store(delaySize);
     delayBufferSize.store(delaySize);
-    delayBuffer.resize(delaySize, 0.0f);
     delayBufferIndex.store(0);
-    
-    // Inicializar buffer de reverb
-    reverbBuffer.resize(REVERB_BUFFER_SIZE.load(), 0.0f);
+
+    // Reverb: pior caso = 100ms @ MAX_SAMPLE_RATE.
+    const int reverbHardMax = (MAX_SAMPLE_RATE / 10) + 1024;
+    reverbBuffer.assign(reverbHardMax, 0.0f);
     reverbIndex.store(0);
-    
-    // Inicializar buffers de modulação
+
+    // Oversampling: pior caso = MAX_BUFFER_SIZE * MAX_OVERSAMPLING_FACTOR.
+    const int oversampleHardMax = MAX_BUFFER_SIZE * MAX_OVERSAMPLING_FACTOR;
+    oversampleBuffer.assign(oversampleHardMax, 0.0f);
+    downsampleBuffer.assign(oversampleHardMax, 0.0f);
+    int oversampleSize = 4096 * oversamplingFactor.load();
+    oversampleBufferSize.store(oversampleSize);
+
+    // Modulação (chorus/flanger/phaser): pior caso = 1s @ MAX_SAMPLE_RATE.
+    const int modHardMax = MAX_SAMPLE_RATE;
+    chorusBuffer.assign(modHardMax, 0.0f);
+    flangerBuffer.assign(modHardMax, 0.0f);
+    phaserBuffer.assign(modHardMax, 0.0f);
+
     int modBufferSize = currentSampleRate; // 1 segundo
     chorusBufferSize.store(modBufferSize);
-    chorusBuffer.resize(modBufferSize, 0.0f);
     chorusBufferIndex.store(0);
-    
     flangerBufferSize.store(modBufferSize);
-    flangerBuffer.resize(modBufferSize, 0.0f);
     flangerBufferIndex.store(0);
-    
     phaserBufferSize.store(modBufferSize);
-    phaserBuffer.resize(modBufferSize, 0.0f);
     phaserBufferIndex.store(0);
     
     // Inicializar reverb de cauda do looper
@@ -446,8 +464,6 @@ void initAudioEngine() {
 
     // Marcar engine como inicializado
     isEngineInitialized.store(true);
-
-    printf("initAudioEngine: inicializado com taxa de amostragem %d Hz\n", currentSampleRate);
 }
 
 void cleanupAudioEngine() {
@@ -469,54 +485,40 @@ void setDistortion(float amount) {
     distortionAmount = amount;
 }
 
+// Hot-path buffers são pré-alocados no init. Os setters abaixo só
+// atualizam o "tamanho ativo" via atomic — o vetor nunca é redimensionado
+// em runtime. Isso elimina a necessidade de lock no audio callback.
+static int clampDelaySamples(int requested) {
+    const int hardMax = (int)delayBuffer.size();
+    if (requested < 0) return 0;
+    if (requested > hardMax) return hardMax;
+    return requested;
+}
+
 void setDelay(float time, float feedback) {
     delayTime = time;
     delayFeedback = feedback;
-    int newDelayBufferSize = (int)(time * sampleRate);
-    if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
-        newDelayBufferSize = MAX_DELAY_SAMPLES.load();
-    }
-    delayBufferSize.store(newDelayBufferSize);
-    delayBuffer.resize(delayBufferSize.load(), 0.0f);
+    delayBufferSize.store(clampDelaySamples((int)(time * sampleRate)));
 }
 
 void setDelayTime(float timeMs) {
     delayTimeMs = timeMs;
     if (!delaySyncBPM) {
-        // Converter ms para segundos e calcular samples
         delayTime = timeMs / 1000.0f;
-        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
-        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
-            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
-        }
-        delayBufferSize.store(newDelayBufferSize);
-        delayBuffer.resize(delayBufferSize.load(), 0.0f);
     } else {
-        // Calcular tempo baseado no BPM
         float beatLength = 60.0f / delayBPM.load();
         delayTime = beatLength / 4.0f; // Divisão por 4 (semínima)
-        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
-        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
-            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
-        }
-        delayBufferSize.store(newDelayBufferSize);
-        delayBuffer.resize(delayBufferSize.load(), 0.0f);
     }
+    delayBufferSize.store(clampDelaySamples((int)(delayTime.load() * sampleRate)));
 }
 
 void setDelaySyncBPM(bool sync) {
     delaySyncBPM = sync;
     if (sync) {
-        // Calcular tempo baseado no BPM
-        float beatTime = 60.0f / delayBPM.load(); // segundos por batida
-        delayTime = beatTime; // 1/4 nota
-        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
-        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
-            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
-        }
-        delayBufferSize.store(newDelayBufferSize);
+        float beatTime = 60.0f / delayBPM.load();
+        delayTime = beatTime;
+        delayBufferSize.store(clampDelaySamples((int)(delayTime.load() * sampleRate)));
     } else {
-        // Usar tempo em ms
         setDelayTime(delayTimeMs);
     }
 }
@@ -524,15 +526,9 @@ void setDelaySyncBPM(bool sync) {
 void setDelayBPM(int bpm) {
     delayBPM = bpm;
     if (delaySyncBPM) {
-        // Recalcular tempo de delay baseado no novo BPM
         float beatLength = 60.0f / bpm;
-        delayTime = beatLength / 4.0f; // Divisão por 4 (semínima)
-        int newDelayBufferSize = (int)(delayTime.load() * sampleRate);
-        if (newDelayBufferSize > MAX_DELAY_SAMPLES) {
-            newDelayBufferSize = MAX_DELAY_SAMPLES.load();
-        }
-        delayBufferSize.store(newDelayBufferSize);
-        delayBuffer.resize(delayBufferSize.load(), 0.0f);
+        delayTime = beatLength / 4.0f;
+        delayBufferSize.store(clampDelaySamples((int)(delayTime.load() * sampleRate)));
     }
 }
 
@@ -543,14 +539,12 @@ void setReverb(float roomSize, float damping) {
 
 void setSampleRate(int rate) {
     std::lock_guard<std::mutex> lock(audioEngineMutex);
-    
+
     // Validar taxa de amostragem
     if (rate < MIN_SAMPLE_RATE || rate > MAX_SAMPLE_RATE) {
-        printf("setSampleRate: taxa de amostragem inválida: %d (deve estar entre %d e %d)\n", 
-               rate, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE);
         return;
     }
-    
+
     // Atualizar taxas de amostragem
     sampleRate.store(rate);
     SAMPLE_RATE.store(rate);
@@ -562,44 +556,31 @@ void setSampleRate(int rate) {
     phaserSampleRate.store(rate);
     eqSampleRate.store(rate);
     compressorSampleRate.store(rate);
-    
-    // Ajustar buffers de delay baseados na nova taxa
-    int newDelaySamples = (int)(MAX_DELAY_TIME * rate);
+
+    // Os buffers do hot path foram pré-alocados com folga em initAudioEngine
+    // para o pior caso em MAX_SAMPLE_RATE — não redimensionamos em runtime.
+    // Só atualizamos os tamanhos ativos via atomic, que o audio callback lê
+    // lock-free.
+
+    int newDelaySamples = std::min((int)(MAX_DELAY_TIME * rate), (int)delayBuffer.size());
     MAX_DELAY_SAMPLES.store(newDelaySamples);
-    
-    std::lock_guard<std::mutex> delayLock(delayMutex);
-    if (newDelaySamples > 0 && newDelaySamples <= MAX_BUFFER_SIZE) {
-        delayBuffer.resize(newDelaySamples, 0.0f);
-        delayBufferSize.store(newDelaySamples);
-        delayBufferIndex.store(0);
-        printf("setSampleRate: Buffer de delay redimensionado para %d amostras\n", newDelaySamples);
-    } else {
-        printf("setSampleRate: Tamanho de buffer de delay inválido: %d\n", newDelaySamples);
-    }
-    
-    // Ajustar buffer de reverb baseado na nova taxa
-    int newReverbSize = std::min(rate / 10, MAX_BUFFER_SIZE); // 100ms de reverb
+    delayBufferSize.store(newDelaySamples);
+    delayBufferIndex.store(0);
+
+    int newReverbSize = std::min(rate / 10, (int)reverbBuffer.size()); // 100ms de reverb
     REVERB_BUFFER_SIZE.store(newReverbSize);
-    reverbBuffer.resize(newReverbSize, 0.0f);
     reverbIndex.store(0);
-    
-    // Ajustar buffers de modulação
-    int modBufferSize = std::min(rate, MAX_BUFFER_SIZE); // 1 segundo, limitado
-    std::lock_guard<std::mutex> effectsLock(effectsMutex);
-    
+
+    int modBufferSize = std::min(rate, (int)chorusBuffer.size()); // 1 segundo, limitado
     chorusBufferSize.store(modBufferSize);
-    chorusBuffer.resize(modBufferSize, 0.0f);
     chorusBufferIndex.store(0);
-    
     flangerBufferSize.store(modBufferSize);
-    flangerBuffer.resize(modBufferSize, 0.0f);
     flangerBufferIndex.store(0);
-    
     phaserBufferSize.store(modBufferSize);
-    phaserBuffer.resize(modBufferSize, 0.0f);
     phaserBufferIndex.store(0);
-    
-    // Ajustar buffer de reverb de cauda do looper
+
+    // Reverb tail e looper tracks não estão no hot-path de processSample
+    // (são usados em features separadas) — mantemos o resize protegido.
     if (looperReverbTailDecay.load() > 0.0f) {
         int reverbTailSize = std::min((int)(looperReverbTailDecay.load() * rate), MAX_BUFFER_SIZE);
         looperReverbTailSize.store(reverbTailSize);
@@ -607,24 +588,15 @@ void setSampleRate(int rate) {
         looperReverbTailIndex.store(0);
         looperReverbTailDecayCoeff.store(expf(-1.0f / (looperReverbTailDecay.load() * rate)));
     }
-    
-    // Ajustar buffers do looper
+
     int looperMaxSamples = std::min(rate * 30, MAX_BUFFER_SIZE); // 30 segundos, limitado
     LOOPER_MAX_SAMPLES.store(looperMaxSamples);
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
         looperTracks[i].resizeBuffer(looperMaxSamples);
     }
-    
-    // Ajustar buffers de oversampling
-    std::lock_guard<std::mutex> oversamplingLock(oversamplingMutex);
-    int oversampleSize = std::min(4096 * oversamplingFactor.load(), MAX_BUFFER_SIZE);
+
+    int oversampleSize = std::min(4096 * oversamplingFactor.load(), (int)oversampleBuffer.size());
     oversampleBufferSize.store(oversampleSize);
-    oversampleBuffer.resize(oversampleSize);
-    downsampleBuffer.resize(oversampleSize);
-    
-    printf("setSampleRate: Taxa de amostragem alterada para %d Hz\n", rate);
-    printf("setSampleRate: Buffers ajustados - Delay: %d, Reverb: %d, Mod: %d, Looper: %d\n",
-           newDelaySamples, newReverbSize, modBufferSize, looperMaxSamples);
 }
 
 void startMetronome(int bpm) {
@@ -633,7 +605,6 @@ void startMetronome(int bpm) {
     metronomeSampleCounter = 0;
     metronomeBeatCount = 0;
     metronomeActive = true;
-    printf("Metronome: iniciado com %d BPM, volume %.2f\n", bpm, metronomeVolume.load());
 }
 
 void stopMetronome() {
@@ -644,7 +615,6 @@ void stopMetronome() {
 
 void setMetronomeVolume(float volume) {
     metronomeVolume = std::max(0.0f, std::min(1.0f, volume));
-    printf("Metronome: volume alterado para %.2f\n", metronomeVolume.load());
 }
 
 void setMetronomeTimeSignature(int beats) {
@@ -715,38 +685,33 @@ void startLooperRecording() {
         int samplesToNextGrid = (int)((looperQuantizationGrid - currentBeatFraction) * metronomeSamplesPerBeat);
         if (samplesToNextGrid > 0) {
             looperQuantizationCounter = samplesToNextGrid;
-            printf("startLooperRecording: aguardando quantização (%d samples)\n", samplesToNextGrid);
             return; // Aguardar quantização
         }
     }
-    
+
     looperRecording = true;
     looperPlaying = false;
     looperWriteIndex = 0;
-    
+
     // Resetar contadores de fade
     looperFadeInCounter = 0;
-            looperFadeOutCounter.store(0);
-    
-    printf("startLooperRecording: iniciando gravação\n");
-    
+    looperFadeOutCounter.store(0);
+
     // Encontrar próxima faixa disponível
     bool foundTrack = false;
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
         if (!looperTracks[i].active) {
             currentTrack = i;
             foundTrack = true;
-            printf("startLooperRecording: usando track %d (disponível)\n", i);
             break;
         }
     }
-    
+
     // Se não encontrou faixa disponível, usar a primeira
     if (!foundTrack) {
         currentTrack = 0;
-        printf("startLooperRecording: usando track 0 (primeira)\n");
     }
-    
+
     // Limpar buffer da faixa atual
     std::fill(looperTracks[currentTrack].buffer.begin(), looperTracks[currentTrack].buffer.end(), 0.0f);
     looperTracks[currentTrack].length = 0;
@@ -754,19 +719,15 @@ void startLooperRecording() {
     looperTracks[currentTrack].muted = false;
     looperTracks[currentTrack].soloed = false;
     looperTracks[currentTrack].active = true;
-    
+
     // Atualizar estado da notificação
     looperNotificationState = "recording";
-    
-    printf("startLooperRecording: track %d configurada para gravação\n", currentTrack.load());
 }
 
 void stopLooperRecording() {
     looperRecording = false;
-    printf("stopLooperRecording: looperWriteIndex=%d, currentTrack=%d\n", looperWriteIndex.load(), currentTrack.load());
     if (looperWriteIndex > 0) {
         looperTracks[currentTrack].length.store(looperWriteIndex.load());
-        printf("stopLooperRecording: definido length=%d para track %d\n", looperWriteIndex.load(), currentTrack.load());
     }
     looperReadIndex = 0;
     
@@ -889,57 +850,38 @@ float processSample(float input) {
         }
     }
     
-    // Aplicar delay com verificações de segurança
+    // Aplicar delay — lock-free. O vetor delayBuffer é pré-alocado em
+    // initAudioEngine para o pior caso e nunca redimensiona em runtime.
+    // delayBufferSize é lido atomically; o tamanho do vetor subjacente é
+    // >= delayBufferSize sempre, então a indexação é segura.
     if (delayEnabled.load()) {
-        std::lock_guard<std::mutex> lock(delayMutex);
-        
-        int currentDelaySize = delayBufferSize.load();
+        const int currentDelaySize = delayBufferSize.load();
         int currentDelayIndex = delayBufferIndex.load();
-        
-        if (currentDelaySize > 0 && currentDelaySize <= MAX_BUFFER_SIZE) {
-            // Verificar se o índice está dentro dos limites
-            if (currentDelayIndex >= 0 && currentDelayIndex < currentDelaySize) {
-                float delayedSample = delayBuffer[currentDelayIndex];
-                output += delayedSample * delayFeedback.load();
-                
-                // Atualizar buffer de delay com verificação de limites
-                delayBuffer[currentDelayIndex] = output;
-                currentDelayIndex = (currentDelayIndex + 1) % currentDelaySize;
-                delayBufferIndex.store(currentDelayIndex);
-            } else {
-                // Resetar índice se estiver fora dos limites
-                delayBufferIndex.store(0);
-                printf("processSample: Índice de delay fora dos limites, resetando\n");
+        if (currentDelaySize > 0) {
+            if (currentDelayIndex < 0 || currentDelayIndex >= currentDelaySize) {
+                currentDelayIndex = 0;
             }
-        } else {
-            printf("processSample: Tamanho de buffer de delay inválido: %d\n", currentDelaySize);
+            float delayedSample = delayBuffer[currentDelayIndex];
+            output += delayedSample * delayFeedback.load();
+            delayBuffer[currentDelayIndex] = output;
+            currentDelayIndex = (currentDelayIndex + 1) % currentDelaySize;
+            delayBufferIndex.store(currentDelayIndex);
         }
     }
-    
-    // Aplicar reverb com verificações de segurança
+
+    // Aplicar reverb — mesma lógica: buffer pré-alocado, lock-free.
     if (reverbEnabled.load()) {
-        std::lock_guard<std::mutex> lock(effectsMutex);
-        
-        int currentReverbSize = REVERB_BUFFER_SIZE.load();
+        const int currentReverbSize = REVERB_BUFFER_SIZE.load();
         int currentReverbIndex = reverbIndex.load();
-        
-        if (currentReverbSize > 0 && currentReverbSize <= MAX_BUFFER_SIZE) {
-            // Verificar se o índice está dentro dos limites
-            if (currentReverbIndex >= 0 && currentReverbIndex < currentReverbSize) {
-                float reverbSample = reverbBuffer[currentReverbIndex];
-                output = output * (1.0f - reverbRoomSize.load()) + reverbSample * reverbRoomSize.load();
-                
-                // Atualizar buffer de reverb com verificação de limites
-                reverbBuffer[currentReverbIndex] = output;
-                currentReverbIndex = (currentReverbIndex + 1) % currentReverbSize;
-                reverbIndex.store(currentReverbIndex);
-            } else {
-                // Resetar índice se estiver fora dos limites
-                reverbIndex.store(0);
-                printf("processSample: Índice de reverb fora dos limites, resetando\n");
+        if (currentReverbSize > 0) {
+            if (currentReverbIndex < 0 || currentReverbIndex >= currentReverbSize) {
+                currentReverbIndex = 0;
             }
-        } else {
-            printf("processSample: Tamanho de buffer de reverb inválido: %d\n", currentReverbSize);
+            float reverbSample = reverbBuffer[currentReverbIndex];
+            output = output * (1.0f - reverbRoomSize.load()) + reverbSample * reverbRoomSize.load();
+            reverbBuffer[currentReverbIndex] = output;
+            currentReverbIndex = (currentReverbIndex + 1) % currentReverbSize;
+            reverbIndex.store(currentReverbIndex);
         }
     }
     
@@ -972,16 +914,13 @@ void downsample(const float* input, float* output, int numSamples) {
 }
 
 void processBuffer(float* input, float* output, int numSamples, int inputLength, int outputLength) {
-    // Verificar parâmetros básicos
+    // Audio callback — hot path. Zero locks, zero allocs, zero I/O.
     if (input == nullptr || output == nullptr || numSamples <= 0) {
-        printf("processBuffer: Parâmetros inválidos - input: %p, output: %p, numSamples: %d\n",
-               input, output, numSamples);
         return;
     }
 
-    // Verificar se o engine foi inicializado - passthrough se não
+    // Passthrough se a engine não foi inicializada.
     if (!isEngineInitialized.load()) {
-        // Copiar input para output (passthrough)
         int copySize = std::min(numSamples, std::min(inputLength, outputLength));
         if (copySize > 0) {
             memcpy(output, input, copySize * sizeof(float));
@@ -989,93 +928,105 @@ void processBuffer(float* input, float* output, int numSamples, int inputLength,
         return;
     }
 
-    // Ajustar numSamples se os buffers forem menores que o necessário
+    // Clamp no tamanho real dos buffers passados.
     if (inputLength < numSamples || outputLength < numSamples) {
         int available = std::min(inputLength, outputLength);
-        if (available <= 0) {
-            printf("processBuffer: Buffers insuficientes - inputLen: %d, outputLen: %d\n", inputLength, outputLength);
-            return;
-        }
-        printf("processBuffer: Ajustando numSamples de %d para %d devido ao tamanho dos buffers\n",
-               numSamples, available);
+        if (available <= 0) return;
         numSamples = available;
     }
-    
-    // Verificar se há efeitos ativos para evitar processamento desnecessário
-    bool hasActiveEffects = gainEnabled.load() || distortionEnabled.load() || delayEnabled.load() || 
-                           reverbEnabled.load() || chorusEnabled.load() || flangerEnabled.load() || 
-                           phaserEnabled.load() || eqEnabled.load() || compressorEnabled.load();
-    
+
+    // Fast path: nenhum efeito ativo → passthrough.
+    const bool hasActiveEffects = gainEnabled.load() || distortionEnabled.load() || delayEnabled.load() ||
+                                  reverbEnabled.load() || chorusEnabled.load() || flangerEnabled.load() ||
+                                  phaserEnabled.load() || eqEnabled.load() || compressorEnabled.load();
     if (!hasActiveEffects) {
-        // Se não há efeitos ativos, apenas copiar o buffer
         memcpy(output, input, numSamples * sizeof(float));
         return;
     }
-    
-    // Verificar oversampling de forma thread-safe
+
+    // Oversampling. Os buffers são pré-alocados em initAudioEngine para o
+    // pior caso (MAX_BUFFER_SIZE * MAX_OVERSAMPLING_FACTOR) — nunca
+    // redimensionam em runtime.
     bool oversampling = oversamplingEnabled.load();
     int factor = oversamplingFactor.load();
-    
-    // Validar fator de oversampling
     if (factor < 1 || factor > MAX_OVERSAMPLING_FACTOR) {
-        printf("processBuffer: Fator de oversampling inválido: %d, usando 1x\n", factor);
         factor = 1;
         oversampling = false;
     }
-    
+
     if (!oversampling || factor <= 1) {
-        // Processamento normal sem oversampling
         for (int i = 0; i < numSamples; ++i) {
             output[i] = processSample(input[i]);
         }
     } else {
-        // Processamento com oversampling otimizado
+        const int oversampleCapacity = (int)oversampleBuffer.size();
         int oversampledSize = numSamples * factor;
-        
-        // Verificar se o tamanho não excede os limites
-        if (oversampledSize > MAX_BUFFER_SIZE) {
-            printf("processBuffer: Tamanho de buffer oversampled muito grande: %d, limitando\n", oversampledSize);
-            oversampledSize = MAX_BUFFER_SIZE;
+        if (oversampledSize > oversampleCapacity) {
+            oversampledSize = oversampleCapacity;
             numSamples = oversampledSize / factor;
         }
-        
-        // Garantir que os buffers tenham tamanho suficiente com proteção thread-safe
-        std::lock_guard<std::mutex> lock(oversamplingMutex);
-        if (oversampleBuffer.size() < oversampledSize) {
-            oversampleBuffer.resize(oversampledSize);
-            downsampleBuffer.resize(oversampledSize);
-            oversampleBufferSize.store(oversampledSize);
-            printf("processBuffer: Buffers de oversampling redimensionados para %d\n", oversampledSize);
-        }
-        
-        // Upsampling
+
         upsample(input, oversampleBuffer.data(), numSamples);
-        
-        // Processar na taxa alta
         for (int i = 0; i < oversampledSize; ++i) {
             downsampleBuffer[i] = processSample(oversampleBuffer[i]);
         }
-        
-        // Downsampling
         downsample(downsampleBuffer.data(), output, numSamples);
     }
 }
 
 void startTuner() {
-    std::lock_guard<std::mutex> lock(tunerMutex);
-    tunerActive = true;
-    tunerBuffer.clear();
+    // Zerar ring e histórico. Feito fora do audio callback, antes de
+    // tunerActive virar true.
+    std::memset(tunerRing, 0, sizeof(tunerRing));
+    tunerRingWrite.store(0, std::memory_order_release);
+    for (int i = 0; i < FREQ_SMOOTH_SIZE; ++i) freqHistory[i] = 0.0f;
+    freqHistoryIdx.store(0);
+    detectedFrequency.store(0.0f);
+    tunerActive.store(true);
 }
 
 void stopTuner() {
-    std::lock_guard<std::mutex> lock(tunerMutex);
-    tunerActive = false;
-    tunerBuffer.clear();
-    detectedFrequency = 0.0f;
+    tunerActive.store(false);
+    detectedFrequency.store(0.0f);
 }
 
-bool isTunerActive() { return tunerActive; }
-float getDetectedFrequency() { return detectedFrequency; }
+bool isTunerActive() { return tunerActive.load(); }
+
+float getDetectedFrequency() {
+    // Consumer path — roda fora do audio callback. Faz snapshot dos últimos
+    // ~100ms do ring buffer e roda a detecção de pitch aqui, atualizando o
+    // valor cached via atomic.
+    if (!tunerActive.load()) return detectedFrequency.load();
+
+    int sr = tunerSampleRate.load();
+    int windowSize = sr / 10; // 100ms
+    if (windowSize > TUNER_SCRATCH_MAX) windowSize = TUNER_SCRATCH_MAX;
+    if (windowSize <= 0) return detectedFrequency.load();
+
+    // Precisa de pelo menos 1 janela cheia de samples.
+    uint32_t w = tunerRingWrite.load(std::memory_order_acquire);
+    if (w < (uint32_t)windowSize) return detectedFrequency.load();
+
+    std::lock_guard<std::mutex> lock(tunerScratchMutex);
+    uint32_t start = w - (uint32_t)windowSize;
+    for (int i = 0; i < windowSize; ++i) {
+        tunerScratch[i] = tunerRing[(start + i) & (TUNER_RING_CAPACITY - 1)];
+    }
+
+    float freq = detectPitch(tunerScratch, windowSize, sr);
+    int idx = freqHistoryIdx.load();
+    freqHistory[idx] = freq;
+    freqHistoryIdx.store((idx + 1) % FREQ_SMOOTH_SIZE);
+
+    float sum = 0.0f;
+    int count = 0;
+    for (int i = 0; i < FREQ_SMOOTH_SIZE; ++i) {
+        if (freqHistory[i] > 0.0f) { sum += freqHistory[i]; count++; }
+    }
+    float smoothed = (count > 0) ? (sum / count) : 0.0f;
+    detectedFrequency.store(smoothed);
+    return smoothed;
+}
 
 // Função auxiliar: autocorrelação normalizada para pitch detection
 static float detectPitch(const float* buffer, int numSamples, int sampleRate) {
@@ -1108,22 +1059,15 @@ static float detectPitch(const float* buffer, int numSamples, int sampleRate) {
 }
 
 void processTunerBuffer(const float* input, int numSamples) {
-    if (!tunerActive || numSamples <= 0 || input == nullptr) return;
-    std::lock_guard<std::mutex> lock(tunerMutex);
-    tunerBuffer.insert(tunerBuffer.end(), input, input + numSamples);
-    int windowSize = tunerSampleRate / 10; // 100ms
-    if ((int)tunerBuffer.size() >= windowSize) {
-        float freq = detectPitch(tunerBuffer.data(), windowSize, tunerSampleRate);
-        // Filtro de média móvel para suavizar
-        freqHistory[freqHistoryIdx] = freq;
-        freqHistoryIdx = (freqHistoryIdx + 1) % FREQ_SMOOTH_SIZE;
-        float sum = 0.0f; int count = 0;
-        for (int i = 0; i < FREQ_SMOOTH_SIZE; ++i) {
-            if (freqHistory[i] > 0.0f) { sum += freqHistory[i]; count++; }
-        }
-        detectedFrequency = (count > 0) ? (sum / count) : 0.0f;
-        tunerBuffer.erase(tunerBuffer.begin(), tunerBuffer.begin() + windowSize/2); // overlap
+    // Audio callback — lock-free. Só copia samples no ring buffer
+    // pré-alocado e avança o write index atomicamente. A detecção de pitch
+    // (cara) roda em getDetectedFrequency, chamada pelo UI thread.
+    if (!tunerActive.load() || numSamples <= 0 || input == nullptr) return;
+    uint32_t w = tunerRingWrite.load(std::memory_order_relaxed);
+    for (int i = 0; i < numSamples; ++i) {
+        tunerRing[(w + (uint32_t)i) & (TUNER_RING_CAPACITY - 1)] = input[i];
     }
+    tunerRingWrite.store(w + (uint32_t)numSamples, std::memory_order_release);
 }
 
 float getDelayTime() { return delayTime; }
@@ -1155,44 +1099,24 @@ float processSampleWithOversampling(float input) {
     return output;
 }
 
-// Funções para controlar Oversampling
+// Funções para controlar Oversampling — os buffers foram pré-alocados em
+// initAudioEngine para o pior caso (MAX_BUFFER_SIZE * MAX_OVERSAMPLING_FACTOR),
+// então os setters só atualizam atomics sem tocar nos vetores.
 void setOversamplingEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(oversamplingMutex);
     oversamplingEnabled = enabled;
-    printf("setOversamplingEnabled: %s\n", enabled ? "true" : "false");
 }
 
 void setOversamplingFactor(int factor) {
-    std::lock_guard<std::mutex> lock(oversamplingMutex);
-    
-    // Validar fator de oversampling
     if (factor < 1 || factor > MAX_OVERSAMPLING_FACTOR) {
-        printf("setOversamplingFactor: Fator inválido %d, deve estar entre 1 e %d\n", 
-               factor, MAX_OVERSAMPLING_FACTOR);
         return;
     }
-    
-    // Verificar se o novo fator não causará problemas de memória
-    int currentSampleRate = sampleRate.load();
     int newBufferSize = 4096 * factor;
-    
-    if (newBufferSize > MAX_BUFFER_SIZE) {
-        printf("setOversamplingFactor: Buffer muito grande %d, limitando fator\n", newBufferSize);
-        factor = MAX_BUFFER_SIZE / 4096;
+    if (newBufferSize > (int)oversampleBuffer.size()) {
+        factor = (int)oversampleBuffer.size() / 4096;
         newBufferSize = 4096 * factor;
     }
-    
     oversamplingFactor = factor;
-    
-    // Redimensionar buffers se necessário
-    if (oversampleBuffer.size() < newBufferSize) {
-        oversampleBuffer.resize(newBufferSize);
-        downsampleBuffer.resize(newBufferSize);
-        oversampleBufferSize.store(newBufferSize);
-        printf("setOversamplingFactor: Buffers redimensionados para %d amostras\n", newBufferSize);
-    }
-    
-    printf("setOversamplingFactor: %dx oversampling configurado\n", factor);
+    oversampleBufferSize.store(newBufferSize);
 }
 
 bool isOversamplingEnabled() {
@@ -1206,9 +1130,9 @@ int getOversamplingFactor() {
 // Implementações das novas funções do looper avançado
 
 int getLooperLength() {
-    int length = looperTracks[currentTrack].length;
-    printf("getLooperLength: currentTrack=%d, length=%d\n", currentTrack.load(), length);
-    return length;
+    int track = currentTrack.load();
+    if (track < 0 || track >= LOOPER_MAX_TRACKS) return 0;
+    return looperTracks[track].length;
 }
 
 int getLooperPosition() {
@@ -1279,25 +1203,19 @@ void setLooperSyncEnabled(bool enabled) {
 float* getLooperMix(int* outLength) {
     // Encontrar o maior comprimento de faixa
     int maxLength = 0;
-    int activeTracks = 0;
-    
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
         if (looperTracks[i].active && looperTracks[i].length > 0) {
-            activeTracks++;
             if (looperTracks[i].length > maxLength) {
                 maxLength = looperTracks[i].length;
             }
         }
     }
-    
-    // Log para debug
-    printf("getLooperMix: activeTracks=%d, maxLength=%d\n", activeTracks, maxLength);
-    
+
     if (maxLength == 0) {
-        *outLength = 0;
+        if (outLength) *outLength = 0;
         return nullptr;
     }
-    
+
     float* mix = new float[maxLength];
     for (int i = 0; i < maxLength; i++) {
         float sum = 0.0f;
@@ -1306,15 +1224,17 @@ float* getLooperMix(int* outLength) {
                 sum += looperTracks[t].buffer[i] * looperTracks[t].volume;
             }
         }
-        // Limitar para evitar clipping
         if (sum > 1.0f) sum = 1.0f;
         if (sum < -1.0f) sum = -1.0f;
         mix[i] = sum;
     }
-    
-    *outLength = maxLength;
-    printf("getLooperMix: retornando mix com %d samples\n", maxLength);
+
+    if (outLength) *outLength = maxLength;
     return mix;
+}
+
+void releaseLooperMix(float* buffer) {
+    delete[] buffer;
 }
 
 void loadLooperFromAudio(const float* audioData, int length) {

@@ -72,6 +72,7 @@ class RecorderCubit extends Cubit<RecorderState> {
   final ToneforgeEngine _engine;
   Timer? _pollTimer;
   bool _ownsEngine = false;
+  bool _stopping = false;
 
   Future<Directory> _recordingsDir() async {
     final docs = await getApplicationDocumentsDirectory();
@@ -93,8 +94,10 @@ class RecorderCubit extends Cubit<RecorderState> {
         return Recording(file: f, sizeBytes: stat.size, modified: stat.modified);
       }).toList()
         ..sort((a, b) => b.modified.compareTo(a.modified));
+      if (isClosed) return;
       emit(state.copyWith(recordings: recordings));
     } catch (e) {
+      if (isClosed) return;
       emit(state.copyWith(errorMessage: 'Falha ao listar gravações: $e'));
     }
   }
@@ -126,20 +129,23 @@ class RecorderCubit extends Cubit<RecorderState> {
     ));
 
     _pollTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (isClosed) return;
       emit(state.copyWith(elapsedSeconds: _engine.recordedSeconds));
       // Buffer encheu: o native desativou sozinho. Refletimos na UI.
-      if (!_engine.isRecording && state.isRecording) {
-        _stopAndSave();
+      if (!_engine.isRecording && state.isRecording && !_stopping) {
+        unawaited(_stopAndSave());
       }
     });
   }
 
   Future<void> stopRecording() async {
-    if (!state.isRecording) return;
+    if (!state.isRecording || _stopping) return;
     await _stopAndSave();
   }
 
   Future<void> _stopAndSave() async {
+    if (_stopping) return;
+    _stopping = true;
     _pollTimer?.cancel();
     _pollTimer = null;
 
@@ -153,6 +159,10 @@ class RecorderCubit extends Cubit<RecorderState> {
       _engine.stop();
       _ownsEngine = false;
     }
+
+    _stopping = false;
+
+    if (isClosed) return;
 
     if (rc != 0) {
       emit(state.copyWith(
