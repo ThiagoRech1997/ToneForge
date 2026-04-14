@@ -7,10 +7,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../theme/app_colors.dart';
 
 import '../../engine/engine.dart';
+import '../settings/settings_cubit.dart' show kPrefShowBenchmarkTelemetry;
 
 class BenchmarkScreen extends StatefulWidget {
   const BenchmarkScreen({super.key});
@@ -27,6 +29,25 @@ class _BenchmarkScreenState extends State<BenchmarkScreen> {
   double _latencyMs = -1;
   int _xruns = 0;
   int _sampleRate = 0;
+  bool _showTelemetry = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTelemetryPref();
+  }
+
+  Future<void> _loadTelemetryPref() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      setState(() {
+        _showTelemetry = prefs.getBool(kPrefShowBenchmarkTelemetry) ?? true;
+      });
+    } catch (_) {
+      // Mantém o default `true` se SharedPreferences falhar.
+    }
+  }
 
   @override
   void dispose() {
@@ -115,31 +136,40 @@ class _BenchmarkScreenState extends State<BenchmarkScreen> {
               child: Text(_effectsOn ? 'Desengajar efeitos' : 'Engajar TODOS os efeitos'),
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.elevated,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.muted),
-              ),
-              child: DefaultTextStyle(
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  color: AppColors.success,
-                  fontSize: 13,
+            if (_showTelemetry)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.elevated,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.muted),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('running      : $_running'),
-                    Text('sample rate  : $_sampleRate Hz'),
-                    Text('latency rt   : ${_latencyMs.toStringAsFixed(2)} ms'),
-                    Text('xruns        : $_xruns'),
-                    Text('effects on   : $_effectsOn'),
-                  ],
+                child: DefaultTextStyle(
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    color: AppColors.success,
+                    fontSize: 13,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('running      : $_running'),
+                      Text('sample rate  : $_sampleRate Hz'),
+                      Text('latency rt   : ${_latencyMs.toStringAsFixed(2)} ms'),
+                      Text('xruns        : $_xruns'),
+                      Text('effects on   : $_effectsOn'),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Text(
+                'Telemetria oculta (habilite em Settings → Preferências).',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textTertiary,
                 ),
               ),
-            ),
           ],
         ),
       ),
