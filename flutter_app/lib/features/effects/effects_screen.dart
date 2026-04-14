@@ -232,21 +232,19 @@ class EffectsScreen extends StatelessWidget {
     ].where((e) => e).length;
   }
 
+  /// Renderiza o signal chain strip na mesma ordem que o usuário definiu
+  /// via drag-and-drop (state.order). Só inclui os efeitos habilitados.
+  /// Ver TFR-45: antes, o strip tinha ordem hardcoded e não refletia
+  /// as reordenações feitas no _ChainReorderList abaixo.
   List<SignalChainNode> _buildChain(EffectsState s) {
     final nodes = <SignalChainNode>[];
-    void add(bool enabled, String label, Color c) {
-      if (enabled) nodes.add(SignalChainNode(label: label, accent: c));
+    for (final kind in s.order) {
+      if (!_ChainReorderList._enabledFor(s, kind)) continue;
+      nodes.add(SignalChainNode(
+        label: kind.shortLabel,
+        accent: _ChainReorderList._accentFor(kind),
+      ));
     }
-
-    add(s.gain.enabled, 'Gain', AppColors.warning);
-    add(s.distortion.enabled, 'Dist', AppColors.warning);
-    add(s.compressor.enabled, 'Comp', AppColors.accentRecorder);
-    add(s.eq.enabled, 'EQ', AppColors.accentMidi);
-    add(s.chorus.enabled, 'Chorus', AppColors.primary);
-    add(s.flanger.enabled, 'Flanger', AppColors.primary);
-    add(s.phaser.enabled, 'Phaser', AppColors.primary);
-    add(s.delay.enabled, 'Delay', AppColors.success);
-    add(s.reverb.enabled, 'Reverb', AppColors.accentTuner);
     return nodes;
   }
 }
