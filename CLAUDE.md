@@ -2,33 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ⚠️ Migration status — READ THIS FIRST
+## Project layout
 
-The project is **mid-migration** from a native Android Java app to a Flutter
-cross-platform app sharing the same C++ audio engine. When making changes,
-know which frontend you are touching:
+The project has exactly two first-class trees:
 
 - **`engine/`** — portable C++17 library. Single source of truth for DSP and
-  audio I/O backends. Consumed by both frontends.
-- **`flutter_app/`** — **canonical frontend going forward**. New features
-  belong here. Consumes the engine via Dart FFI.
-- **`app/`** — **legacy Android Java app, deprecated**. Still builds, still
-  runs, kept as fallback until iOS is validated. **Do not add new features
-  here.** See [`app/DEPRECATED.md`](app/DEPRECATED.md) for the full policy.
+  audio I/O backends (Oboe on Android, AudioUnit/AVAudioSession on iOS).
+- **`flutter_app/`** — Flutter cross-platform frontend. Consumes the engine
+  via Dart FFI and ships the same binary to Android (gradle) and iOS
+  (CocoaPods). All new features belong here.
 
-Live migration dashboard: [`docs/migration-status.md`](docs/migration-status.md).
-Strategic plan (phases 0–5) is what drove the work and decisions.
+The legacy Android Java app that lived in `app/` was removed in Fase 5 of
+the migration. Its last buildable state is preserved under the
+`legacy-android-final` git tag — cherry-pick from there in emergencies:
 
-Current phase: **Fase 5** (deprecating `app/` via docs and policy, not code
-removal — removal is blocked on Fase 4.7 iOS validation).
+```bash
+git checkout legacy-android-final -- app/
+```
+
+Fase 4.7 (the first iOS build on macOS) has **not been validated yet** at
+the time of the Fase 5 removal — see `docs/migration-status.md` and the
+`phase0_validation_decision` memory entry for the accepted risk rationale.
 
 ## Project Overview
 
 ToneForge is a real-time digital multi-effects pedalboard for guitar. The
 audio engine is written in portable C++17 (`engine/`) and supports low-latency
-I/O on Android (Oboe) and iOS (AudioUnit/AVAudioSession). The same engine is
-consumed by a legacy Android Java frontend (`app/`, deprecated) and a Flutter
-frontend (`flutter_app/`, canonical).
+I/O on Android (Oboe) and iOS (AudioUnit/AVAudioSession). The Flutter app in
+`flutter_app/` is the canonical (and only) frontend; it consumes the engine
+via Dart FFI on both platforms.
 
 ## Development Commands
 
@@ -53,168 +55,99 @@ cd ios && pod install && cd ..
 fvm flutter build ios --debug --no-codesign
 ```
 
-### Legacy Android (maintenance only)
+### Validation and utilities
 
 ```bash
-# Build debug APK
-./gradlew assembleDebug
-
-# Build and install on device
-./gradlew installDebug
-
-# Clean build
-./gradlew clean assembleDebug
-
-# Run unit tests
-./gradlew test
-
-# Run instrumentation tests (requires connected device)
-./gradlew connectedAndroidTest
-
-# Generate coverage report
-./gradlew jacocoTestReport
-
-# Run functional validation (comprehensive check)
+# Comprehensive functional validation (engine headers + flutter_app analyze + build)
 ./scripts/functional-validation.sh
 
-# Install APK manually
-adb install app/build/outputs/apk/debug/app-debug.apk
-
-# View logs filtered by ToneForge
-adb logcat -s ToneForge:* AudioEngine:* PipelineManager:* AudioRepository:*
-```
-
-### Testing Individual Components
-```bash
-# Run specific test class
-./gradlew test --tests "com.thiagofernendorech.toneforge.SpecificTestClass"
-
-# Run tests with pattern
-./gradlew test --tests "*Presenter*"
-
-# Run instrumented tests for specific class
-./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.thiagofernendorech.toneforge.YourTestClass
-```
-
-### Environment Setup
-```bash
-# Setup development environment
+# Setup development environment (Android SDK, NDK, Flutter)
 ./scripts/setup/setup-dev-environment.sh
 
 # Verify environment configuration
 ./scripts/verify-environment.sh
 
-# Test on connected device
-./scripts/test-app-device.sh
-```
-
-### Other Utilities
-```bash
-# Check lint
-./gradlew lint
-
-# Create release
-./scripts/create-release.sh 1.0.0 "Release message"
-
 # Clean logs
 ./scripts/clean-logs.sh
 ```
 
+### Viewing logs on a connected device
+
+```bash
+# Flutter app logs (legacy Android tags no longer exist)
+adb logcat -s ToneForgeAudioIO:* flutter:*
+```
+
 ## Architecture Overview
 
-ToneForge follows **Clean Architecture** principles with **MVP (Model-View-Presenter)** pattern. The project is organized into three main layers:
+ToneForge follows a two-layer architecture split cleanly along the Dart FFI boundary.
 
 ### Layer Structure
 
 ```
-app/src/main/java/com/thiagofernendorech/toneforge/
-├── domain/              # Business logic (framework-independent)
-│   ├── interfaces/      # Port definitions
-│   ├── models/          # Domain models
-│   └── usecases/        # Use cases
-├── data/                # Data layer
-│   └── repository/      # AudioRepository (centralized audio operations)
-├── infrastructure/      # Framework implementations
-│   ├── adapters/        # Adapter implementations
-│   ├── audio/           # AudioEngine, PipelineManager, AudioStateManager
-│   ├── loops/           # Loop management utilities
-│   ├── midi/            # MIDI integration
-│   ├── permissions/     # Permission handling
-│   ├── presets/         # Preset management
-│   ├── services/        # Background services
-│   ├── state/           # State management
-│   └── ui/              # UI utilities
-└── ui/                  # Presentation layer
-    ├── activities/      # MainActivity, BaseActivity
-    ├── base/            # BaseFragment, BasePresenter, BaseView
-    ├── fragments/       # Feature fragments (MVP pattern)
-    ├── components/      # Reusable components
-    ├── navigation/      # NavigationController
-    └── widgets/         # Custom widgets
+engine/                          # Portable C++17 audio library
+├── include/toneforge/           # Public C API headers
+│   ├── audio_engine.h           # DSP and effects (extern "C")
+│   ├── audio_io.h               # Lifecycle: start/stop/latency/xruns
+│   ├── recorder.h               # Post-FX recorder
+│   └── loop_io.h                # Looper WAV save
+└── src/
+    ├── audio_engine.cpp         # ~1.9k lines of platform-agnostic DSP
+    ├── audio_io_oboe.cpp        # Android backend (Oboe)
+    ├── audio_io_coreaudio.mm    # iOS backend (AudioUnit/CoreAudio/AVAudioSession)
+    ├── recorder.cpp             # Lock-free post-FX buffer → WAV writer
+    ├── loop_io.cpp              # Looper mix → WAV
+    └── wav_writer.{h,cpp}       # Shared WAV writer helper
+
+flutter_app/lib/                 # Flutter frontend
+├── engine/
+│   ├── bindings.dart            # ffigen-generated FFI bindings (~1.7k lines)
+│   └── engine.dart              # ToneforgeEngine singleton wrapper
+├── features/                    # One subdir per feature (Cubit + Screen)
+│   ├── tuner/
+│   ├── metronome/
+│   ├── effects/                 # Includes presets/
+│   ├── recorder/
+│   ├── looper/
+│   ├── loop_library/
+│   ├── automation/
+│   ├── midi/
+│   ├── settings/
+│   └── benchmark/
+└── main.dart                    # HomeScreen + navigation
 ```
 
-### Key Architectural Components
+### Key architectural components
 
-**AudioRepository (Data Layer)**
-- Centralized singleton for all audio operations
-- Abstracts complexity of audio managers
-- Manages: AudioEngine, PipelineManager, StateManager, LatencyManager, PresetManager, AutomationManager, MidiManager
-- Located at: `data/repository/AudioRepository.java`
+**engine (C++)**
+- Only source of truth for DSP and audio I/O. Same code compiled both on
+  Android (Oboe backend, CMake) and iOS (CoreAudio backend, CocoaPods via
+  `engine/toneforge_engine.podspec`).
+- Public API is pure C with `extern "C"` guards + `<stdbool.h>` so ffigen
+  can parse it. Never use C++ types in public headers.
+- Audio callback is the only place that must remain lock-free; lifecycle
+  (start/stop) uses a mutex.
+- Backends chain input samples to `processTunerBuffer` (if tuner active)
+  and output samples to `recorder_feed` (if recording active) — same
+  pattern in both Oboe and CoreAudio backends.
 
-**PipelineManager (Infrastructure)**
-- Manages audio pipeline lifecycle (initialization, start, stop)
-- Handles AudioRecord and AudioTrack
-- Manages real-time audio thread
-- Detects optimal sample rate
-- Located at: `infrastructure/audio/PipelineManager.java`
+**ToneforgeEngine (Dart)**
+- Singleton wrapping `bindings.dart`. Loads `libtoneforge_engine.so`
+  on Android and falls back to `DynamicLibrary.process()` on iOS (where
+  the engine is statically linked into the Runner via CocoaPods).
+- Exposes idiomatic Dart methods; calls through to the FFI bindings
+  without holding any intermediate state — everything lives in C++.
+- `snapshotLooperMix` / `loadLooperFromFloats` handle the `Pointer<Float>`
+  marshaling explicitly, freeing any allocations in `finally`.
 
-**AudioEngine (Infrastructure)**
-- JNI bridge to native C++ audio processing
-- Singleton pattern with native library loading
-- Wrapper methods for all effects with error handling
-- Located at: `infrastructure/audio/AudioEngine.java`
-
-**NavigationController (UI)**
-- Manages fragment navigation throughout the app
-- Handles fragment transactions and back stack
-- Located at: `ui/navigation/NavigationController.java`
-
-### Native C++ Layer
-
-```
-app/src/main/cpp/
-├── audio_engine.cpp     # Core audio DSP implementation
-├── native-lib.cpp       # JNI interface (Java ↔ C++)
-└── CMakeLists.txt       # CMake build configuration
-```
-
-**JNI Naming Convention:**
-- All JNI functions use `Native` suffix for compatibility (e.g., `setGainEnabledNative`)
-- Wrapper methods in Java call these native functions with error handling
-- Effects control: `setXXXEnabled()`, `setXXXLevel()`, `setXXXMix()`
-
-### MVP Pattern Implementation
-
-All refactored fragments follow this structure:
-
-```
-fragments/<feature>/
-├── <Feature>Contract.java        # Interface definitions (View, Presenter)
-├── <Feature>Presenter.java       # Business logic
-└── <Feature>FragmentRefactored.java  # UI implementation
-```
-
-**✅ Refactored Fragments (MVP):**
-- `HomeFragmentRefactored` - Main navigation hub
-- `EffectsFragmentRefactored` - Complete effects system with drag-and-drop reordering
-- `LooperFragmentRefactored` - Multi-track loop recorder with advanced features
-- `TunerFragmentRefactored` - Real-time pitch detection tuner
-- `MetronomeFragmentRefactored` - BPM-synchronized metronome
-- `RecorderFragmentRefactored` - Audio recording functionality
-- `SettingsFragmentRefactored` - App settings and preferences
-- `LoopLibraryFragmentRefactored` - Loop file management
-
-**Legacy Fragments:** Original fragments still exist for compatibility but should not be modified.
+**Cubits (flutter_bloc)**
+- One Cubit per feature in `lib/features/<feature>/<feature>_cubit.dart`.
+- Each Cubit owns the engine lifecycle for its feature (`_ensurePipeline`
+  → `_engine.start()` if not running → feature-specific setup).
+- State classes are immutable with `copyWith`. Cubits emit new instances,
+  never mutate.
+- Pollers (position, waveform, latency) use `Timer.periodic` and get
+  cancelled in `close()`.
 
 ## Audio System Architecture
 
@@ -223,158 +156,120 @@ fragments/<feature>/
 ```
 Input (Microphone/Line-in)
     ↓
-AudioRecord (PipelineManager)
+Oboe input stream (audio_io_oboe.cpp on Android)
+CoreAudio/RemoteIO input (audio_io_coreaudio.mm on iOS)
     ↓
-Native C++ Processing (audio_engine.cpp)
-    ├─ Effect 1 (customizable order)
-    ├─ Effect 2
-    ├─ Effect N
-    └─ Mix & Output Buffer
+Render callback (onAudioReady / renderCallback)
+    ├─ processTunerBuffer(in, n) — if tuner active
+    ├─ processBuffer(in, out, n) — DSP chain
+    │   ├─ Gain
+    │   ├─ Distortion (4 types)
+    │   ├─ Delay, Reverb (3 types)
+    │   ├─ Chorus, Flanger, Phaser
+    │   ├─ EQ (3-band), Compressor
+    │   └─ (effect order configurable via setEffectOrder)
+    └─ recorder_feed(out, n) — if recording active
     ↓
-AudioTrack (PipelineManager)
+Oboe output stream / CoreAudio AudioBufferList
     ↓
-Output (Speaker/Headphones)
+Output (speaker / headphones / interface)
 ```
 
-### Effects System
+### Effects (9 audio effects)
 
-**9 Audio Effects with full parameter control:**
-1. **Gain** - Volume control
-2. **Distortion** - 4 types (Soft Clip, Hard Clip, Fuzz, Overdrive)
-3. **Delay** - Time, feedback, mix, BPM sync
-4. **Reverb** - Room size, damping, type (Hall/Plate/Spring)
-5. **Chorus** - Depth, rate, mix
-6. **Flanger** - Depth, rate, feedback, mix
-7. **Phaser** - Depth, rate, feedback, mix
-8. **EQ (3-band)** - Low, mid, high gain controls
-9. **Compressor** - Threshold, ratio, attack, release
+1. **Gain** — level
+2. **Distortion** — amount, type (Soft Clip / Hard Clip / Fuzz / Overdrive), mix
+3. **Delay** — time (ms), feedback, mix
+4. **Reverb** — room size, damping, type (Hall / Plate / Spring), mix
+5. **Chorus** — depth, rate (Hz), mix
+6. **Flanger** — depth, rate (Hz), feedback, mix
+7. **Phaser** — depth, rate (Hz), feedback, mix
+8. **EQ (3-band)** — low/mid/high (±12 dB), mix
+9. **Compressor** — threshold (dB), ratio, attack (ms), release (ms), mix
 
-**Effect Management:**
-- Each effect has `setXXXEnabled()` method in AudioRepository
-- Calls `updateEffectsActiveStatus()` to notify PipelineManager
-- Supports drag-and-drop reordering via `setEffectOrder()`
-- Dry/wet mix control for all effects
+Every effect is controlled via the same pair of calls: `setXXXEnabled(bool)`
+and one or more parameter setters. See
+`flutter_app/lib/features/effects/effects_cubit.dart` for the full wiring
+pattern.
 
-### State Management
+### Features available in the Flutter app
 
-**AudioStateManager:**
-- Tracks pipeline state: STOPPED → INITIALIZING → RUNNING
-- Notifies observers of state changes
-- Integrated with AudioRepository
+| Feature | Source | Notes |
+|---|---|---|
+| Tuner | `features/tuner/` | Chromatic, fed by the Oboe/CoreAudio input hook |
+| Metronome | `features/metronome/` | BPM 40-240, time sig 1-16 |
+| Effects | `features/effects/` | Full 9-effect chain, no reorder yet |
+| Recorder | `features/recorder/` | Post-FX WAV capture (10-min buffer) |
+| Looper | `features/looper/` | MVP single-track with waveform |
+| Loop Library | `features/loop_library/` | Save/load WAV mono PCM 16-bit |
+| Presets | `features/effects/preset_manager.dart` | JSON schema v1 |
+| Automation | `features/automation/` | Self-contained 4-param palette |
+| MIDI Learn | `features/midi/` | USB/BLE via `flutter_midi_command` |
+| Settings | `features/settings/` | Placeholder (info only) |
+| Benchmark | `features/benchmark/` | Debug-only start/stop + live telemetry |
 
-**State Recovery:**
-- App saves effect parameters and pipeline state
-- Restores settings after backgrounding
-- Handles lifecycle events properly
-
-## Key Features & Systems
-
-### Preset System
-- Save/load effect configurations
-- Export/import presets (JSON format)
-- Favorites marking
-- Managed by PresetManager in infrastructure layer
-
-### MIDI Integration
-- MIDI Learn for parameter mapping
-- External controller support
-- CC message processing
-- Managed by ToneForgeMidiManager
-
-### Automation System
-- Record parameter changes over time
-- Playback automation sequences
-- Sync with metronome BPM
-- Managed by AutomationManager
-
-### Background Processing
-- AudioBackgroundService keeps pipeline running
-- Foreground notification with controls
-- Handles audio focus changes
-- Battery optimization compatibility
-
-### Looper System
-- Multi-track recording
-- Loop playback with volume/mute/solo per track
-- Advanced features: reverse, speed, pitch shift, slicing
-- Auto-compression and normalization
-- BPM sync and quantization
+See `docs/migration-status.md` for per-feature status and the deferred
+backlog (drag-and-drop reorder, multi-track looper, pitch shift, slicing,
+etc. — all already supported by the engine C++ API, only the UI side pending).
 
 ## Development Guidelines
 
-### When Adding New Effects
+### When adding a new effect
 
-1. **Native Layer (C++):**
-   - Add effect implementation in `audio_engine.cpp`
-   - Add JNI wrapper in `native-lib.cpp` with `Native` suffix
-   - Example: `Java_com_thiagofernendorech_toneforge_AudioEngine_setNewEffectEnabledNative()`
+1. **Engine (C++):**
+   - Add the DSP implementation in `engine/src/audio_engine.cpp`
+   - Declare the public API in `engine/include/toneforge/audio_engine.h`
+     inside the `extern "C"` block with `setXXXEnabled(bool)` +
+     parameter setters
+2. **Bindings:**
+   - Regenerate FFI bindings with
+     `fvm flutter pub run ffigen --config ffigen.yaml` from `flutter_app/`
+3. **Dart wrapper:**
+   - Add idiomatic wrappers in `flutter_app/lib/engine/engine.dart`
+4. **Feature:**
+   - Add the new effect to `flutter_app/lib/features/effects/models.dart`
+     (new `Config` class with `copyWith`, `toJson`, `fromJson`)
+   - Add setters to `EffectsCubit` and push the state in `_pushAll()`
+   - Add a new `_EffectCard` in `effects_screen.dart`
 
-2. **Java Layer:**
-   - Declare native method in `AudioEngine.java`
-   - Add wrapper method with error handling in `AudioEngine.java`
-   - Add `setNewEffectEnabled()` in `AudioRepository.java`
-   - Call `updateEffectsActiveStatus()` in the repository method
+### When adding a new feature screen
 
-3. **UI Layer:**
-   - Add controls to `EffectsFragmentRefactored`
-   - Update effect parameters model
-   - Add to preset system
+1. Create `flutter_app/lib/features/<feature>/`
+2. `<feature>_cubit.dart` with an immutable state class, `copyWith`, and
+   engine lifecycle handling
+3. `<feature>_screen.dart` wraps the Cubit in a `BlocProvider`
+4. Add a card in `flutter_app/lib/main.dart` pointing at the new screen
+5. `fvm flutter analyze` should return 0 issues before committing
 
-### When Adding New Fragments
+### When modifying the audio pipeline
 
-1. Create MVP structure:
-   ```java
-   // Contract
-   public interface NewFeatureContract {
-       interface View extends BaseView<Presenter> { }
-       interface Presenter extends BasePresenter { }
-   }
+1. Update the relevant backend (`audio_io_oboe.cpp` / `audio_io_coreaudio.mm`)
+   keeping both in sync — they implement the same C ABI
+2. **Test on a physical device**; Android emulators and the iOS simulator
+   don't have real input audio
+3. Watch for xruns via `DebugBenchmarkActivity` (adb launches it manually)
+   or by adding telemetry to the Flutter app
+4. Run `./scripts/functional-validation.sh` for a full engine + Flutter
+   build sanity check
 
-   // Presenter
-   public class NewFeaturePresenter implements NewFeatureContract.Presenter { }
+### Code conventions
 
-   // Fragment
-   public class NewFeatureFragmentRefactored extends BaseFragment
-       implements NewFeatureContract.View { }
-   ```
+**Flutter (Dart):**
+- Cubits are pure logic. UI widgets pull state via `BlocBuilder`.
+- State classes are immutable. Prefer `copyWith` over mutation.
+- Timers/subscriptions must be cancelled in `Cubit.close()`.
+- Never call blocking FFI from the main isolate — wrap with `Isolate.run`
+  if a call ever starts blocking (current engine calls are all
+  non-blocking atomics or short locks).
 
-2. Register in NavigationController
-3. Add navigation from HomeFragment
-4. Follow existing patterns in refactored fragments
-
-### When Modifying Audio Pipeline
-
-1. Update `AudioRepository` interface
-2. Test with `PipelineManager` integration
-3. Verify state management with `AudioStateManager`
-4. Test on physical device (emulators don't support real-time audio well)
-5. Check logs for buffer underruns or latency issues
-6. Run functional validation: `./scripts/functional-validation.sh`
-
-### Code Conventions
-
-**Naming:**
-- Contracts: `*Contract.java`
-- Presenters: `*Presenter.java`
-- Refactored Fragments: `*FragmentRefactored.java`
-- JNI methods: `*Native()` suffix
-
-**Architecture:**
-- Use dependency injection via constructors
-- Follow Clean Architecture layer boundaries
-- Domain layer should have no Android dependencies
-- Infrastructure adapts framework to domain interfaces
-
-**Error Handling:**
-- All JNI calls wrapped in try-catch with UnsatisfiedLinkError
-- Proper logging with appropriate log levels
-- Check `AudioEngine.isNativeLibraryLoaded()` before native calls
-
-**Testing:**
-- Unit tests for presenters (mock views)
-- Integration tests for repositories
-- UI tests with Espresso for fragments
-- Always check Jacoco coverage report
+**Engine (C++):**
+- Public headers are pure C with `__cplusplus` guards and `<stdbool.h>`
+  (ffigen parses them as C).
+- Audio callbacks must be lock-free. Use `std::atomic` for state flags.
+- Memory allocated in callbacks = allocation-free path. Pre-allocate in
+  `start()`.
+- Lifecycle functions (`audio_engine_start` / `audio_engine_stop`) can
+  take a mutex; never hold it across an audio frame.
 
 ## Project Structure
 
@@ -406,69 +301,64 @@ ToneForge/
 │   ├── ffigen.yaml          # Bindings config
 │   └── pubspec.yaml
 │
-├── app/                    # LEGACY Android Java app — deprecated
-│   ├── src/main/
-│   │   ├── cpp/            # JNI shim only (uses ../../../../engine via CMake)
-│   │   ├── java/           # MVP fragments, AudioRepository, JNI bindings
-│   │   └── res/            # Android layouts and resources
-│   ├── build.gradle.kts
-│   └── DEPRECATED.md       # Deprecation policy
-│
 ├── docs/                   # Documentation
 │   ├── migration-status.md # Live dashboard of the migration
 │   ├── ios-build.md        # First-build guide on macOS
-│   ├── QUICKSTART.md
-│   ├── setup/
-│   └── testing/
+│   └── QUICKSTART.md
 ├── scripts/                # Development scripts
-├── logs/                   # Build/test logs (git ignored)
+│   ├── functional-validation.sh
+│   ├── verify-environment.sh
+│   ├── clean-logs.sh
+│   └── setup/
 ├── CLAUDE.md               # This file
 └── README.md               # Project overview
 ```
 
-## Security Considerations
-
-Recent security improvements include:
-- Buffer size validation in all JNI functions
-- WAV file validation in LoopLoadUtil
-- Secure URI permission handling in LoopShareUtil
-- FileProvider path restrictions
-- Input sanitization for native calls
+The legacy Java app that lived in `app/` was removed in Fase 5. Its last
+state is preserved at the `legacy-android-final` git tag.
 
 ## Dependencies
 
-Key dependencies (see `libs.versions.toml`):
-- Android Gradle Plugin 8.11.0
-- AppCompat 1.6.1
-- Material Design 1.11.0
-- ConstraintLayout 2.1.4
-- Navigation Component 2.7.7
-- JUnit 4.13.2, Mockito 5.8.0
-- Espresso 3.5.1
-- Jacoco for coverage reporting
+**Engine (C++):** C++17 standard library only. No external deps beyond the
+platform audio frameworks (Oboe 1.9.3 on Android via prefab, AVFoundation /
+AudioToolbox / CoreAudio on iOS via system frameworks).
+
+**Flutter:** see `flutter_app/pubspec.yaml`. Key packages:
+- `ffi` / `ffigen` — FFI bindings to the engine
+- `flutter_bloc` — state management
+- `permission_handler` — microphone + Bluetooth permissions
+- `path_provider` — app documents directory
+- `flutter_midi_command` — USB/BLE MIDI I/O
 
 ## Common Issues
 
-**Audio Pipeline:**
-- Always test on physical device (emulators have poor audio support)
-- Check logcat for "PipelineManager" tags to debug pipeline issues
-- Buffer underruns indicate sample rate mismatch or processing overload
-- Use `AudioStateManager` to track pipeline state
+**Audio:**
+- Always test on a physical device. Emulators and simulators don't have
+  real input audio.
+- Xruns under stress usually mean the effective `framesPerBurst` / buffer
+  size isn't the low-latency path. Check
+  `adb logcat -s ToneForgeAudioIO:*` for the "Oboe engine iniciado" line
+  — `framesPerBurst` should be 128-256 on a modern device, not 960.
 
-**JNI:**
-- Native library load failures: check CMakeLists.txt and ABI support
-- UnsatisfiedLinkError: verify JNI method signatures match exactly
-- Use `Native` suffix for all JNI functions
+**FFI / Native library:**
+- `DynamicLibrary.open('libtoneforge_engine.so')` failing on Android
+  means the .so wasn't bundled. Check
+  `flutter_app/android/app/build/intermediates/cxx/` for CMake errors.
+- On iOS the engine is statically linked into the Runner via the
+  `toneforge_engine` pod, so `DynamicLibrary.process()` is used. If
+  `Unable to find symbol` errors appear, re-run `pod install` and
+  double-check `engine/toneforge_engine.podspec` source globs.
 
 **Build:**
-- Clean build if CMake changes: `./gradlew clean`
-- NDK version compatibility check in `build.gradle.kts`
-- Gradle sync required after CMakeLists.txt changes
+- After changing engine/ headers, regenerate the Dart bindings:
+  `cd flutter_app && fvm flutter pub run ffigen --config ffigen.yaml`
+- NDK version must match what `flutter_app/android/app/build.gradle.kts`
+  declares (currently 27.1.12297006).
 
 ## Additional Resources
 
-- **Quick Start:** See [docs/QUICKSTART.md](docs/QUICKSTART.md)
-- **Setup Guides:** See [docs/setup/](docs/setup/)
-- **Testing Reports:** See [docs/testing/](docs/testing/)
-- **Scripts Documentation:** See [scripts/README.md](scripts/README.md)
-- **Architecture Docs:** See [docs/](docs/) for detailed architecture documentation
+- [`docs/migration-status.md`](docs/migration-status.md) — feature-level
+  port status, deferred backlog, pending gates
+- [`docs/ios-build.md`](docs/ios-build.md) — first-build guide on macOS
+- [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — getting started
+- [`scripts/README.md`](scripts/README.md) — script documentation

@@ -1,47 +1,41 @@
 # 🎸 ToneForge — Digital Pedalboard
 
-ToneForge is a real-time digital multi-effects pedalboard for guitar, built on a
-portable C++ DSP engine. The project is currently **mid-migration** from a
-native Android Java app to a Flutter-based cross-platform app, keeping the same
-C++ audio core on both sides.
+ToneForge is a real-time digital multi-effects pedalboard for guitar, built on
+a portable C++ DSP engine consumed by a single Flutter frontend that targets
+both Android and iOS.
 
-## ⚠️ Migration status (Fase 5)
+## 🧭 Layout
 
-The repository hosts two frontends that share one engine:
+| Path | Role |
+|---|---|
+| [`engine/`](engine/) | Portable C++17 library — DSP, Oboe backend (Android), CoreAudio backend (iOS) |
+| [`flutter_app/`](flutter_app/) | Flutter cross-platform frontend consuming the engine via Dart FFI |
+| [`docs/`](docs/) | Migration dashboard, iOS build guide, quick start |
+| [`scripts/`](scripts/) | Environment setup and validation scripts |
 
-| Path | Role | Status |
-|---|---|---|
-| [`engine/`](engine/) | Portable C++17 library — DSP + I/O backends | Active, single source of truth |
-| [`app/`](app/) | Legacy Android (Java + JNI) | **Deprecated**, see [`app/DEPRECATED.md`](app/DEPRECATED.md) |
-| [`flutter_app/`](flutter_app/) | New Flutter app consuming the engine via Dart FFI | Active, feature parity reached on Android |
-
-The legacy `app/` still builds and runs — it's intentionally kept as a fallback
-until the Flutter side is validated on iOS. Do not start new work there.
-
-Full migration dashboard with per-feature status, gates and pending items:
-**[`docs/migration-status.md`](docs/migration-status.md)**.
-
-## 🧠 Why the migration
-
-The core motivation is **iOS support**. The legacy app is Android-only. By
-extracting the DSP into `engine/` (~2k lines of portable C++) and wrapping it
-in either JNI (Android legacy) or Dart FFI (Flutter), the same audio core can
-run on Android **and** iOS without duplicating DSP code.
-
-The architectural plan is documented in the internal plan file that guided
-the work. Summary: de-risk audio first on Android with Oboe (Fase 0), extract
-the engine (Fase 1), bootstrap Flutter with FFI bindings (Fase 2), port feature
-by feature (Fase 3), bring up iOS with a CoreAudio backend (Fase 4), then
-deprecate the Java project (Fase 5 — **we are here**).
-
-## 🚀 Quick start (legacy Android)
+The legacy Android Java app that lived in `app/` was removed in Fase 5 of the
+migration. Its last buildable state is preserved under the
+`legacy-android-final` git tag — cherry-pick from there if you ever need the
+old Java frontend back:
 
 ```bash
-./gradlew assembleDebug
-./gradlew installDebug
+git checkout legacy-android-final -- app/
 ```
 
-Requires Android Studio, SDK API 27+, NDK and a device with microphone input.
+Full migration dashboard with per-feature status, deferred backlog and
+pending gates: **[`docs/migration-status.md`](docs/migration-status.md)**.
+
+## 🧠 Why the migration happened
+
+The original ToneForge was an Android-only Java app with ~31k lines of Java
+around ~3.4k lines of C++ DSP behind JNI. The core motivation for migrating
+to Flutter was **iOS support**. The DSP in `engine/audio_engine.cpp` was
+already portable (no Android-specific headers, `extern "C"`, buffer-centric),
+so the migration strategy was: extract the engine, share it between an Oboe
+backend for Android and a CoreAudio backend for iOS, and consume it from
+either a JNI shim (legacy Android) or Dart FFI (Flutter). After the Flutter
+port reached feature parity with the legacy app and the Oboe backend was
+validated on a low-end device, the Java frontend was retired.
 
 ## 🚀 Quick start (Flutter app)
 
@@ -102,25 +96,20 @@ pitch shift / slicing, MIDI mapping persistence, share/export. See
 
 - [`docs/migration-status.md`](docs/migration-status.md) — live dashboard of the migration
 - [`docs/ios-build.md`](docs/ios-build.md) — how to do the first iOS build on macOS
-- [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — legacy Android quick start
+- [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — quick start
 - [`CLAUDE.md`](CLAUDE.md) — architecture and development guide for AI assistants
-- [`app/DEPRECATED.md`](app/DEPRECATED.md) — status of the legacy Android app
 - [`scripts/README.md`](scripts/README.md) — development scripts
 
 ## 📊 Project structure
 
 ```
 ToneForge/
-├── engine/                   # Portable C++ audio engine (canonical)
+├── engine/                   # Portable C++ audio engine (single source of truth)
 │   ├── include/toneforge/    # Public C API headers
 │   ├── src/                  # DSP + Oboe backend + CoreAudio backend
-│   ├── CMakeLists.txt        # Cross-platform build
-│   └── toneforge_engine.podspec  # CocoaPods spec for iOS
-├── app/                      # Legacy Android Java app (deprecated)
-│   └── src/main/
-│       ├── cpp/              # JNI shim only — engine is now in /engine
-│       └── java/             # MVP fragments + AudioRepository + JNI bindings
-├── flutter_app/              # Flutter cross-platform app (canonical frontend)
+│   ├── CMakeLists.txt        # Cross-platform build (consumed by Flutter Android)
+│   └── toneforge_engine.podspec  # CocoaPods spec (consumed by Flutter iOS)
+├── flutter_app/              # Flutter cross-platform frontend
 │   ├── lib/
 │   │   ├── engine/           # Dart FFI wrapper around the C engine
 │   │   ├── features/         # Cubit + screen per feature (tuner, effects, ...)
@@ -136,10 +125,10 @@ ToneForge/
 
 All scripts live in [`scripts/`](scripts/):
 
-- `scripts/functional-validation.sh` — full validation of both frontends
+- `scripts/functional-validation.sh` — engine headers + Flutter analyze + Flutter build APK
 - `scripts/setup/setup-dev-environment.sh` — initial env setup
 - `scripts/verify-environment.sh` — verify Android/Flutter toolchains
-- `scripts/create-release.sh` — legacy release build
+- `scripts/clean-logs.sh` — clean build/test logs
 
 ## 📄 License
 

@@ -11,7 +11,7 @@ Live dashboard of the Java → Flutter migration. Updated as things change.
 | 2 | Flutter app + FFI bootstrap | ✅ | `flutter_app/` with ffigen-generated bindings; Android debug APK ships `libtoneforge_engine.so`. |
 | 3 | Feature-by-feature port | ✅ 10/10 core features | All features below are working in the Flutter app. |
 | 4 | iOS CoreAudio backend + Xcode build | 🟡 code written, **never compiled** | `audio_io_coreaudio.mm` + `toneforge_engine.podspec` + `Podfile` + `Info.plist` all in repo. First build has to happen on macOS. See [`ios-build.md`](ios-build.md). |
-| 5 | Deprecate legacy Java app | 🟡 docs + policy applied, code untouched | You are here. Full removal gated on Fase 4.7. |
+| 5 | Deprecate legacy Java app | ✅ done (risk accepted) | `app/` and the root gradle infrastructure were removed despite Fase 4.7 not having validated yet. User accepted the risk consciously. Last legacy state preserved under `legacy-android-final` git tag. |
 
 ## Feature port status (Flutter app)
 
@@ -91,38 +91,47 @@ audio interface. Not achievable from the Linux development environment.
 - 10-minute stress test with all effects, 0 xruns, 0 glitches
 - Background audio functional (home button, lock screen, incoming call)
 
-### Beta rollout mitigations (before marking Fase 5 ready to merge)
+### Beta rollout mitigations (pending)
 
-These compensate for the single-device Fase 0.6 validation. They don't block
-Fase 4.7 but should land before `flutter-migration` merges into `main`:
+These compensate for the single-device Fase 0.6 validation. They're no
+longer blocking anything now that Fase 5 has been executed, but they still
+matter before any public release:
 
-- [ ] Expose the C++/Oboe toggle in the legacy app's Settings fragment
-      (currently only in `DebugBenchmarkActivity`, reachable only via adb)
 - [ ] Device telemetry: on each engine start, log device model, manufacturer,
       effective framesPerBurst, final xrun count — local file export, no
       network
 - [ ] Remote config flag to disable the C++/Oboe backend if production
       telemetry flags device-specific issues
 
-## Removal checklist (Fase 5 final step — DO NOT DO YET)
+The "expose C++/Oboe toggle in legacy Settings" mitigation was done before
+the removal (commit f8f18eb) and the resulting code is preserved under the
+`legacy-android-final` tag for reference.
 
-When all of the above is green, remove `app/`:
+## Fase 5 removal — done
 
-- [ ] Tag `legacy-android-final` at the last commit that builds `app/`
-- [ ] `git rm -r app/`
-- [ ] Delete `scripts/test-app-device.sh`, `scripts/create-release.sh` (or
-      port to Flutter)
-- [ ] Update root `build.gradle.kts` and `settings.gradle.kts` to drop the
-      `:app` project
-- [ ] Update `scripts/functional-validation.sh` to drop the legacy branch
-- [ ] Update `CLAUDE.md` and `README.md` to remove the "legacy app" sections
-- [ ] Delete `app/DEPRECATED.md` (and this "Gates pending" section)
+Executed on 2026-04-14 at commit TBD (the commit containing this doc
+update). Actions taken:
+
+- Tagged `legacy-android-final` on the last buildable legacy state
+- `git rm -r app/`
+- Removed root gradle infrastructure (`gradlew`, `gradle/`,
+  `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`)
+- Removed legacy-only scripts (`test-app-device.sh`, `create-release.sh`)
+- Rewrote `CLAUDE.md` and `README.md` to drop all Java/JNI references
+- Rewrote `scripts/functional-validation.sh` to validate only
+  engine/ + flutter_app/
+
+**Accepted risk:** Fase 4.7 was NOT validated before this removal. If the
+iOS build turns out to require invasive changes to the engine or the
+CoreAudio backend, the only fallback is the `legacy-android-final` tag.
+The user accepted this consciously to unblock the migration.
 
 ## Key commits
 
 All on branch `flutter-migration`:
 
 ```
+f8f18eb feat(legacy,settings): expose C++/Oboe pipeline toggle (last legacy change)
 1335679 fix(debug): capture benchmark report before stopping the pipeline
 a595ab3 feat(engine,ios): add CoreAudio backend and iOS pod glue for phase 4
 fd3867d feat(flutter): add MIDI Learn screen with flutter_midi_command
