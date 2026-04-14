@@ -88,9 +88,12 @@ struct LooperTrack {
     std::atomic<bool> isRecording{false};
     std::atomic<bool> isPlaying{false};
     
+    // Bound próprio do looper. MAX_BUFFER_SIZE (65536) é pra efeitos
+    // (delay/reverb); o looper precisa guardar 30s de áudio, que em
+    // 192kHz dá ~5.76M samples. Usa LOOPER_MAX_SAMPLES como cap.
     LooperTrack() {
         int initialSize = LOOPER_MAX_SAMPLES.load();
-        if (initialSize > 0 && initialSize <= MAX_BUFFER_SIZE) {
+        if (initialSize > 0) {
             buffer.resize(initialSize, 0.0f);
         } else {
             buffer.resize(MIN_BUFFER_SIZE, 0.0f);
@@ -98,7 +101,7 @@ struct LooperTrack {
     }
 
     void resizeBuffer(int newSize) {
-        if (newSize > 0 && newSize <= MAX_BUFFER_SIZE) {
+        if (newSize > 0) {
             std::lock_guard<std::mutex> lock(looperMutex);
             buffer.resize(newSize, 0.0f);
         }
@@ -647,7 +650,9 @@ void setSampleRate(int rate) {
         looperReverbTailDecayCoeff.store(expf(-1.0f / (looperReverbTailDecay.load() * rate)));
     }
 
-    int looperMaxSamples = std::min(rate * 30, MAX_BUFFER_SIZE); // 30 segundos, limitado
+    // 30 segundos de loop — sem clamp em MAX_BUFFER_SIZE (que é pra
+    // efeitos, não pro looper).
+    int looperMaxSamples = rate * 30;
     LOOPER_MAX_SAMPLES.store(looperMaxSamples);
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
         looperTracks[i].resizeBuffer(looperMaxSamples);
@@ -996,6 +1001,55 @@ void downsample(const float* input, float* output, int numSamples) {
     }
 }
 
+// Looper I/O. Chamado do final de processBuffer com o output já processado
+// pelos efeitos (ou passthrough se nenhum efeito estiver ativo). Implementa
+// recording post-FX (captura o que o usuário ouve) e playback mix (soma o
+// loop armazenado à saída corrente). Lock-free, zero allocations. Ver TFR-54.
+static void processLooperIO(float* output, int numSamples) {
+    // --- Recording (post-FX) ----------------------------------------------
+    if (looperRecording.load()) {
+        int track = currentTrack.load();
+        if (track >= 0 && track < LOOPER_MAX_TRACKS) {
+            auto& t = looperTracks[track];
+            const int capacity = (int)t.buffer.size();
+            int wi = looperWriteIndex.load();
+            for (int i = 0; i < numSamples; ++i) {
+                if (wi >= capacity) {
+                    // Buffer cheio — auto-stop e fecha o loop.
+                    looperRecording.store(false);
+                    t.length.store(wi);
+                    t.active.store(true);
+                    break;
+                }
+                t.buffer[wi++] = output[i];
+            }
+            looperWriteIndex.store(wi);
+        }
+    }
+
+    // --- Playback (mix into output) ----------------------------------------
+    // MVP single-track: lê do currentTrack apenas. Quando TFR-46 chegar,
+    // essa iteração se expande pra todas as tracks ativas/não-muted com
+    // respeito a solo. Por ora, segue simples.
+    if (looperPlaying.load()) {
+        int track = currentTrack.load();
+        if (track >= 0 && track < LOOPER_MAX_TRACKS) {
+            auto& t = looperTracks[track];
+            const int len = t.length.load();
+            if (len > 0 && t.active.load() && !t.muted.load()) {
+                const float vol = t.volume.load();
+                int ri = looperReadIndex.load();
+                for (int i = 0; i < numSamples; ++i) {
+                    if (ri >= len) ri = 0; // wrap no fim do loop
+                    output[i] += t.buffer[ri] * vol;
+                    ++ri;
+                }
+                looperReadIndex.store(ri);
+            }
+        }
+    }
+}
+
 void processBuffer(float* input, float* output, int numSamples, int inputLength, int outputLength) {
     // Audio callback — hot path. Zero locks, zero allocs, zero I/O.
     if (input == nullptr || output == nullptr || numSamples <= 0) {
@@ -1018,43 +1072,47 @@ void processBuffer(float* input, float* output, int numSamples, int inputLength,
         numSamples = available;
     }
 
-    // Fast path: nenhum efeito ativo → passthrough.
+    // Fast path: nenhum efeito ativo → passthrough. (Ainda rodamos o
+    // processLooperIO depois, pra o usuário poder fazer loop seco sem efeito.)
     const bool hasActiveEffects = gainEnabled.load() || distortionEnabled.load() || delayEnabled.load() ||
                                   reverbEnabled.load() || chorusEnabled.load() || flangerEnabled.load() ||
                                   phaserEnabled.load() || eqEnabled.load() || compressorEnabled.load();
     if (!hasActiveEffects) {
         memcpy(output, input, numSamples * sizeof(float));
-        return;
-    }
-
-    // Oversampling. Os buffers são pré-alocados em initAudioEngine para o
-    // pior caso (MAX_BUFFER_SIZE * MAX_OVERSAMPLING_FACTOR) — nunca
-    // redimensionam em runtime.
-    bool oversampling = oversamplingEnabled.load();
-    int factor = oversamplingFactor.load();
-    if (factor < 1 || factor > MAX_OVERSAMPLING_FACTOR) {
-        factor = 1;
-        oversampling = false;
-    }
-
-    if (!oversampling || factor <= 1) {
-        for (int i = 0; i < numSamples; ++i) {
-            output[i] = processSample(input[i]);
-        }
     } else {
-        const int oversampleCapacity = (int)oversampleBuffer.size();
-        int oversampledSize = numSamples * factor;
-        if (oversampledSize > oversampleCapacity) {
-            oversampledSize = oversampleCapacity;
-            numSamples = oversampledSize / factor;
+        // Oversampling. Os buffers são pré-alocados em initAudioEngine para o
+        // pior caso (MAX_BUFFER_SIZE * MAX_OVERSAMPLING_FACTOR) — nunca
+        // redimensionam em runtime.
+        bool oversampling = oversamplingEnabled.load();
+        int factor = oversamplingFactor.load();
+        if (factor < 1 || factor > MAX_OVERSAMPLING_FACTOR) {
+            factor = 1;
+            oversampling = false;
         }
 
-        upsample(input, oversampleBuffer.data(), numSamples);
-        for (int i = 0; i < oversampledSize; ++i) {
-            downsampleBuffer[i] = processSample(oversampleBuffer[i]);
+        if (!oversampling || factor <= 1) {
+            for (int i = 0; i < numSamples; ++i) {
+                output[i] = processSample(input[i]);
+            }
+        } else {
+            const int oversampleCapacity = (int)oversampleBuffer.size();
+            int oversampledSize = numSamples * factor;
+            if (oversampledSize > oversampleCapacity) {
+                oversampledSize = oversampleCapacity;
+                numSamples = oversampledSize / factor;
+            }
+
+            upsample(input, oversampleBuffer.data(), numSamples);
+            for (int i = 0; i < oversampledSize; ++i) {
+                downsampleBuffer[i] = processSample(oversampleBuffer[i]);
+            }
+            downsample(downsampleBuffer.data(), output, numSamples);
         }
-        downsample(downsampleBuffer.data(), output, numSamples);
     }
+
+    // Feed do looper pós-efeitos. Também runa no passthrough acima, pra
+    // permitir gravar loops sem efeitos ativos.
+    processLooperIO(output, numSamples);
 }
 
 void startTuner() {
