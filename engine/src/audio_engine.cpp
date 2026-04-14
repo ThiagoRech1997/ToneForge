@@ -259,7 +259,53 @@ static std::atomic<bool> distortionEnabled{true};
 static std::atomic<bool> delayEnabled{true};
 static std::atomic<bool> reverbEnabled{true};
 
-static std::vector<std::string> effectOrder = {"Ganho", "Distorção", "Chorus", "Flanger", "Phaser", "EQ", "Compressor", "Delay", "Reverb"};
+// Ordem dos 9 efeitos empacotada em 16 slots de 4 bits cada num único
+// uint64_t atômico. Escolha dessa forma pra permitir read/write lock-free
+// a partir do audio callback sem double-buffer nem loops de retry:
+// - Reader (processSample): `effectOrderPacked.load(acquire)` — uma instrução
+// - Writer (setEffectOrder): `effectOrderPacked.store(packed, release)` — uma instrução
+// Slot i (0-15) = (packed >> (i * 4)) & 0xF. Valor 0xF é sentinela de fim
+// de lista. Como cada slot cabe em 4 bits, suportamos até 16 efeitos
+// distintos — mais que suficiente para os 9 atuais.
+enum EffectId : int {
+    EFFECT_GAIN = 0,
+    EFFECT_DISTORTION,
+    EFFECT_DELAY,
+    EFFECT_REVERB,
+    EFFECT_CHORUS,
+    EFFECT_FLANGER,
+    EFFECT_PHASER,
+    EFFECT_EQ,
+    EFFECT_COMPRESSOR,
+    EFFECT_COUNT
+};
+static constexpr uint64_t EFFECT_END_NIBBLE = 0xFULL;
+static std::atomic<uint64_t> effectOrderPacked{0xFFFFFFFFFFFFFFFFULL};
+
+static uint64_t packEffectOrder(const int* ids, int count) {
+    uint64_t result = 0;
+    for (int i = 0; i < 16; ++i) {
+        uint64_t slot = (i < count)
+            ? static_cast<uint64_t>(ids[i] & 0xF)
+            : EFFECT_END_NIBBLE;
+        result |= (slot << (i * 4));
+    }
+    return result;
+}
+
+static int effectIdFromName(const char* name) {
+    if (!name) return -1;
+    if (strcmp(name, "Ganho") == 0)      return EFFECT_GAIN;
+    if (strcmp(name, "Distorção") == 0)  return EFFECT_DISTORTION;
+    if (strcmp(name, "Delay") == 0)      return EFFECT_DELAY;
+    if (strcmp(name, "Reverb") == 0)     return EFFECT_REVERB;
+    if (strcmp(name, "Chorus") == 0)     return EFFECT_CHORUS;
+    if (strcmp(name, "Flanger") == 0)    return EFFECT_FLANGER;
+    if (strcmp(name, "Phaser") == 0)     return EFFECT_PHASER;
+    if (strcmp(name, "EQ") == 0)         return EFFECT_EQ;
+    if (strcmp(name, "Compressor") == 0) return EFFECT_COMPRESSOR;
+    return -1;
+}
 
 static std::atomic<int> distortionType{0}; // 0=Soft, 1=Hard, 2=Fuzz, 3=Overdrive
 static std::atomic<float> distortionMix{1.0f};
@@ -461,6 +507,18 @@ void initAudioEngine() {
     looperMidiCCMapping[65] = 1; // CC65 = Play
     looperMidiCCMapping[66] = 2; // CC66 = Stop
     looperMidiCCMapping[67] = 3; // CC67 = Clear
+
+    // Ordem default da cadeia de efeitos. Ordem canônica: dinâmicas
+    // antes, modulação no meio, espaciais no fim. setEffectOrder pode
+    // sobrescrever isso em runtime.
+    const int kDefaultOrder[] = {
+        EFFECT_GAIN, EFFECT_DISTORTION,
+        EFFECT_CHORUS, EFFECT_FLANGER, EFFECT_PHASER,
+        EFFECT_EQ, EFFECT_COMPRESSOR,
+        EFFECT_DELAY, EFFECT_REVERB
+    };
+    effectOrderPacked.store(packEffectOrder(kDefaultOrder, 9),
+                            std::memory_order_release);
 
     // Marcar engine como inicializado
     isEngineInitialized.store(true);
@@ -830,64 +888,89 @@ void setReverbType(int type) {
 }
 
 float processSample(float input) {
-    // Verificar se o engine foi inicializado
     if (!isEngineInitialized.load()) {
         return input; // Passthrough se não inicializado
     }
 
     float output = input;
 
-    // Aplicar ganho
-    if (gainEnabled.load()) {
-        output *= currentGain.load();
-    }
-    
-    // Aplicar distorção
-    if (distortionEnabled.load()) {
-        float amount = distortionAmount.load();
-        if (amount > 0.0f) {
-            output = output * (1.0f + amount * output * output);
-        }
-    }
-    
-    // Aplicar delay — lock-free. O vetor delayBuffer é pré-alocado em
-    // initAudioEngine para o pior caso e nunca redimensiona em runtime.
-    // delayBufferSize é lido atomically; o tamanho do vetor subjacente é
-    // >= delayBufferSize sempre, então a indexação é segura.
-    if (delayEnabled.load()) {
-        const int currentDelaySize = delayBufferSize.load();
-        int currentDelayIndex = delayBufferIndex.load();
-        if (currentDelaySize > 0) {
-            if (currentDelayIndex < 0 || currentDelayIndex >= currentDelaySize) {
-                currentDelayIndex = 0;
+    // Lê a ordem empacotada uma vez e itera sobre os slots. Cada slot é
+    // 4 bits; 0xF marca fim de lista. Lock-free.
+    const uint64_t packed = effectOrderPacked.load(std::memory_order_acquire);
+
+    for (int i = 0; i < 16; ++i) {
+        const int id = static_cast<int>((packed >> (i * 4)) & 0xFULL);
+        if (id == static_cast<int>(EFFECT_END_NIBBLE)) break;
+
+        switch (id) {
+            case EFFECT_GAIN: {
+                if (gainEnabled.load()) {
+                    output *= currentGain.load();
+                }
+                break;
             }
-            float delayedSample = delayBuffer[currentDelayIndex];
-            output += delayedSample * delayFeedback.load();
-            delayBuffer[currentDelayIndex] = output;
-            currentDelayIndex = (currentDelayIndex + 1) % currentDelaySize;
-            delayBufferIndex.store(currentDelayIndex);
+            case EFFECT_DISTORTION: {
+                if (distortionEnabled.load()) {
+                    const float amount = distortionAmount.load();
+                    if (amount > 0.0f) {
+                        output = output * (1.0f + amount * output * output);
+                    }
+                }
+                break;
+            }
+            case EFFECT_DELAY: {
+                // Buffer pré-alocado em initAudioEngine e nunca redimensiona
+                // em runtime. delayBufferSize é lido atomically; o tamanho
+                // do vetor subjacente é >= delayBufferSize sempre.
+                if (delayEnabled.load()) {
+                    const int currentDelaySize = delayBufferSize.load();
+                    int currentDelayIndex = delayBufferIndex.load();
+                    if (currentDelaySize > 0) {
+                        if (currentDelayIndex < 0 || currentDelayIndex >= currentDelaySize) {
+                            currentDelayIndex = 0;
+                        }
+                        float delayedSample = delayBuffer[currentDelayIndex];
+                        output += delayedSample * delayFeedback.load();
+                        delayBuffer[currentDelayIndex] = output;
+                        currentDelayIndex = (currentDelayIndex + 1) % currentDelaySize;
+                        delayBufferIndex.store(currentDelayIndex);
+                    }
+                }
+                break;
+            }
+            case EFFECT_REVERB: {
+                if (reverbEnabled.load()) {
+                    const int currentReverbSize = REVERB_BUFFER_SIZE.load();
+                    int currentReverbIndex = reverbIndex.load();
+                    if (currentReverbSize > 0) {
+                        if (currentReverbIndex < 0 || currentReverbIndex >= currentReverbSize) {
+                            currentReverbIndex = 0;
+                        }
+                        float reverbSample = reverbBuffer[currentReverbIndex];
+                        output = output * (1.0f - reverbRoomSize.load()) + reverbSample * reverbRoomSize.load();
+                        reverbBuffer[currentReverbIndex] = output;
+                        currentReverbIndex = (currentReverbIndex + 1) % currentReverbSize;
+                        reverbIndex.store(currentReverbIndex);
+                    }
+                }
+                break;
+            }
+            case EFFECT_CHORUS:
+            case EFFECT_FLANGER:
+            case EFFECT_PHASER:
+            case EFFECT_EQ:
+            case EFFECT_COMPRESSOR:
+                // TODO(TFR-53): DSP destes 5 efeitos não foi implementado.
+                // Os setters e flags *Enabled existem e o state é persistido,
+                // mas nada é aplicado ao sinal. O slot é mantido na cadeia
+                // para que o usuário possa reordená-lo — quando o DSP chegar,
+                // basta preencher os casos aqui sem mudar nada em UI/FFI.
+                break;
+            default:
+                break;
         }
     }
 
-    // Aplicar reverb — mesma lógica: buffer pré-alocado, lock-free.
-    if (reverbEnabled.load()) {
-        const int currentReverbSize = REVERB_BUFFER_SIZE.load();
-        int currentReverbIndex = reverbIndex.load();
-        if (currentReverbSize > 0) {
-            if (currentReverbIndex < 0 || currentReverbIndex >= currentReverbSize) {
-                currentReverbIndex = 0;
-            }
-            float reverbSample = reverbBuffer[currentReverbIndex];
-            output = output * (1.0f - reverbRoomSize.load()) + reverbSample * reverbRoomSize.load();
-            reverbBuffer[currentReverbIndex] = output;
-            currentReverbIndex = (currentReverbIndex + 1) % currentReverbSize;
-            reverbIndex.store(currentReverbIndex);
-        }
-    }
-    
-    // Aplicar outros efeitos com verificações similares...
-    // (chorus, flanger, phaser, eq, compressor)
-    
     return output;
 }
 
@@ -1076,10 +1159,21 @@ float getReverbRoomSize() { return reverbRoomSize; }
 float getReverbDamping() { return reverbDamping; }
 
 void setEffectOrder(const char** order, int count) {
-    effectOrder.clear();
+    // Traduz strings pro enum interno e empacota num uint64_t, publicado
+    // atomically pro audio callback. Lock-free na leitura; o writer
+    // (UI thread) só faz uma store. Nomes desconhecidos são ignorados.
+    if (order == nullptr || count <= 0 || count > 16) return;
+    int ids[16];
+    int writeCount = 0;
     for (int i = 0; i < count; ++i) {
-        effectOrder.push_back(order[i]);
+        int id = effectIdFromName(order[i]);
+        if (id >= 0 && id < EFFECT_COUNT) {
+            ids[writeCount++] = id;
+        }
     }
+    if (writeCount == 0) return;
+    effectOrderPacked.store(packEffectOrder(ids, writeCount),
+                            std::memory_order_release);
 }
 
 float processSampleWithOversampling(float input) {
