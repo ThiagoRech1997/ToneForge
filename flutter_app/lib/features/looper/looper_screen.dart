@@ -1,5 +1,7 @@
 // Looper: timer circular com progress ring em accentLooper, waveform card
-// abaixo, transport Rec/Play/Clear e save to library.
+// abaixo, transport Rec/Play/Clear e save to library. TFR-48 acrescenta
+// slicing overlay — toggle de modo, tap no waveform para criar pontos,
+// long-press para remover, e pads numerados para disparar segmentos.
 
 import 'dart:math' as math;
 
@@ -136,7 +138,7 @@ class _LooperView extends StatelessWidget {
         builder: (context, state) {
           final cubit = context.read<LooperCubit>();
           return SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl,
                 AppSpacing.xl,
@@ -182,29 +184,48 @@ class _LooperView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const TfSectionLabel('Waveform'),
-                        const SizedBox(height: AppSpacing.md),
-                        SizedBox(
-                          height: 120,
-                          child: state.waveform.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    state.mode == LooperMode.recording
-                                        ? 'Gravando…'
-                                        : 'Pressione gravar para começar',
-                                    style: AppTypography.caption,
-                                  ),
-                                )
-                              : CustomPaint(
-                                  painter: _WaveformPainter(
-                                    samples: state.waveform,
-                                    progress: state.progress,
-                                    waveColor: _accent,
-                                    playheadColor: AppColors.textPrimary,
-                                  ),
-                                  size: Size.infinite,
-                                ),
+                        Row(
+                          children: [
+                            const Expanded(child: TfSectionLabel('Waveform')),
+                            TfPill(
+                              label: state.slicingEnabled ? 'Slicing on' : 'Slicing',
+                              accent: _accent,
+                              selected: state.slicingEnabled,
+                              onTap: state.hasContent
+                                  ? () => cubit
+                                      .setSlicingEnabled(!state.slicingEnabled)
+                                  : null,
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: AppSpacing.sm),
+                        if (state.slicingEnabled)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: Text(
+                              'Toque para marcar · segure para remover',
+                              style: AppTypography.caption,
+                            ),
+                          ),
+                        _WaveformArea(state: state, cubit: cubit),
+                        if (state.slicingEnabled && state.hasContent) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          _SlicePads(state: state, cubit: cubit),
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                onPressed: state.slicePoints.isEmpty
+                                    ? null
+                                    : cubit.clearSlicePoints,
+                                icon: const Icon(Icons.close, size: 16),
+                                label: const Text('Limpar pontos'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -213,6 +234,145 @@ class _LooperView extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _WaveformArea extends StatelessWidget {
+  const _WaveformArea({required this.state, required this.cubit});
+
+  final LooperState state;
+  final LooperCubit cubit;
+
+  int _tapFrame(double dx, double width) {
+    if (width <= 0 || state.lengthFrames <= 0) return -1;
+    final clamped = dx.clamp(0.0, width);
+    return ((clamped / width) * state.lengthFrames).round();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 120,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (state.waveform.isEmpty) {
+            return Center(
+              child: Text(
+                state.mode == LooperMode.recording
+                    ? 'Gravando…'
+                    : 'Pressione gravar para começar',
+                style: AppTypography.caption,
+              ),
+            );
+          }
+          final painter = _WaveformPainter(
+            samples: state.waveform,
+            progress: state.progress,
+            waveColor: _accent,
+            playheadColor: AppColors.textPrimary,
+            lengthFrames: state.lengthFrames,
+            slicePoints: state.slicePoints,
+            showSlices: state.slicingEnabled,
+            activeBoundaries:
+                state.slicingEnabled ? state.sliceBoundaries : const [],
+            activeSliceIndex: state.activeSliceIndex,
+          );
+          final paint = CustomPaint(
+            painter: painter,
+            size: Size.infinite,
+          );
+          if (!state.slicingEnabled) return paint;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) {
+              final frame = _tapFrame(
+                details.localPosition.dx,
+                constraints.maxWidth,
+              );
+              if (frame >= 0) cubit.addSlicePoint(frame);
+            },
+            onLongPressStart: (details) {
+              final frame = _tapFrame(
+                details.localPosition.dx,
+                constraints.maxWidth,
+              );
+              if (frame >= 0) cubit.removeSlicePointNear(frame);
+            },
+            child: paint,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SlicePads extends StatelessWidget {
+  const _SlicePads({required this.state, required this.cubit});
+
+  final LooperState state;
+  final LooperCubit cubit;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = state.numSlices;
+    if (n <= 0) {
+      return Text(
+        'Nenhum slice definido ainda',
+        style: AppTypography.caption,
+      );
+    }
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: List.generate(n, (i) {
+        final active = state.activeSliceIndex == i;
+        return _SlicePadButton(
+          index: i + 1,
+          active: active,
+          onTap: () => cubit.triggerSlice(i),
+        );
+      }),
+    );
+  }
+}
+
+class _SlicePadButton extends StatelessWidget {
+  const _SlicePadButton({
+    required this.index,
+    required this.active,
+    required this.onTap,
+  });
+
+  final int index;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: active ? _accent.withValues(alpha: 0.22) : AppColors.elevated,
+          border: Border.all(
+            color: active ? _accent : AppColors.muted,
+            width: active ? 2 : 1,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '$index',
+          style: AppTypography.monoLarge.copyWith(
+            fontSize: 20,
+            color: active ? _accent : AppColors.textPrimary,
+          ),
+        ),
       ),
     );
   }
@@ -313,27 +473,78 @@ class _WaveformPainter extends CustomPainter {
     required this.progress,
     required this.waveColor,
     required this.playheadColor,
+    required this.lengthFrames,
+    required this.slicePoints,
+    required this.showSlices,
+    required this.activeBoundaries,
+    required this.activeSliceIndex,
   });
 
   final List<double> samples;
   final double progress;
   final Color waveColor;
   final Color playheadColor;
+  final int lengthFrames;
+  final List<int> slicePoints;
+  final bool showSlices;
+  final List<int> activeBoundaries;
+  final int activeSliceIndex;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (samples.isEmpty) return;
     final mid = size.height / 2;
+
+    // Highlight do slice ativo, se houver.
+    if (showSlices &&
+        activeSliceIndex >= 0 &&
+        activeSliceIndex < activeBoundaries.length - 1 &&
+        lengthFrames > 0) {
+      final startF = activeBoundaries[activeSliceIndex];
+      final endF = activeBoundaries[activeSliceIndex + 1];
+      final x0 = (startF / lengthFrames) * size.width;
+      final x1 = (endF / lengthFrames) * size.width;
+      final fill = Paint()..color = waveColor.withValues(alpha: 0.14);
+      canvas.drawRect(Rect.fromLTRB(x0, 0, x1, size.height), fill);
+    }
+
+    // Waveform peaks.
     final stepX = size.width / samples.length;
     final paint = Paint()
       ..color = waveColor
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
-
     for (var i = 0; i < samples.length; i++) {
       final amp = samples[i].clamp(0.0, 1.0) * mid;
       final x = i * stepX + stepX / 2;
       canvas.drawLine(Offset(x, mid - amp), Offset(x, mid + amp), paint);
+    }
+
+    // Slice markers (linha vertical tracejada + chapéu triangular no topo).
+    if (showSlices && lengthFrames > 0) {
+      final markerPaint = Paint()
+        ..color = waveColor.withValues(alpha: 0.85)
+        ..strokeWidth = 2;
+      final headPaint = Paint()..color = waveColor;
+      for (final p in slicePoints) {
+        final x = (p / lengthFrames) * size.width;
+        // Linha tracejada manual — 4px on / 3px off.
+        double y = 0;
+        while (y < size.height) {
+          canvas.drawLine(
+            Offset(x, y),
+            Offset(x, math.min(y + 4, size.height)),
+            markerPaint,
+          );
+          y += 7;
+        }
+        final path = Path()
+          ..moveTo(x - 4, 0)
+          ..lineTo(x + 4, 0)
+          ..lineTo(x, 6)
+          ..close();
+        canvas.drawPath(path, headPaint);
+      }
     }
 
     if (progress > 0) {
@@ -351,7 +562,12 @@ class _WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WaveformPainter old) {
-    return old.samples != samples || old.progress != progress;
+    return old.samples != samples ||
+        old.progress != progress ||
+        old.slicePoints != slicePoints ||
+        old.showSlices != showSlices ||
+        old.activeSliceIndex != activeSliceIndex ||
+        old.lengthFrames != lengthFrames;
   }
 }
 

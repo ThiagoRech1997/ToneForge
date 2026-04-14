@@ -200,9 +200,10 @@ class ToneforgeEngine {
   double get recordedSeconds => _bindings.recorder_recorded_seconds();
 
   // ========================================================================
-  // Looper — MVP. Apenas o fluxo essencial (record/play/stop/clear/length/
-  // position/waveform). Multi-track, slicing, pitch shift, reverse,
-  // quantização, MIDI, etc. ficam para iterações futuras. Ver Fase 3.Looper.
+  // Looper — MVP + slicing. Fluxo de record/play/stop/clear/length/position/
+  // waveform, mais a API de slicing (TFR-48). Multi-track, pitch shift,
+  // reverse, quantização, MIDI, etc. ainda ficam para iterações futuras.
+  // Ver Fase 3.Looper.
   // ========================================================================
 
   void startLooperRecording() => _bindings.startLooperRecording();
@@ -214,6 +215,64 @@ class ToneforgeEngine {
   bool get isLooperPlaying => _bindings.isLooperPlaying();
   int get looperLength => _bindings.getLooperLength();
   int get looperPosition => _bindings.getLooperPosition();
+  void setLooperPosition(int frame) => _bindings.setLooperPosition(frame);
+
+  // --- Slicing (TFR-48) -----------------------------------------------------
+
+  /// Liga/desliga o modo slicing. Se ligado sem pontos definidos, o engine
+  /// cria 8 slices automáticos baseados no comprimento atual do loop.
+  void setLooperSlicingEnabled(bool enabled) =>
+      _bindings.setLooperSlicingEnabled(enabled);
+
+  bool get isLooperSlicingEnabled => _bindings.isLooperSlicingEnabled();
+
+  int get looperNumSlices => _bindings.getLooperNumSlices();
+
+  int get looperSliceLength => _bindings.getLooperSliceLength();
+
+  void setLooperSliceLength(int length) =>
+      _bindings.setLooperSliceLength(length);
+
+  /// Define a lista de pontos de slice (em frames). O engine copia internamente
+  /// — a memória alocada aqui é liberada no `finally`.
+  void setLooperSlicePoints(List<int> points) {
+    if (points.isEmpty) {
+      // Passa um buffer de 1 elemento como stub — o engine só olha numPoints.
+      final ptr = malloc<ffi.Int>(1);
+      try {
+        _bindings.setLooperSlicePoints(ptr, 0);
+      } finally {
+        malloc.free(ptr);
+      }
+      return;
+    }
+    final ptr = malloc<ffi.Int>(points.length);
+    try {
+      for (var i = 0; i < points.length; i++) {
+        ptr[i] = points[i];
+      }
+      _bindings.setLooperSlicePoints(ptr, points.length);
+    } finally {
+      malloc.free(ptr);
+    }
+  }
+
+  /// Define a ordem de reprodução dos slices (permutação de índices).
+  void setLooperSliceOrder(List<int> order) {
+    if (order.isEmpty) return;
+    final ptr = malloc<ffi.Int>(order.length);
+    try {
+      for (var i = 0; i < order.length; i++) {
+        ptr[i] = order[i];
+      }
+      _bindings.setLooperSliceOrder(ptr, order.length);
+    } finally {
+      malloc.free(ptr);
+    }
+  }
+
+  void randomizeLooperSlices() => _bindings.randomizeLooperSlices();
+  void reverseLooperSlices() => _bindings.reverseLooperSlices();
 
   /// Salva o mix atual do looper em [path] como WAV mono PCM 16-bit.
   /// Retorna 0 em sucesso ou um TF_LOOP_IO_ERR_* negativo.
