@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../theme/app_colors.dart';
 import 'automation_cubit.dart';
 
 class AutomationScreen extends StatelessWidget {
@@ -109,8 +110,8 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = state.mode == AutomationMode.recording
-        ? Colors.redAccent
-        : (state.mode == AutomationMode.playing ? theme.colorScheme.primary : theme.colorScheme.outline);
+        ? AppColors.error
+        : (state.mode == AutomationMode.playing ? AppColors.primary : AppColors.textTertiary);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -217,7 +218,7 @@ class _Transport extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         FilledButton.tonalIcon(
-          icon: Icon(isRec ? Icons.stop : Icons.fiber_manual_record, color: Colors.redAccent),
+          icon: Icon(isRec ? Icons.stop : Icons.fiber_manual_record, color: AppColors.error),
           label: Text(isRec ? 'Parar' : 'Gravar'),
           onPressed: isPlay ? null : (isRec ? onStopRec : onRecord),
         ),

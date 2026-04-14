@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_midi_command/flutter_midi_command.dart';
 
+import '../../theme/app_colors.dart';
 import '../automation/automation_cubit.dart' show AutoParam, AutoParamX;
 import 'midi_cubit.dart';
 
@@ -110,7 +111,7 @@ class _DeviceTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         device.type == 'BLE' ? Icons.bluetooth : Icons.usb,
-        color: isConnected ? Colors.greenAccent : null,
+        color: isConnected ? AppColors.success : null,
       ),
       title: Text(device.name.isEmpty ? '(sem nome)' : device.name),
       subtitle: Text('${device.type} · ${device.id}', style: const TextStyle(fontSize: 11)),
@@ -132,7 +133,7 @@ class _TelemetrySection extends StatelessWidget {
         ? 'CC #${state.lastCc} = ${state.lastValue}'
         : 'Aguardando mensagens...';
     return Card(
-      color: theme.colorScheme.surfaceContainerHighest,
+      color: AppColors.elevated,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -153,7 +154,7 @@ class _TelemetrySection extends StatelessWidget {
             ),
             Text(state.isConnected ? 'Conectado' : 'Offline',
                 style: TextStyle(
-                  color: state.isConnected ? Colors.greenAccent : theme.colorScheme.outline,
+                  color: state.isConnected ? AppColors.success : theme.colorScheme.outline,
                 )),
           ],
         ),

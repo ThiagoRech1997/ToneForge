@@ -1,10 +1,15 @@
-// Tela do metrônomo. Material 3 com BPM grande, presets, time signature,
-// volume e pulso visual sincronizado com o scheduler do Cubit.
-// Ver Fase 3.Metronome.
+// Metronome: BPM gigante em accentMetronome, FAB central de play, preset
+// pills, beat dots animados e card "Configurações" com volume + compasso.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/tf_card.dart';
+import '../../widgets/tf_pill.dart';
+import '../../widgets/tf_section_label.dart';
 import 'metronome_cubit.dart';
 
 class MetronomeScreen extends StatelessWidget {
@@ -23,43 +28,87 @@ class _MetronomeView extends StatelessWidget {
   const _MetronomeView();
 
   static const _bpmPresets = [60, 80, 100, 120];
+  static const Color _accent = AppColors.accentMetronome;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Metronome')),
+      appBar: AppBar(
+        title: const Text('Metronome'),
+        actions: [
+          BlocBuilder<MetronomeCubit, MetronomeState>(
+            builder: (context, state) => Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.lg),
+              child: Center(
+                child: TfPill(
+                  label: '${state.timeSignature}/4',
+                  accent: _accent,
+                  selected: true,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: BlocBuilder<MetronomeCubit, MetronomeState>(
         builder: (context, state) {
           final cubit = context.read<MetronomeCubit>();
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _BpmDisplay(state: state, cubit: cubit),
-                const SizedBox(height: 16),
-                _PresetsRow(presets: _bpmPresets, current: state.bpm, onTap: cubit.setBpm),
-                const SizedBox(height: 24),
-                _BeatIndicator(state: state),
-                const SizedBox(height: 24),
-                _TimeSignatureRow(state: state, cubit: cubit),
-                const SizedBox(height: 24),
-                _VolumeRow(state: state, cubit: cubit),
-                const SizedBox(height: 32),
-                if (state.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      state.errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.xxl,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _BpmDisplay(bpm: state.bpm),
+                  const SizedBox(height: AppSpacing.xl),
+                  _TransportRow(
+                    isPlaying: state.isPlaying,
+                    onMinus: cubit.decreaseBpm,
+                    onPlus: cubit.increaseBpm,
+                    onToggle: () =>
+                        state.isPlaying ? cubit.stop() : cubit.start(),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _PresetsRow(
+                    presets: _bpmPresets,
+                    current: state.bpm,
+                    onTap: cubit.setBpm,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _BeatIndicator(state: state),
+                  const SizedBox(height: AppSpacing.xl),
+                  if (state.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Text(
+                        state.errorMessage!,
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.error),
+                      ),
+                    ),
+                  TfCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const TfSectionLabel('Configurações'),
+                        const SizedBox(height: AppSpacing.lg),
+                        _VolumeRow(value: state.volume, onChanged: cubit.setVolume),
+                        const SizedBox(height: AppSpacing.lg),
+                        _SignatureRow(
+                          value: state.timeSignature,
+                          onMinus: cubit.decreaseTimeSignature,
+                          onPlus: cubit.increaseTimeSignature,
+                        ),
+                      ],
                     ),
                   ),
-                FilledButton.tonalIcon(
-                  onPressed: () => state.isPlaying ? cubit.stop() : cubit.start(),
-                  icon: Icon(state.isPlaying ? Icons.stop : Icons.play_arrow),
-                  label: Text(state.isPlaying ? 'Parar' : 'Tocar'),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -69,51 +118,111 @@ class _MetronomeView extends StatelessWidget {
 }
 
 class _BpmDisplay extends StatelessWidget {
-  const _BpmDisplay({required this.state, required this.cubit});
-
-  final MetronomeState state;
-  final MetronomeCubit cubit;
-
+  const _BpmDisplay({required this.bpm});
+  final int bpm;
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
       children: [
-        IconButton.filledTonal(
-          onPressed: cubit.decreaseBpm,
-          iconSize: 32,
-          icon: const Icon(Icons.remove),
+        Text(
+          '$bpm',
+          style: AppTypography.monoLarge.copyWith(
+            color: _MetronomeView._accent,
+            fontSize: 132,
+          ),
         ),
-        const SizedBox(width: 24),
-        Column(
-          children: [
-            Text(
-              '${state.bpm}',
-              style: theme.textTheme.displayLarge?.copyWith(
-                fontSize: 96,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            Text('BPM', style: theme.textTheme.titleMedium),
-          ],
-        ),
-        const SizedBox(width: 24),
-        IconButton.filledTonal(
-          onPressed: cubit.increaseBpm,
-          iconSize: 32,
-          icon: const Icon(Icons.add),
-        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text('BPM', style: AppTypography.sectionLabel),
       ],
     );
   }
 }
 
-class _PresetsRow extends StatelessWidget {
-  const _PresetsRow({required this.presets, required this.current, required this.onTap});
+class _TransportRow extends StatelessWidget {
+  const _TransportRow({
+    required this.isPlaying,
+    required this.onMinus,
+    required this.onPlus,
+    required this.onToggle,
+  });
+  final bool isPlaying;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+  final VoidCallback onToggle;
 
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _RoundButton(icon: Icons.remove, onTap: onMinus),
+        const SizedBox(width: AppSpacing.xl),
+        GestureDetector(
+          onTap: onToggle,
+          child: Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _MetronomeView._accent.withValues(alpha: 0.9),
+                  _MetronomeView._accent,
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _MetronomeView._accent.withValues(alpha: 0.3),
+                  blurRadius: 24,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Icon(
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              color: AppColors.textPrimary,
+              size: 44,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xl),
+        _RoundButton(icon: Icons.add, onTap: onPlus),
+      ],
+    );
+  }
+}
+
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.elevated,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          child: Icon(icon, color: AppColors.textSecondary, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetsRow extends StatelessWidget {
+  const _PresetsRow({
+    required this.presets,
+    required this.current,
+    required this.onTap,
+  });
   final List<int> presets;
   final int current;
   final ValueChanged<int> onTap;
@@ -121,16 +230,15 @@ class _PresetsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        for (final preset in presets) ...[
-          ChoiceChip(
-            label: Text('$preset'),
-            selected: preset == current,
-            onSelected: (_) => onTap(preset),
+        for (final p in presets)
+          TfPill(
+            label: '$p',
+            accent: _MetronomeView._accent,
+            selected: p == current,
+            onTap: () => onTap(p),
           ),
-          if (preset != presets.last) const SizedBox(width: 8),
-        ],
       ],
     );
   }
@@ -138,26 +246,26 @@ class _PresetsRow extends StatelessWidget {
 
 class _BeatIndicator extends StatelessWidget {
   const _BeatIndicator({required this.state});
-
   final MetronomeState state;
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 12,
+      spacing: AppSpacing.md,
+      runSpacing: AppSpacing.sm,
       children: List.generate(state.timeSignature, (i) {
         final isCurrent = state.isPlaying && i == state.currentBeat;
         final isDownbeat = i == 0;
-        final base = isDownbeat ? theme.colorScheme.tertiary : theme.colorScheme.primary;
+        final base = isDownbeat
+            ? _MetronomeView._accent
+            : AppColors.textSecondary;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          width: isCurrent ? 32 : 20,
-          height: isCurrent ? 32 : 20,
+          width: isCurrent ? 24 : 14,
+          height: isCurrent ? 24 : 14,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isCurrent ? base : base.withValues(alpha: 0.25),
+            color: isCurrent ? base : base.withValues(alpha: 0.18),
           ),
         );
       }),
@@ -165,58 +273,65 @@ class _BeatIndicator extends StatelessWidget {
   }
 }
 
-class _TimeSignatureRow extends StatelessWidget {
-  const _TimeSignatureRow({required this.state, required this.cubit});
-
-  final MetronomeState state;
-  final MetronomeCubit cubit;
-
+class _VolumeRow extends StatelessWidget {
+  const _VolumeRow({required this.value, required this.onChanged});
+  final double value;
+  final ValueChanged<double> onChanged;
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text('Compasso:'),
-        const SizedBox(width: 16),
-        IconButton.outlined(
-          onPressed: cubit.decreaseTimeSignature,
-          icon: const Icon(Icons.remove),
-        ),
-        SizedBox(
-          width: 64,
-          child: Text(
-            '${state.timeSignature}/4',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge,
+        const Icon(Icons.volume_up_outlined,
+            color: AppColors.textSecondary, size: 20),
+        const SizedBox(width: AppSpacing.md),
+        Text('Volume', style: AppTypography.caption),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: _MetronomeView._accent,
+              thumbColor: _MetronomeView._accent,
+              overlayColor:
+                  _MetronomeView._accent.withValues(alpha: 0.2),
+            ),
+            child: Slider(value: value, onChanged: onChanged),
           ),
         ),
-        IconButton.outlined(
-          onPressed: cubit.increaseTimeSignature,
-          icon: const Icon(Icons.add),
+        Text(
+          '${(value * 100).toStringAsFixed(0)}%',
+          style: AppTypography.caption
+              .copyWith(color: AppColors.textPrimary),
         ),
       ],
     );
   }
 }
 
-class _VolumeRow extends StatelessWidget {
-  const _VolumeRow({required this.state, required this.cubit});
-
-  final MetronomeState state;
-  final MetronomeCubit cubit;
-
+class _SignatureRow extends StatelessWidget {
+  const _SignatureRow({
+    required this.value,
+    required this.onMinus,
+    required this.onPlus,
+  });
+  final int value;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.volume_down),
-        Expanded(
-          child: Slider(
-            value: state.volume,
-            onChanged: cubit.setVolume,
+        Text('Compasso', style: AppTypography.caption),
+        const Spacer(),
+        _RoundButton(icon: Icons.remove, onTap: onMinus),
+        SizedBox(
+          width: 64,
+          child: Text(
+            '$value/4',
+            textAlign: TextAlign.center,
+            style: AppTypography.cardTitle
+                .copyWith(color: _MetronomeView._accent),
           ),
         ),
-        const Icon(Icons.volume_up),
+        _RoundButton(icon: Icons.add, onTap: onPlus),
       ],
     );
   }

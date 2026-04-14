@@ -25,10 +25,26 @@ Live dashboard of the Java → Flutter migration. Updated as things change.
 | **Presets** | ✅ | JSON schema v1. No export/share. No chain order (add when reorder lands). |
 | **Loop Library** | ✅ | Save/load WAV mono PCM 16-bit. No import via file picker. No sample rate metadata. |
 | **Settings** | ✅ placeholder | Info-only card (pipeline state, SR, latency, backend). Real configuration pending. |
-| **Home** | ✅ | Static card grid. Will need revisit when more features land. |
+| **Home** | ✅ | Grid 3×3 com accents por feature + bottom navigation de 4 tabs. Replaces the Fase 3 vertical ListView. |
 | **Automation** | ✅ MVP | Self-contained screen with 4-parameter palette. No global effects integration, no persistence. |
 | **MIDI Learn** | ✅ MVP | USB/BLE via `flutter_midi_command`. Same 4-parameter palette as Automation. No persistence. |
 | **Benchmark** | ✅ | Debug screen with start/stop and live latency/xrun readout. |
+| **Pedalboard** | 🟡 UI scaffold only | Placeholder screen seguindo o DS (TfComingSoon). Engine já suporta `setEffectOrder`; UI de drag-and-drop pendente. |
+| **Learning** | 🟡 UI scaffold only | Placeholder screen seguindo o DS. Exercícios, escalas e acordes — sem lógica ainda. |
+| **Volume** | 🟡 UI scaffold only | Placeholder screen seguindo o DS. Mixer mestre dedicado — sem lógica ainda. |
+
+## Design System
+
+O DS "HILAVA Dark" desenhado no Paper (`app.paper.design/file/01KKHAAHMXVYGGW8E0VJCYPMNA`) foi portado em 2026-04-14:
+
+- Tokens em `flutter_app/lib/theme/` (`app_colors.dart`, `app_spacing.dart`, `app_typography.dart`, `app_theme.dart`)
+- Fontes Inter + Space Grotesk bundled em `flutter_app/assets/fonts/` (OFL)
+- 9 shared widgets em `flutter_app/lib/widgets/` (`tf_card`, `tf_pill`, `tf_section_label`, `tf_primary_button`, `tf_accent_icon_tile`, `tf_param_slider`, `tf_stat_cell`, `tf_signal_chain_strip`, `tf_coming_soon`)
+- App shell com bottom navigation de 4 tabs (Home/Effects/Pedals/Tuner) em `flutter_app/lib/shell/`
+- Effects reestruturada em 6 categorias (Distortion/Modulation/Time/Filter/Dynamics/Ambient) com drilldown, reaproveitando a mesma `EffectsCubit` via `BlocProvider.value`
+- Todas as feature screens (Tuner, Metronome, Looper, Recorder + secundárias) restiladas com accent color por feature
+
+O DS port foi validado apenas com `flutter analyze` (0 issues) e build debug. Verificação em device físico + iOS pendente.
 
 ## Features NOT ported (backlog)
 

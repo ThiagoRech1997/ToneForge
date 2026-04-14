@@ -8,6 +8,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../theme/app_colors.dart';
+
 import '../../engine/engine.dart';
 
 class BenchmarkScreen extends StatefulWidget {
@@ -116,13 +118,14 @@ class _BenchmarkScreenState extends State<BenchmarkScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.elevated,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.muted),
               ),
               child: DefaultTextStyle(
                 style: const TextStyle(
                   fontFamily: 'monospace',
-                  color: Colors.greenAccent,
+                  color: AppColors.success,
                   fontSize: 13,
                 ),
                 child: Column(

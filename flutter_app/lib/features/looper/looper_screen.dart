@@ -1,13 +1,22 @@
-// LooperScreen — MVP. Transport básico (rec/play/stop/clear) + tempo
-// total/atual + WaveformPainter custom (CustomPainter usando o snapshot
-// do mix vindo do engine via FFI). Ver Fase 3.Looper.
+// Looper: timer circular com progress ring em accentLooper, waveform card
+// abaixo, transport Rec/Play/Clear e save to library.
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/tf_card.dart';
+import '../../widgets/tf_pill.dart';
+import '../../widgets/tf_section_label.dart';
 import '../loop_library/loop_library_cubit.dart';
 import 'looper_cubit.dart';
+
+const Color _accent = AppColors.accentLooper;
 
 class LooperScreen extends StatelessWidget {
   const LooperScreen({super.key});
@@ -25,13 +34,16 @@ class _LooperView extends StatelessWidget {
   const _LooperView();
 
   String _formatTime(double seconds) {
-    final s = seconds.toInt();
-    final mm = (s ~/ 60).toString().padLeft(2, '0');
-    final ss = (s % 60).toString().padLeft(2, '0');
-    return '$mm:$ss';
+    final total = seconds.toInt();
+    final mm = (total ~/ 60).toString().padLeft(1, '0');
+    final ss = (total % 60).toString().padLeft(2, '0');
+    final tenths = ((seconds - total) * 10).clamp(0, 9).toInt();
+    return '$mm:$ss.$tenths';
   }
 
-  Future<bool> _ensureMicPermission(BuildContext context) async {
+  String _formatLen(double seconds) => '${seconds.toStringAsFixed(1)}s loop';
+
+  Future<bool> _ensureMic(BuildContext context) async {
     final status = await Permission.microphone.request();
     if (!status.isGranted) {
       if (context.mounted) {
@@ -51,10 +63,13 @@ class _LooperView extends StatelessWidget {
       );
       return;
     }
-    final controller = TextEditingController(text: 'loop_${DateTime.now().millisecondsSinceEpoch}');
+    final controller = TextEditingController(
+      text: 'loop_${DateTime.now().millisecondsSinceEpoch}',
+    );
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
         title: const Text('Salvar loop'),
         content: TextField(
           controller: controller,
@@ -62,7 +77,10 @@ class _LooperView extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'Nome'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('Salvar'),
@@ -71,8 +89,6 @@ class _LooperView extends StatelessWidget {
       ),
     );
     if (name == null || name.isEmpty) return;
-
-    // Cria um Cubit transiente só para o save — não instalamos na árvore.
     final lib = LoopLibraryCubit();
     try {
       final filename = await lib.saveCurrentLoop(name);
@@ -80,7 +96,8 @@ class _LooperView extends StatelessWidget {
         final msg = filename != null
             ? 'Loop salvo como "$filename"'
             : (lib.state.errorMessage ?? 'Falha ao salvar');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
       }
     } finally {
       await lib.close();
@@ -94,10 +111,23 @@ class _LooperView extends StatelessWidget {
         title: const Text('Looper'),
         actions: [
           BlocBuilder<LooperCubit, LooperState>(
+            builder: (context, state) => Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.lg),
+              child: Center(
+                child: TfPill(
+                  label: state.hasContent ? 'Ready' : 'Empty',
+                  accent: _accent,
+                  selected: state.hasContent,
+                ),
+              ),
+            ),
+          ),
+          BlocBuilder<LooperCubit, LooperState>(
             builder: (context, state) => IconButton(
               icon: const Icon(Icons.save_outlined),
-              tooltip: 'Salvar loop como WAV',
-              onPressed: state.hasContent ? () => _onSaveLoop(context, state) : null,
+              tooltip: 'Salvar loop',
+              onPressed:
+                  state.hasContent ? () => _onSaveLoop(context, state) : null,
             ),
           ),
         ],
@@ -105,38 +135,81 @@ class _LooperView extends StatelessWidget {
       body: BlocBuilder<LooperCubit, LooperState>(
         builder: (context, state) {
           final cubit = context.read<LooperCubit>();
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _WaveformPanel(state: state),
-                const SizedBox(height: 16),
-                _TimeReadout(state: state, format: _formatTime),
-                const Spacer(),
-                if (state.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      state.errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
-                      textAlign: TextAlign.center,
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.xl,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: _CircularTimer(
+                      position: _formatTime(state.positionSeconds),
+                      length: _formatLen(state.lengthSeconds),
+                      progress: state.progress,
                     ),
                   ),
-                _Transport(
-                  state: state,
-                  onRecord: () async {
-                    if (await _ensureMicPermission(context)) {
-                      await cubit.startRecording();
-                    }
-                  },
-                  onStopRec: cubit.stopRecording,
-                  onPlay: cubit.startPlayback,
-                  onStopPlay: cubit.stopPlayback,
-                  onClear: cubit.clear,
-                ),
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: AppSpacing.xl),
+                  _Transport(
+                    state: state,
+                    onRecord: () async {
+                      if (await _ensureMic(context)) {
+                        await cubit.startRecording();
+                      }
+                    },
+                    onStopRec: cubit.stopRecording,
+                    onPlay: cubit.startPlayback,
+                    onStopPlay: cubit.stopPlayback,
+                    onClear: cubit.clear,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  if (state.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Text(
+                        state.errorMessage!,
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.error),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  TfCard(
+                    accent: _accent,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const TfSectionLabel('Waveform'),
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          height: 120,
+                          child: state.waveform.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    state.mode == LooperMode.recording
+                                        ? 'Gravando…'
+                                        : 'Pressione gravar para começar',
+                                    style: AppTypography.caption,
+                                  ),
+                                )
+                              : CustomPaint(
+                                  painter: _WaveformPainter(
+                                    samples: state.waveform,
+                                    progress: state.progress,
+                                    waveColor: _accent,
+                                    playheadColor: AppColors.textPrimary,
+                                  ),
+                                  size: Size.infinite,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -145,38 +218,93 @@ class _LooperView extends StatelessWidget {
   }
 }
 
-class _WaveformPanel extends StatelessWidget {
-  const _WaveformPanel({required this.state});
-  final LooperState state;
+class _CircularTimer extends StatelessWidget {
+  const _CircularTimer({
+    required this.position,
+    required this.length,
+    required this.progress,
+  });
+  final String position;
+  final String length;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+    return SizedBox(
+      width: 240,
+      height: 240,
+      child: CustomPaint(
+        painter: _ProgressRingPainter(
+          progress: progress,
+          color: _accent,
+          trackColor: AppColors.muted,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                position,
+                style: AppTypography.monoLarge.copyWith(
+                  fontSize: 56,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                '/ $length',
+                style: AppTypography.caption.copyWith(color: _accent),
+              ),
+            ],
+          ),
+        ),
       ),
-      padding: const EdgeInsets.all(12),
-      child: state.waveform.isEmpty
-          ? Center(
-              child: Text(
-                state.mode == LooperMode.recording ? 'Gravando…' : 'Pressione gravar',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline),
-              ),
-            )
-          : CustomPaint(
-              painter: _WaveformPainter(
-                samples: state.waveform,
-                progress: state.progress,
-                waveColor: theme.colorScheme.primary,
-                playheadColor: theme.colorScheme.tertiary,
-              ),
-              size: Size.infinite,
-            ),
     );
   }
+}
+
+class _ProgressRingPainter extends CustomPainter {
+  _ProgressRingPainter({
+    required this.progress,
+    required this.color,
+    required this.trackColor,
+  });
+
+  final double progress;
+  final Color color;
+  final Color trackColor;
+  static const double _stroke = 8;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = (size.shortestSide - _stroke) / 2;
+    final track = Paint()
+      ..color = trackColor
+      ..strokeWidth = _stroke
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, track);
+
+    if (progress > 0) {
+      final arc = Paint()
+        ..color = color
+        ..strokeWidth = _stroke
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        math.pi * 2 * progress.clamp(0.0, 1.0),
+        false,
+        arc,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProgressRingPainter old) =>
+      old.progress != progress || old.color != color;
 }
 
 class _WaveformPainter extends CustomPainter {
@@ -213,43 +341,17 @@ class _WaveformPainter extends CustomPainter {
       final playPaint = Paint()
         ..color = playheadColor
         ..strokeWidth = 2;
-      canvas.drawLine(Offset(playheadX, 0), Offset(playheadX, size.height), playPaint);
+      canvas.drawLine(
+        Offset(playheadX, 0),
+        Offset(playheadX, size.height),
+        playPaint,
+      );
     }
   }
 
   @override
   bool shouldRepaint(covariant _WaveformPainter old) {
     return old.samples != samples || old.progress != progress;
-  }
-}
-
-class _TimeReadout extends StatelessWidget {
-  const _TimeReadout({required this.state, required this.format});
-
-  final LooperState state;
-  final String Function(double) format;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final positionStyle = theme.textTheme.headlineMedium?.copyWith(
-      fontFamily: 'monospace',
-      color: theme.colorScheme.primary,
-    );
-    final lengthStyle = theme.textTheme.bodyMedium?.copyWith(
-      fontFamily: 'monospace',
-      color: theme.colorScheme.outline,
-    );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(format(state.positionSeconds), style: positionStyle),
-        const SizedBox(width: 8),
-        Text('/ ${format(state.lengthSeconds)}', style: lengthStyle),
-      ],
-    );
   }
 }
 
@@ -281,21 +383,22 @@ class _Transport extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _TransportButton(
-          icon: isRecording ? Icons.stop : Icons.fiber_manual_record,
+          icon: isRecording ? Icons.stop_rounded : Icons.fiber_manual_record,
           label: isRecording ? 'Parar' : 'Gravar',
-          color: Colors.redAccent,
+          color: AppColors.error,
+          hero: true,
           onPressed: isPlaying ? null : (isRecording ? onStopRec : onRecord),
         ),
         _TransportButton(
-          icon: isPlaying ? Icons.stop : Icons.play_arrow,
-          label: isPlaying ? 'Parar' : 'Tocar',
-          color: Theme.of(context).colorScheme.primary,
+          icon: isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          label: isPlaying ? 'Pause' : 'Tocar',
+          color: _accent,
           onPressed: canPlay ? (isPlaying ? onStopPlay : onPlay) : null,
         ),
         _TransportButton(
-          icon: Icons.delete_sweep,
+          icon: Icons.delete_sweep_outlined,
           label: 'Limpar',
-          color: Theme.of(context).colorScheme.outline,
+          color: AppColors.textSecondary,
           onPressed: canClear ? onClear : null,
         ),
       ],
@@ -309,30 +412,52 @@ class _TransportButton extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onPressed,
+    this.hero = false,
   });
 
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback? onPressed;
+  final bool hero;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    final size = hero ? 72.0 : 56.0;
     return Column(
       children: [
-        SizedBox(
-          width: 80,
-          height: 80,
-          child: FloatingActionButton(
-            heroTag: label,
-            backgroundColor: enabled ? color : color.withValues(alpha: 0.3),
-            onPressed: onPressed,
-            child: Icon(icon, size: 36),
+        GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: enabled
+                  ? (hero ? color : AppColors.elevated)
+                  : AppColors.elevated,
+              border: Border.all(
+                color: enabled ? color : AppColors.muted,
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: hero ? 34 : 26,
+              color: enabled
+                  ? (hero ? AppColors.textPrimary : color)
+                  : AppColors.textTertiary,
+            ),
           ),
         ),
-        const SizedBox(height: 6),
-        Text(label, style: TextStyle(color: enabled ? null : Theme.of(context).colorScheme.outline)),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: enabled ? AppColors.textSecondary : AppColors.textTertiary,
+          ),
+        ),
       ],
     );
   }

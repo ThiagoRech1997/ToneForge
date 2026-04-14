@@ -1,11 +1,17 @@
-// Tela do Tuner. Material 3, single column: nota grande, frequência,
-// indicador de cents com cor por accuracy, botão start/stop. Ver Fase
-// 3.Tuner. Equivalente ao TunerFragmentRefactored mas em Flutter.
+// Tela do Tuner seguindo o Design System Paper:
+// nota gigante em accentTuner, barra FLAT→SHARP com marker, readout de
+// frequência + referência 440 Hz, pill row das 6 cordas padrão de guitarra
+// e CTA gradiente start/stop.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/tf_pill.dart';
+import '../../widgets/tf_primary_button.dart';
 import 'note_math.dart';
 import 'tuner_cubit.dart';
 
@@ -42,31 +48,107 @@ class _TunerView extends StatelessWidget {
     await cubit.start();
   }
 
+  Color _accuracyColor(NoteReading reading) {
+    switch (reading.accuracy) {
+      case TunerAccuracy.perfect:
+        return AppColors.success;
+      case TunerAccuracy.good:
+        return AppColors.success;
+      case TunerAccuracy.fair:
+        return AppColors.warning;
+      case TunerAccuracy.poor:
+        return AppColors.error;
+      case TunerAccuracy.none:
+        return AppColors.accentTuner;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tuner')),
+      appBar: AppBar(
+        title: const Text('Tuner'),
+        actions: [
+          BlocBuilder<TunerCubit, TunerState>(
+            builder: (context, state) => Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.lg),
+              child: Center(
+                child: TfPill(
+                  label: state.isRunning ? 'Listening…' : 'Idle',
+                  accent: state.isRunning
+                      ? AppColors.success
+                      : AppColors.textTertiary,
+                  selected: state.isRunning,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: BlocBuilder<TunerCubit, TunerState>(
         builder: (context, state) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
-              children: [
-                Expanded(child: _NoteDisplay(reading: state.reading, isRunning: state.isRunning)),
-                if (state.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      state.errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+          final color = _accuracyColor(state.reading);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.xxl,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _NoteDisplay(reading: state.reading, color: color),
+                        const SizedBox(height: AppSpacing.xxl),
+                        _CentsBar(
+                          cents: state.reading.cents,
+                          color: color,
+                          hasSignal: state.reading.hasSignal,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Text(
+                          state.reading.hasSignal
+                              ? '${state.reading.frequency.toStringAsFixed(1)} Hz'
+                              : (state.isRunning
+                                  ? 'Toque uma corda…'
+                                  : 'Pressione iniciar'),
+                          style: AppTypography.cardTitle,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Reference: 440 Hz',
+                          style: AppTypography.caption,
+                        ),
+                      ],
                     ),
                   ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _onToggle(context),
-                  icon: Icon(state.isRunning ? Icons.stop : Icons.mic),
-                  label: Text(state.isRunning ? 'Parar afinador' : 'Iniciar afinador'),
-                ),
-              ],
+                  if (state.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Text(
+                        state.errorMessage!,
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.error),
+                      ),
+                    ),
+                  _StringRow(
+                    currentNote: state.reading.hasSignal
+                        ? state.reading.noteName
+                        : '',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  TfPrimaryButton(
+                    label: state.isRunning ? 'Parar afinador' : 'Start Tuning',
+                    icon: state.isRunning ? Icons.stop : Icons.mic_rounded,
+                    accent: AppColors.accentTuner,
+                    onPressed: () => _onToggle(context),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -76,105 +158,184 @@ class _TunerView extends StatelessWidget {
 }
 
 class _NoteDisplay extends StatelessWidget {
-  const _NoteDisplay({required this.reading, required this.isRunning});
+  const _NoteDisplay({required this.reading, required this.color});
 
   final NoteReading reading;
-  final bool isRunning;
-
-  Color _accuracyColor(BuildContext context) {
-    switch (reading.accuracy) {
-      case TunerAccuracy.perfect:
-        return Colors.greenAccent;
-      case TunerAccuracy.good:
-        return Colors.lightGreen;
-      case TunerAccuracy.fair:
-        return Colors.amber;
-      case TunerAccuracy.poor:
-        return Colors.redAccent;
-      case TunerAccuracy.none:
-        return Theme.of(context).colorScheme.outline;
-    }
-  }
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = _accuracyColor(context);
-
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          reading.noteWithOctave,
-          style: theme.textTheme.displayLarge?.copyWith(
-            fontSize: 144,
-            fontWeight: FontWeight.bold,
-            color: color,
+          reading.hasSignal ? reading.noteName : '—',
+          style: TextStyle(
+            fontFamily: 'SpaceGrotesk',
+            fontSize: 160,
+            height: 1,
+            fontWeight: FontWeight.w700,
+            color: reading.hasSignal ? color : AppColors.textTertiary,
+            letterSpacing: -4,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         Text(
-          reading.hasSignal
-              ? '${reading.frequency.toStringAsFixed(2)} Hz'
-              : (isRunning ? 'Toque uma corda...' : 'Pressione iniciar'),
-          style: theme.textTheme.titleMedium,
+          reading.hasSignal ? reading.noteWithOctave : '---',
+          style: AppTypography.bodySecondary,
         ),
-        const SizedBox(height: 32),
-        _CentsIndicator(cents: reading.cents, color: color, hasSignal: reading.hasSignal),
       ],
     );
   }
 }
 
-class _CentsIndicator extends StatelessWidget {
-  const _CentsIndicator({required this.cents, required this.color, required this.hasSignal});
+class _CentsBar extends StatelessWidget {
+  const _CentsBar({
+    required this.cents,
+    required this.color,
+    required this.hasSignal,
+  });
 
   final double cents;
   final Color color;
   final bool hasSignal;
 
-  static const double _range = 50.0;
+  static const double _range = 50;
 
   @override
   Widget build(BuildContext context) {
     final clamped = cents.clamp(-_range, _range);
-    final normalized = (clamped + _range) / (2 * _range); // 0..1
+    final normalized = (clamped + _range) / (2 * _range);
 
     return Column(
       children: [
-        SizedBox(
-          height: 36,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 4,
-                color: Theme.of(context).colorScheme.outlineVariant,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'FLAT',
+              style: AppTypography.sectionLabel.copyWith(
+                color: AppColors.error.withValues(alpha: 0.7),
               ),
-              // Marcador central (afinação perfeita)
-              Container(width: 2, height: 24, color: Theme.of(context).colorScheme.onSurface),
-              // Indicador da nota atual
-              if (hasSignal)
-                Align(
-                  alignment: Alignment(normalized * 2 - 1, 0),
-                  child: Container(
-                    width: 6,
-                    height: 32,
+            ),
+            Text(
+              'SHARP',
+              style: AppTypography.sectionLabel.copyWith(
+                color: AppColors.error.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          height: 20,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    height: 6,
                     decoration: BoxDecoration(
-                      color: color,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.error.withValues(alpha: 0.4),
+                          AppColors.muted,
+                          AppColors.error.withValues(alpha: 0.4),
+                        ],
+                        stops: const [0, 0.5, 1],
+                      ),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
-                ),
-            ],
+                  Container(
+                    width: 2,
+                    height: 16,
+                    color: AppColors.textPrimary,
+                  ),
+                  if (hasSignal)
+                    Positioned(
+                      left: normalized * constraints.maxWidth - 8,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.textPrimary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.md),
         Text(
-          hasSignal ? '${cents >= 0 ? '+' : ''}${cents.toStringAsFixed(0)} cents' : '',
-          style: TextStyle(color: color, fontFamily: 'monospace'),
+          hasSignal
+              ? '${cents >= 0 ? '+' : ''}${cents.toStringAsFixed(0)} cents'
+              : '',
+          style: AppTypography.cardTitle.copyWith(color: color),
         ),
       ],
+    );
+  }
+}
+
+class _StringRow extends StatelessWidget {
+  const _StringRow({required this.currentNote});
+
+  final String currentNote;
+
+  static const _strings = ['E', 'A', 'D', 'G', 'B', 'E'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        for (var i = 0; i < _strings.length; i++)
+          _StringPill(
+            label: _strings[i],
+            highlighted: currentNote.isNotEmpty && currentNote == _strings[i],
+          ),
+      ],
+    );
+  }
+}
+
+class _StringPill extends StatelessWidget {
+  const _StringPill({required this.label, required this.highlighted});
+
+  final String label;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppColors.accentTuner;
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: highlighted
+            ? accent.withValues(alpha: 0.25)
+            : AppColors.elevated,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: highlighted ? accent : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: AppTypography.cardTitle.copyWith(
+          color: highlighted ? accent : AppColors.textSecondary,
+        ),
+      ),
     );
   }
 }

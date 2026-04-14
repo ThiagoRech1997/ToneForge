@@ -1,31 +1,28 @@
-// Tela dos 9 efeitos. Lista vertical de cards, sem expand/collapse para
-// se manter próxima ao EffectsFragmentRefactored legado. Cada card tem
-// um Switch + sliders/dropdown para os parâmetros do efeito.
-// Reordenamento de cadeia (drag-and-drop) ainda não implementado.
-// Ver Fase 3.Effects.
+// Landing da aba Effects: grid 2 colunas de categorias com accent color,
+// signal chain strip derivado dos efeitos ativos, badge "N Active" e CTA
+// de bypass do pipeline. O drilldown em cada categoria vai para
+// CategoryDetailScreen, que reaproveita a mesma EffectsCubit via
+// BlocProvider.value (para não instanciar outro engine binding).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/tf_accent_icon_tile.dart';
+import '../../widgets/tf_card.dart';
+import '../../widgets/tf_primary_button.dart';
+import '../../widgets/tf_section_label.dart';
+import '../../widgets/tf_signal_chain_strip.dart';
+import 'category_detail_screen.dart';
+import 'effects_categories.dart';
 import 'effects_cubit.dart';
-import 'models.dart';
 import 'preset_manager.dart';
 
 class EffectsScreen extends StatelessWidget {
   const EffectsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => EffectsCubit(),
-      child: const _EffectsView(),
-    );
-  }
-}
-
-class _EffectsView extends StatelessWidget {
-  const _EffectsView();
 
   Future<void> _togglePipeline(BuildContext context, EffectsState state) async {
     final cubit = context.read<EffectsCubit>();
@@ -45,44 +42,6 @@ class _EffectsView extends StatelessWidget {
     await cubit.startPipeline();
   }
 
-  Future<void> _onSavePreset(BuildContext context) async {
-    final cubit = context.read<EffectsCubit>();
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Salvar preset'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Nome'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
-    if (name == null || name.isEmpty) return;
-    try {
-      await PresetManager.save(name, cubit.state);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Preset "$name" salvo')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Falha ao salvar: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _onLoadPreset(BuildContext context) async {
     final cubit = context.read<EffectsCubit>();
     final presets = await PresetManager.list();
@@ -95,19 +54,26 @@ class _EffectsView extends StatelessWidget {
     }
     final picked = await showModalBottomSheet<PresetSummary>(
       context: context,
+      backgroundColor: AppColors.surface,
       showDragHandle: true,
       builder: (ctx) => ListView(
         shrinkWrap: true,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('Carregar preset', style: Theme.of(ctx).textTheme.titleMedium),
+          const Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
+            child: TfSectionLabel('Carregar preset'),
           ),
           for (final p in presets)
             ListTile(
-              leading: const Icon(Icons.tune),
+              leading: const Icon(Icons.tune, color: AppColors.primary),
               title: Text(p.name),
-              subtitle: Text('${p.modified.toLocal()}'.split('.').first),
+              subtitle: Text(
+                '${p.modified.toLocal()}'.split('.').first,
+                style: AppTypography.caption,
+              ),
               trailing: IconButton(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () async {
@@ -153,460 +119,169 @@ class _EffectsView extends StatelessWidget {
         title: const Text('Effects'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save_outlined),
-            tooltip: 'Salvar preset',
-            onPressed: () => _onSavePreset(context),
-          ),
-          IconButton(
             icon: const Icon(Icons.folder_open),
             tooltip: 'Carregar preset',
             onPressed: () => _onLoadPreset(context),
           ),
         ],
       ),
-      floatingActionButton: BlocBuilder<EffectsCubit, EffectsState>(
-        builder: (context, state) => FloatingActionButton.extended(
-          onPressed: () => _togglePipeline(context, state),
-          icon: Icon(state.pipelineRunning ? Icons.stop : Icons.play_arrow),
-          label: Text(state.pipelineRunning ? 'Parar' : 'Iniciar'),
-        ),
-      ),
       body: BlocBuilder<EffectsCubit, EffectsState>(
         builder: (context, state) {
-          final cubit = context.read<EffectsCubit>();
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            children: [
-              if (state.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    state.errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+          final activeCount = _countActive(state);
+          final chain = _buildChain(state);
+          return SafeArea(
+            bottom: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.xl,
+                AppSpacing.xxl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (state.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Text(
+                        state.errorMessage!,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  _ActiveBadge(count: activeCount),
+                  const SizedBox(height: AppSpacing.lg),
+                  _CategoryGrid(),
+                  const SizedBox(height: AppSpacing.xl),
+                  const TfSectionLabel('Signal Chain'),
+                  const SizedBox(height: AppSpacing.md),
+                  TfCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.lg,
+                    ),
+                    child: chain.isEmpty
+                        ? Text(
+                            'Todos os efeitos desligados.',
+                            style: AppTypography.caption,
+                          )
+                        : TfSignalChainStrip(nodes: chain),
                   ),
-                ),
-              _GainCard(state: state.gain, cubit: cubit),
-              _DistortionCard(state: state.distortion, cubit: cubit),
-              _DelayCard(state: state.delay, cubit: cubit),
-              _ReverbCard(state: state.reverb, cubit: cubit),
-              _ChorusCard(state: state.chorus, cubit: cubit),
-              _FlangerCard(state: state.flanger, cubit: cubit),
-              _PhaserCard(state: state.phaser, cubit: cubit),
-              _EqCard(state: state.eq, cubit: cubit),
-              _CompressorCard(state: state.compressor, cubit: cubit),
-            ],
+                  const SizedBox(height: AppSpacing.xl),
+                  TfPrimaryButton(
+                    label: state.pipelineRunning
+                        ? 'Parar áudio'
+                        : 'Iniciar áudio',
+                    icon: state.pipelineRunning
+                        ? Icons.stop
+                        : Icons.play_arrow,
+                    onPressed: () => _togglePipeline(context, state),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
     );
   }
+
+  int _countActive(EffectsState s) {
+    return [
+      s.gain.enabled,
+      s.distortion.enabled,
+      s.delay.enabled,
+      s.reverb.enabled,
+      s.chorus.enabled,
+      s.flanger.enabled,
+      s.phaser.enabled,
+      s.eq.enabled,
+      s.compressor.enabled,
+    ].where((e) => e).length;
+  }
+
+  List<SignalChainNode> _buildChain(EffectsState s) {
+    final nodes = <SignalChainNode>[];
+    void add(bool enabled, String label, Color c) {
+      if (enabled) nodes.add(SignalChainNode(label: label, accent: c));
+    }
+
+    add(s.gain.enabled, 'Gain', AppColors.warning);
+    add(s.distortion.enabled, 'Dist', AppColors.warning);
+    add(s.compressor.enabled, 'Comp', AppColors.accentRecorder);
+    add(s.eq.enabled, 'EQ', AppColors.accentMidi);
+    add(s.chorus.enabled, 'Chorus', AppColors.primary);
+    add(s.flanger.enabled, 'Flanger', AppColors.primary);
+    add(s.phaser.enabled, 'Phaser', AppColors.primary);
+    add(s.delay.enabled, 'Delay', AppColors.success);
+    add(s.reverb.enabled, 'Reverb', AppColors.accentTuner);
+    return nodes;
+  }
 }
 
-// ============================================================================
-// Card base — header com Switch e bloco de filhos. Mantido fora dos cards
-// específicos para que cada feito só descreva seus controles, não a moldura.
-// ============================================================================
-
-class _EffectCard extends StatelessWidget {
-  const _EffectCard({
-    required this.title,
-    required this.enabled,
-    required this.onEnabled,
-    required this.children,
-  });
-
-  final String title;
-  final bool enabled;
-  final ValueChanged<bool> onEnabled;
-  final List<Widget> children;
+class _ActiveBadge extends StatelessWidget {
+  const _ActiveBadge({required this.count});
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.5),
+          ),
+        ),
+        child: Text(
+          '$count Active',
+          style: AppTypography.caption.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final categories = EffectCategories.all;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = AppSpacing.md;
+        final tileWidth = (constraints.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            for (final cat in categories)
+              SizedBox(
+                width: tileWidth,
+                height: 120,
+                child: TfAccentIconTile(
+                  icon: cat.icon,
+                  label: cat.title,
+                  subtitle: cat.subtitle,
+                  accent: cat.accent,
+                  onTap: () => Navigator.of(context).push(
+                    CategoryDetailScreen.route(context, cat),
                   ),
                 ),
-                Switch(value: enabled, onChanged: onEnabled),
-              ],
-            ),
-            const SizedBox(height: 4),
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 120),
-              opacity: enabled ? 1.0 : 0.45,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ParamSlider extends StatelessWidget {
-  const _ParamSlider({
-    required this.label,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-    this.format,
-  });
-
-  final String label;
-  final double value;
-  final double min;
-  final double max;
-  final ValueChanged<double> onChanged;
-  final String Function(double)? format;
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = format ?? (v) => v.toStringAsFixed(2);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
-              Text(
-                formatter(value),
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               ),
-            ],
-          ),
-          Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TypeDropdown<T> extends StatelessWidget {
-  const _TypeDropdown({
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-  });
-
-  final String label;
-  final T value;
-  final Map<T, String> options;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
-          DropdownButton<T>(
-            value: value,
-            items: [
-              for (final entry in options.entries)
-                DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-            ],
-            onChanged: (v) {
-              if (v != null) onChanged(v);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// Cards específicos por efeito
-// ============================================================================
-
-class _GainCard extends StatelessWidget {
-  const _GainCard({required this.state, required this.cubit});
-  final GainConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Gain',
-      enabled: state.enabled,
-      onEnabled: cubit.setGainEnabled,
-      children: [
-        _ParamSlider(label: 'Level', value: state.level, min: 0, max: 1, onChanged: cubit.setGainLevel),
-      ],
-    );
-  }
-}
-
-class _DistortionCard extends StatelessWidget {
-  const _DistortionCard({required this.state, required this.cubit});
-  final DistortionConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Distortion',
-      enabled: state.enabled,
-      onEnabled: cubit.setDistortionEnabled,
-      children: [
-        _TypeDropdown<int>(
-          label: 'Type',
-          value: state.type,
-          options: {for (var i = 0; i < DistortionConfig.types.length; i++) i: DistortionConfig.types[i]},
-          onChanged: cubit.setDistortionType,
-        ),
-        _ParamSlider(label: 'Amount', value: state.amount, min: 0, max: 1, onChanged: cubit.setDistortionAmount),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setDistortionMix),
-      ],
-    );
-  }
-}
-
-class _DelayCard extends StatelessWidget {
-  const _DelayCard({required this.state, required this.cubit});
-  final DelayConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Delay',
-      enabled: state.enabled,
-      onEnabled: cubit.setDelayEnabled,
-      children: [
-        _ParamSlider(
-          label: 'Time',
-          value: state.timeMs,
-          min: 0,
-          max: 1000,
-          format: (v) => '${v.toStringAsFixed(0)} ms',
-          onChanged: cubit.setDelayTimeMs,
-        ),
-        _ParamSlider(label: 'Feedback', value: state.feedback, min: 0, max: 1, onChanged: cubit.setDelayFeedback),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setDelayMix),
-      ],
-    );
-  }
-}
-
-class _ReverbCard extends StatelessWidget {
-  const _ReverbCard({required this.state, required this.cubit});
-  final ReverbConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Reverb',
-      enabled: state.enabled,
-      onEnabled: cubit.setReverbEnabled,
-      children: [
-        _TypeDropdown<int>(
-          label: 'Type',
-          value: state.type,
-          options: {for (var i = 0; i < ReverbConfig.types.length; i++) i: ReverbConfig.types[i]},
-          onChanged: cubit.setReverbType,
-        ),
-        _ParamSlider(label: 'Room', value: state.roomSize, min: 0, max: 1, onChanged: cubit.setReverbRoomSize),
-        _ParamSlider(label: 'Damping', value: state.damping, min: 0, max: 1, onChanged: cubit.setReverbDamping),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setReverbMix),
-      ],
-    );
-  }
-}
-
-class _ChorusCard extends StatelessWidget {
-  const _ChorusCard({required this.state, required this.cubit});
-  final ModConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Chorus',
-      enabled: state.enabled,
-      onEnabled: cubit.setChorusEnabled,
-      children: [
-        _ParamSlider(label: 'Depth', value: state.depth, min: 0, max: 1, onChanged: cubit.setChorusDepth),
-        _ParamSlider(
-          label: 'Rate',
-          value: state.rate,
-          min: 0,
-          max: 20,
-          format: (v) => '${v.toStringAsFixed(2)} Hz',
-          onChanged: cubit.setChorusRate,
-        ),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setChorusMix),
-      ],
-    );
-  }
-}
-
-class _FlangerCard extends StatelessWidget {
-  const _FlangerCard({required this.state, required this.cubit});
-  final ModConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Flanger',
-      enabled: state.enabled,
-      onEnabled: cubit.setFlangerEnabled,
-      children: [
-        _ParamSlider(label: 'Depth', value: state.depth, min: 0, max: 1, onChanged: cubit.setFlangerDepth),
-        _ParamSlider(
-          label: 'Rate',
-          value: state.rate,
-          min: 0,
-          max: 20,
-          format: (v) => '${v.toStringAsFixed(2)} Hz',
-          onChanged: cubit.setFlangerRate,
-        ),
-        _ParamSlider(label: 'Feedback', value: state.feedback, min: 0, max: 1, onChanged: cubit.setFlangerFeedback),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setFlangerMix),
-      ],
-    );
-  }
-}
-
-class _PhaserCard extends StatelessWidget {
-  const _PhaserCard({required this.state, required this.cubit});
-  final ModConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Phaser',
-      enabled: state.enabled,
-      onEnabled: cubit.setPhaserEnabled,
-      children: [
-        _ParamSlider(label: 'Depth', value: state.depth, min: 0, max: 1, onChanged: cubit.setPhaserDepth),
-        _ParamSlider(
-          label: 'Rate',
-          value: state.rate,
-          min: 0,
-          max: 20,
-          format: (v) => '${v.toStringAsFixed(2)} Hz',
-          onChanged: cubit.setPhaserRate,
-        ),
-        _ParamSlider(label: 'Feedback', value: state.feedback, min: 0, max: 1, onChanged: cubit.setPhaserFeedback),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setPhaserMix),
-      ],
-    );
-  }
-}
-
-class _EqCard extends StatelessWidget {
-  const _EqCard({required this.state, required this.cubit});
-  final EqConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'EQ (3-band)',
-      enabled: state.enabled,
-      onEnabled: cubit.setEqEnabled,
-      children: [
-        _ParamSlider(
-          label: 'Low',
-          value: state.low,
-          min: -12,
-          max: 12,
-          format: (v) => '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)} dB',
-          onChanged: cubit.setEqLow,
-        ),
-        _ParamSlider(
-          label: 'Mid',
-          value: state.mid,
-          min: -12,
-          max: 12,
-          format: (v) => '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)} dB',
-          onChanged: cubit.setEqMid,
-        ),
-        _ParamSlider(
-          label: 'High',
-          value: state.high,
-          min: -12,
-          max: 12,
-          format: (v) => '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)} dB',
-          onChanged: cubit.setEqHigh,
-        ),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setEqMix),
-      ],
-    );
-  }
-}
-
-class _CompressorCard extends StatelessWidget {
-  const _CompressorCard({required this.state, required this.cubit});
-  final CompressorConfig state;
-  final EffectsCubit cubit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _EffectCard(
-      title: 'Compressor',
-      enabled: state.enabled,
-      onEnabled: cubit.setCompressorEnabled,
-      children: [
-        _ParamSlider(
-          label: 'Threshold',
-          value: state.thresholdDb,
-          min: -60,
-          max: 0,
-          format: (v) => '${v.toStringAsFixed(1)} dB',
-          onChanged: cubit.setCompressorThreshold,
-        ),
-        _ParamSlider(
-          label: 'Ratio',
-          value: state.ratio,
-          min: 1,
-          max: 20,
-          format: (v) => '${v.toStringAsFixed(1)}:1',
-          onChanged: cubit.setCompressorRatio,
-        ),
-        _ParamSlider(
-          label: 'Attack',
-          value: state.attackMs,
-          min: 1,
-          max: 100,
-          format: (v) => '${v.toStringAsFixed(0)} ms',
-          onChanged: cubit.setCompressorAttack,
-        ),
-        _ParamSlider(
-          label: 'Release',
-          value: state.releaseMs,
-          min: 10,
-          max: 1000,
-          format: (v) => '${v.toStringAsFixed(0)} ms',
-          onChanged: cubit.setCompressorRelease,
-        ),
-        _ParamSlider(label: 'Mix', value: state.mix, min: 0, max: 1, onChanged: cubit.setCompressorMix),
-      ],
+          ],
+        );
+      },
     );
   }
 }
