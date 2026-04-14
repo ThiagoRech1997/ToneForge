@@ -4,7 +4,9 @@
 
 #include <oboe/Oboe.h>
 #include <android/log.h>
+#include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -15,6 +17,66 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 namespace {
+
+static const char* performanceModeToText(oboe::PerformanceMode mode) {
+    switch (mode) {
+        case oboe::PerformanceMode::None:        return "None";
+        case oboe::PerformanceMode::PowerSaving: return "PowerSaving";
+        case oboe::PerformanceMode::LowLatency:  return "LowLatency";
+        default:                                 return "Unknown";
+    }
+}
+
+static const char* sharingModeToText(oboe::SharingMode mode) {
+    switch (mode) {
+        case oboe::SharingMode::Exclusive: return "Exclusive";
+        case oboe::SharingMode::Shared:    return "Shared";
+        default:                           return "Unknown";
+    }
+}
+
+static const char* audioApiToText(oboe::AudioApi api) {
+    switch (api) {
+        case oboe::AudioApi::Unspecified: return "Unspecified";
+        case oboe::AudioApi::OpenSLES:    return "OpenSLES";
+        case oboe::AudioApi::AAudio:      return "AAudio";
+        default:                          return "Unknown";
+    }
+}
+
+static void logStreamDiagnostics(const char* tag, oboe::AudioStream* stream,
+                                 oboe::PerformanceMode requestedPerf,
+                                 oboe::SharingMode requestedShare) {
+    if (!stream) return;
+    const auto perf  = stream->getPerformanceMode();
+    const auto share = stream->getSharingMode();
+    const bool perfGranted  = (perf  == requestedPerf);
+    const bool shareGranted = (share == requestedShare);
+    auto xrunResult = stream->getXRunCount();
+    const int xrunCount = xrunResult ? xrunResult.value() : -1;
+    LOGI("%s: api=%s sr=%d fmt=%d ch=%d framesPerBurst=%d bufferCapacity=%d "
+         "perfMode=%s(%s) sharing=%s(%s) xrun=%d",
+         tag,
+         audioApiToText(stream->getAudioApi()),
+         stream->getSampleRate(),
+         (int)stream->getFormat(),
+         stream->getChannelCount(),
+         stream->getFramesPerBurst(),
+         stream->getBufferCapacityInFrames(),
+         performanceModeToText(perf),  perfGranted  ? "granted" : "DEGRADED",
+         sharingModeToText(share),     shareGranted ? "granted" : "DEGRADED",
+         xrunCount);
+    if (!perfGranted) {
+        LOGW("%s: PerformanceMode solicitado LowLatency mas Oboe entregou %s — "
+             "provável fallback fora do fast path",
+             tag, performanceModeToText(perf));
+    }
+    if (!shareGranted) {
+        LOGW("%s: SharingMode solicitado Exclusive mas Oboe entregou %s — "
+             "fast path exclusivo negado",
+             tag, sharingModeToText(share));
+    }
+}
 
 // Driver-callback pattern: output stream é o driver, lê input stream sincronamente
 // dentro do callback. É o padrão recomendado pelo sample LiveEffect do Oboe para
@@ -30,13 +92,17 @@ public:
             return oboe::Result::OK;
         }
 
-        // Output stream (driver). Low-latency, mono, float, device-preferred.
+        // Output stream (driver). Low-latency, STEREO, float, device-preferred.
+        // Nota: pedimos Stereo porque o fast path do AAudio em devices MediaTek
+        // (ex.: Moto G9 Play / Helio G80) nega Mono/LowLatency/Exclusive. O DSP
+        // continua mono internamente — duplicamos o sample processado pros
+        // dois canais dentro do callback (ver onAudioReady).
         oboe::AudioStreamBuilder outputBuilder;
         outputBuilder.setDirection(oboe::Direction::Output)
                 ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
                 ->setSharingMode(oboe::SharingMode::Exclusive)
                 ->setFormat(oboe::AudioFormat::Float)
-                ->setChannelCount(oboe::ChannelCount::Mono)
+                ->setChannelCount(oboe::ChannelCount::Stereo)
                 ->setDataCallback(this)
                 ->setErrorCallback(this);
         if (requestedSampleRate > 0) outputBuilder.setSampleRate(requestedSampleRate);
@@ -72,8 +138,16 @@ public:
         // Propaga sample rate efetivo para o DSP existente.
         setSampleRate(sampleRate);
 
-        // Pre-aloca scratch de input — evita malloc no callback.
-        mInputScratch.assign(static_cast<size_t>(framesPerBurst) * 8, 0.0f);
+        // Pre-aloca scratch de input/output mono para o PIOR caso que o Oboe
+        // pode pedir num callback (bufferCapacityInFrames). O callback NUNCA
+        // redimensiona o scratch — se numFrames exceder, o callback simplesmente
+        // falha graceful (ver onAudioReady). Evita malloc no hot path.
+        const int inputCapacity = std::max(
+            mInputStream->getBufferCapacityInFrames(),
+            mOutputStream->getBufferCapacityInFrames());
+        const size_t scratchSize = static_cast<size_t>(std::max(inputCapacity, framesPerBurst * 8));
+        mInputScratch.assign(scratchSize, 0.0f);
+        mMonoOutputScratch.assign(scratchSize, 0.0f);
 
         // Buffer capacity sugerida: 2x burst reduz xruns sem inflar latência.
         mOutputStream->setBufferSizeInFrames(framesPerBurst * 2);
@@ -94,6 +168,15 @@ public:
             stopLocked();
             return result;
         }
+
+        // Telemetria detalhada — serve pra diagnosticar quando o device cai
+        // fora do fast path (ver TFR-50).
+        logStreamDiagnostics("Oboe output", mOutputStream.get(),
+                             oboe::PerformanceMode::LowLatency,
+                             oboe::SharingMode::Exclusive);
+        logStreamDiagnostics("Oboe input", mInputStream.get(),
+                             oboe::PerformanceMode::LowLatency,
+                             oboe::SharingMode::Exclusive);
 
         LOGI("Oboe engine iniciado: sampleRate=%d framesPerBurst=%d", sampleRate, framesPerBurst);
         return oboe::Result::OK;
@@ -128,16 +211,26 @@ public:
     }
 
     // oboe::AudioStreamDataCallback — invocado na thread de áudio.
+    // HOT PATH: zero locks, zero allocs, zero I/O.
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* outputStream,
                                           void* audioData,
                                           int32_t numFrames) override {
         auto* out = static_cast<float*>(audioData);
+        const int32_t outputChannels = outputStream->getChannelCount();
 
-        // Garante scratch suficiente (raramente re-aloca; fora do caminho quente).
-        if (static_cast<int32_t>(mInputScratch.size()) < numFrames) {
-            mInputScratch.resize(static_cast<size_t>(numFrames));
+        // Scratches são pré-alocados em start() para o pior caso. Se o Oboe
+        // pedir mais do que isso num callback (não deveria acontecer), não
+        // redimensionamos em runtime — só saímos com silêncio pra manter o
+        // callback lock-free. Qualquer caso anômalo cai num xrun controlado.
+        if (static_cast<int32_t>(mInputScratch.size()) < numFrames ||
+            static_cast<int32_t>(mMonoOutputScratch.size()) < numFrames) {
+            std::memset(out, 0,
+                        static_cast<size_t>(numFrames) * outputChannels * sizeof(float));
+            mXrunCount.fetch_add(1, std::memory_order_relaxed);
+            return oboe::DataCallbackResult::Continue;
         }
         float* in = mInputScratch.data();
+        float* monoOut = mMonoOutputScratch.data();
 
         // Read não-bloqueante do input stream. Se faltar dado (startup), zera e segue.
         auto readResult = mInputStream->read(in, numFrames, 0 /* timeoutNs */);
@@ -157,14 +250,30 @@ public:
             processTunerBuffer(in, numFrames);
         }
 
-        // Chama o DSP existente sem cópia intermediária.
-        processBuffer(in, out, numFrames, numFrames, numFrames);
+        // DSP é mono. Escrevemos num scratch mono e depois expandimos pra
+        // interleaved multi-canal. Se o output for mono (ch=1), copiamos
+        // direto; se for stereo (ch=2), duplicamos L=R.
+        processBuffer(in, monoOut, numFrames, numFrames, numFrames);
 
-        // Captura pós-FX para o recorder (se ativo). É essencial estar
-        // depois do processBuffer para o usuário gravar o sinal processado,
-        // não o sinal limpo. Lock-free no caminho quente. Fase 3.Recorder.
+        if (outputChannels == 1) {
+            std::memcpy(out, monoOut, static_cast<size_t>(numFrames) * sizeof(float));
+        } else {
+            // Interleaved: out[0]=L0, out[1]=R0, out[2]=L1, out[3]=R1, ...
+            for (int32_t i = 0; i < numFrames; ++i) {
+                const float s = monoOut[i];
+                float* frame = out + static_cast<size_t>(i) * outputChannels;
+                frame[0] = s;
+                frame[1] = s;
+                // Se por algum motivo o device expuser >2 canais, zera o resto.
+                for (int32_t c = 2; c < outputChannels; ++c) frame[c] = 0.0f;
+            }
+        }
+
+        // Captura pós-FX para o recorder (se ativo). O recorder espera mono,
+        // então alimentamos com o scratch mono, não com o buffer interleaved.
+        // Fase 3.Recorder.
         if (recorder_is_active()) {
-            recorder_feed(out, numFrames);
+            recorder_feed(monoOut, numFrames);
         }
 
         return oboe::DataCallbackResult::Continue;
@@ -199,6 +308,9 @@ private:
     std::shared_ptr<oboe::AudioStream> mOutputStream;
     std::shared_ptr<oboe::AudioStream> mInputStream;
     std::vector<float> mInputScratch;
+    // Scratch mono pra saída do DSP antes de expandir pra stereo interleaved.
+    // Pré-alocado em start() — nunca redimensionado no hot path.
+    std::vector<float> mMonoOutputScratch;
     std::atomic<bool> mIsRunning{false};
     std::atomic<int> mXrunCount{0};
     std::mutex mLifecycleMutex;
