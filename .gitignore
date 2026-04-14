@@ -24,5 +24,9 @@ local.properties
 # Screenshots temporários
 *.png
 !docs/testing/*.png
+# Launcher icons do Flutter app — gerados pelo flutter create e usados
+# pelo build Android. Precisam estar trackeados senão worktrees novos
+# falham no `flutter build apk` com "resource mipmap/ic_launcher not found".
+!flutter_app/android/app/src/main/res/mipmap-*/ic_launcher.png
 
 toneforge-hilava/*
