@@ -229,6 +229,7 @@ class EffectsScreen extends StatelessWidget {
       s.phaser.enabled,
       s.eq.enabled,
       s.compressor.enabled,
+      s.pitchShift.enabled,
     ].where((e) => e).length;
   }
 
@@ -341,6 +342,8 @@ class _ChainReorderList extends StatelessWidget {
         return s.eq.enabled;
       case EffectKind.compressor:
         return s.compressor.enabled;
+      case EffectKind.pitchShift:
+        return s.pitchShift.enabled;
     }
   }
 
@@ -361,6 +364,8 @@ class _ChainReorderList extends StatelessWidget {
         return AppColors.success;
       case EffectKind.reverb:
         return AppColors.accentTuner;
+      case EffectKind.pitchShift:
+        return AppColors.accentMetronome;
     }
   }
 }

@@ -12,6 +12,7 @@ enum EffectKind {
   phaser,
   eq,
   compressor,
+  pitchShift,
 }
 
 extension EffectKindLabel on EffectKind {
@@ -35,6 +36,8 @@ extension EffectKindLabel on EffectKind {
         return 'EQ';
       case EffectKind.compressor:
         return 'Compressor';
+      case EffectKind.pitchShift:
+        return 'Pitch Shift';
     }
   }
 
@@ -44,6 +47,8 @@ extension EffectKindLabel on EffectKind {
         return 'Dist';
       case EffectKind.compressor:
         return 'Comp';
+      case EffectKind.pitchShift:
+        return 'Pitch';
       default:
         return label;
     }
@@ -73,19 +78,23 @@ extension EffectKindLabel on EffectKind {
         return 'EQ';
       case EffectKind.compressor:
         return 'Compressor';
+      case EffectKind.pitchShift:
+        return 'Pitch Shift';
     }
   }
 }
 
 /// Ordem default da cadeia de efeitos. Precisa espelhar a inicialização
-/// estática de `effectOrder` em `engine/src/audio_engine.cpp:262` para
-/// que o estado inicial do Cubit coincida com o que o native reporta.
+/// estática de `effectOrder` em `engine/src/audio_engine.cpp` (kDefaultOrder
+/// dentro de initAudioEngine) para que o estado inicial do Cubit coincida
+/// com o que o native reporta.
 const List<EffectKind> kDefaultEffectOrder = [
   EffectKind.gain,
   EffectKind.distortion,
   EffectKind.chorus,
   EffectKind.flanger,
   EffectKind.phaser,
+  EffectKind.pitchShift,
   EffectKind.eq,
   EffectKind.compressor,
   EffectKind.delay,
@@ -167,6 +176,15 @@ class EffectCategories {
     effects: [EffectKind.reverb],
   );
 
+  static const pitch = EffectCategoryInfo(
+    id: 'pitch',
+    title: 'Pitch',
+    subtitle: 'Pitch Shift ±12 semitones',
+    icon: Icons.unfold_more_rounded,
+    accent: AppColors.accentMetronome,
+    effects: [EffectKind.pitchShift],
+  );
+
   static const all = <EffectCategoryInfo>[
     distortion,
     modulation,
@@ -174,5 +192,6 @@ class EffectCategories {
     filter,
     dynamics,
     ambient,
+    pitch,
   ];
 }

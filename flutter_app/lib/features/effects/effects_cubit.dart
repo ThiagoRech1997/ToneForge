@@ -21,6 +21,7 @@ class EffectsState {
     required this.phaser,
     required this.eq,
     required this.compressor,
+    required this.pitchShift,
     required this.order,
     this.errorMessage,
   });
@@ -36,6 +37,7 @@ class EffectsState {
     phaser: ModConfig(),
     eq: EqConfig(),
     compressor: CompressorConfig(),
+    pitchShift: PitchShiftConfig(),
     order: kDefaultEffectOrder,
   );
 
@@ -49,6 +51,7 @@ class EffectsState {
   final ModConfig phaser;
   final EqConfig eq;
   final CompressorConfig compressor;
+  final PitchShiftConfig pitchShift;
   final List<EffectKind> order;
   final String? errorMessage;
 
@@ -63,6 +66,7 @@ class EffectsState {
     ModConfig? phaser,
     EqConfig? eq,
     CompressorConfig? compressor,
+    PitchShiftConfig? pitchShift,
     List<EffectKind>? order,
     String? errorMessage,
     bool clearError = false,
@@ -78,6 +82,7 @@ class EffectsState {
       phaser: phaser ?? this.phaser,
       eq: eq ?? this.eq,
       compressor: compressor ?? this.compressor,
+      pitchShift: pitchShift ?? this.pitchShift,
       order: order ?? this.order,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -173,7 +178,10 @@ class EffectsCubit extends Cubit<EffectsState> {
       ..setCompressorRatio(s.compressor.ratio)
       ..setCompressorAttack(s.compressor.attackMs)
       ..setCompressorRelease(s.compressor.releaseMs)
-      ..setCompressorMix(s.compressor.mix);
+      ..setCompressorMix(s.compressor.mix)
+      ..pitchShiftEnabled = s.pitchShift.enabled
+      ..setPitchShiftSemitones(s.pitchShift.semitones)
+      ..setPitchShiftMix(s.pitchShift.mix);
     _pushOrder(s.order);
   }
 
@@ -413,6 +421,22 @@ class EffectsCubit extends Cubit<EffectsState> {
   void setCompressorMix(double v) {
     _engine.setCompressorMix(v);
     emit(state.copyWith(compressor: state.compressor.copyWith(mix: v)));
+  }
+
+  // ----- Pitch Shift (TFR-10) -----
+  void setPitchShiftEnabled(bool v) {
+    _engine.pitchShiftEnabled = v;
+    emit(state.copyWith(pitchShift: state.pitchShift.copyWith(enabled: v)));
+  }
+
+  void setPitchShiftSemitones(double v) {
+    _engine.setPitchShiftSemitones(v);
+    emit(state.copyWith(pitchShift: state.pitchShift.copyWith(semitones: v)));
+  }
+
+  void setPitchShiftMix(double v) {
+    _engine.setPitchShiftMix(v);
+    emit(state.copyWith(pitchShift: state.pitchShift.copyWith(mix: v)));
   }
 
   @override

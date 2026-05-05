@@ -46,10 +46,9 @@ class PresetManager {
   static Future<File> save(String name, EffectsState state) async {
     final dir = await _dir();
     final file = File('${dir.path}/${_sanitize(name)}.json');
-    // Schema mantido em v1: o campo `effectOrder` é opcional e retrocompa-
-    // tível — presets antigos sem o campo reaproveitam a ordem default do
-    // engine (via EffectsState.initial.order) ao carregar. Isso evita um
-    // bump de versão e migração só pelo reorder.
+    // Schema continua em v1: o campo `pitchShift` é opcional e retrocompa-
+    // tível — presets antigos abrem com PitchShiftConfig() default (TFR-10).
+    // Mesma estratégia do `effectOrder`. Sem bump de versão.
     final payload = <String, dynamic>{
       'schema': 1,
       'name': name,
@@ -64,6 +63,7 @@ class PresetManager {
         'phaser': state.phaser.toJson(),
         'eq': state.eq.toJson(),
         'compressor': state.compressor.toJson(),
+        'pitchShift': state.pitchShift.toJson(),
       },
       'effectOrder': state.order.map((e) => e.name).toList(),
     };
@@ -88,6 +88,7 @@ class PresetManager {
       phaser: ModConfig.fromJson(_obj(effects['phaser'])),
       eq: EqConfig.fromJson(_obj(effects['eq'])),
       compressor: CompressorConfig.fromJson(_obj(effects['compressor'])),
+      pitchShift: PitchShiftConfig.fromJson(_obj(effects['pitchShift'])),
       order: order,
     );
   }

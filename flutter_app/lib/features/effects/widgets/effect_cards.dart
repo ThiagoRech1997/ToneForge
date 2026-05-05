@@ -221,6 +221,9 @@ Widget buildEffectCard({
     case EffectKind.compressor:
       return _CompressorCard(
           state: state.compressor, cubit: cubit, accent: accent);
+    case EffectKind.pitchShift:
+      return _PitchShiftCard(
+          state: state.pitchShift, cubit: cubit, accent: accent);
   }
 }
 
@@ -229,6 +232,12 @@ String _fmtMs(double v) => '${v.toStringAsFixed(0)} ms';
 String _fmtHz(double v) => '${v.toStringAsFixed(2)} Hz';
 String _fmtDb(double v) => '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)} dB';
 String _fmtRatio(double v) => '${v.toStringAsFixed(1)}:1';
+String _fmtSemis(double v) {
+  final rounded = v.round();
+  final sign = rounded > 0 ? '+' : '';
+  if (rounded == 0) return '0 st';
+  return '$sign$rounded st';
+}
 
 class _GainCard extends StatelessWidget {
   const _GainCard({required this.state, required this.cubit, required this.accent});
@@ -667,6 +676,45 @@ class _CompressorCard extends StatelessWidget {
           accent: accent,
           valueFormatter: _fmtPct,
           onChanged: cubit.setCompressorMix,
+        ),
+      ],
+    );
+  }
+}
+
+class _PitchShiftCard extends StatelessWidget {
+  const _PitchShiftCard({required this.state, required this.cubit, required this.accent});
+  final PitchShiftConfig state;
+  final EffectsCubit cubit;
+  final Color accent;
+  @override
+  Widget build(BuildContext context) {
+    return AccentEffectCard(
+      title: 'Pitch Shift',
+      accent: accent,
+      enabled: state.enabled,
+      onEnabled: cubit.setPitchShiftEnabled,
+      children: [
+        // Slider de semitons em incrementos de 1; 25 divisões cobrem
+        // -12..+12 inclusive. Range fixo no native (clampa em ±12).
+        TfParamSlider(
+          label: 'Semitones',
+          value: state.semitones,
+          min: -12,
+          max: 12,
+          divisions: 24,
+          accent: accent,
+          valueFormatter: _fmtSemis,
+          onChanged: cubit.setPitchShiftSemitones,
+        ),
+        TfParamSlider(
+          label: 'Mix',
+          value: state.mix,
+          min: 0,
+          max: 1,
+          accent: accent,
+          valueFormatter: _fmtPct,
+          onChanged: cubit.setPitchShiftMix,
         ),
       ],
     );

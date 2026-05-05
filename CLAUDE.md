@@ -167,6 +167,7 @@ Render callback (onAudioReady / renderCallback)
     │   ├─ Delay, Reverb (3 types)
     │   ├─ Chorus, Flanger, Phaser
     │   ├─ EQ (3-band), Compressor
+    │   ├─ Pitch Shift (granular, ±12 semitones)
     │   └─ (effect order configurable via setEffectOrder)
     └─ recorder_feed(out, n) — if recording active
     ↓
@@ -175,7 +176,7 @@ Oboe output stream / CoreAudio AudioBufferList
 Output (speaker / headphones / interface)
 ```
 
-### Effects (9 audio effects)
+### Effects (10 audio effects)
 
 1. **Gain** — level
 2. **Distortion** — amount, type (Soft Clip / Hard Clip / Fuzz / Overdrive), mix
@@ -186,6 +187,7 @@ Output (speaker / headphones / interface)
 7. **Phaser** — depth, rate (Hz), feedback, mix
 8. **EQ (3-band)** — low/mid/high (±12 dB), mix
 9. **Compressor** — threshold (dB), ratio, attack (ms), release (ms), mix
+10. **Pitch Shift** — semitones (±12), mix. Granular, ~40 ms latency added to chain.
 
 Every effect is controlled via the same pair of calls: `setXXXEnabled(bool)`
 and one or more parameter setters. See

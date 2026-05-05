@@ -244,3 +244,31 @@ class CompressorConfig {
         mix: _d(j['mix'], 0),
       );
 }
+
+class PitchShiftConfig {
+  // Pitch shift granular real-time (TFR-10). semitones em ±12; o native
+  // já clampa, mas mantemos os defaults dentro do range pra evitar
+  // surpresa de UI. mix=1.0 default (assim que o usuário liga, ouve o
+  // efeito imediatamente; se quiser parallel-blend é só baixar).
+  const PitchShiftConfig({
+    this.enabled = false,
+    this.semitones = 0.0,
+    this.mix = 1.0,
+  });
+  final bool enabled;
+  final double semitones; // -12..+12
+  final double mix;
+  PitchShiftConfig copyWith({bool? enabled, double? semitones, double? mix}) =>
+      PitchShiftConfig(
+        enabled: enabled ?? this.enabled,
+        semitones: semitones ?? this.semitones,
+        mix: mix ?? this.mix,
+      );
+  Map<String, dynamic> toJson() =>
+      {'enabled': enabled, 'semitones': semitones, 'mix': mix};
+  factory PitchShiftConfig.fromJson(Map<String, dynamic> j) => PitchShiftConfig(
+        enabled: _b(j['enabled'], false),
+        semitones: _d(j['semitones'], 0),
+        mix: _d(j['mix'], 1),
+      );
+}

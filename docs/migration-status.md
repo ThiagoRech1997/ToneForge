@@ -19,7 +19,7 @@ Live dashboard of the Java → Flutter migration. Updated as things change.
 |---|---|---|
 | **Tuner** | ✅ | Reads from the same Oboe input stream via a hook in `audio_io_oboe.cpp`. |
 | **Metronome** | ✅ | Fixed palette; no tap tempo, no persistence (parity with legacy). |
-| **Effects** | ✅ | All 9 effects with full parameter coverage. No drag-and-drop reorder yet. |
+| **Effects** | ✅ | 10 efeitos com cobertura completa de parâmetros (TFR-10 acresceu Pitch Shift). Drag-and-drop reorder via Chain Order. |
 | **Recorder** | ✅ | Implemented for the first time (legacy stubs were empty). Pre-allocated buffer, 10-minute cap. |
 | **Looper** | ✅ MVP | Single track only. No reverse / speed / pitch shift / slicing / quantization — all supported by the engine, UI pending. |
 | **Presets** | ✅ | JSON schema v1. No export/share. No chain order (add when reorder lands). |
@@ -52,7 +52,6 @@ These exist in the legacy Java app or in the engine native API but have no
 Flutter UI yet. None are blockers for Fase 4.7 or Fase 5.
 
 ### Effects
-- [ ] Drag-and-drop effect chain reordering (`setEffectOrder` native exists)
 - [ ] Oversampling UI toggles
 
 ### Looper (engine already supports all of these)
