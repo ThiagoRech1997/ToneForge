@@ -47,6 +47,31 @@ extern "C" {
     void setLooperBPM(int bpm);
     void setLooperSyncEnabled(bool enabled);
 
+    // Multi-track introspection / control (TFR-9). O engine sempre teve um
+    // array de tracks internamente; estes getters expõem o estado por track
+    // para o lado Flutter, e setLooperArmedTrack permite escolher em qual
+    // slot a próxima gravação vai cair (-1 = auto-pick do primeiro slot
+    // livre, comportamento histórico).
+    int getLooperMaxTracks();
+    int getCurrentLooperTrack();
+    void setLooperArmedTrack(int trackIndex);
+    int getLooperArmedTrack();
+    bool isLooperTrackActive(int trackIndex);
+    int getLooperTrackLength(int trackIndex);
+    int getLooperTrackPosition(int trackIndex);
+    float getLooperTrackVolume(int trackIndex);
+    bool isLooperTrackMuted(int trackIndex);
+    bool isLooperTrackSoloed(int trackIndex);
+
+    // Snapshot do buffer de um track específico. O caller DEVE liberar
+    // chamando releaseLooperMix (mesmo allocator que getLooperMix). Retorna
+    // NULL com *outLength=0 se a track estiver vazia.
+    float* getLooperTrackBuffer(int trackIndex, int* outLength);
+
+    // Carrega samples num track específico SEM apagar os outros. Marca o
+    // track como active. Para limpar, use removeLooperTrack(trackIndex).
+    void loadLooperTrackFromAudio(int trackIndex, const float* audioData, int length);
+
     // Afinador
     void startTuner();
     void stopTuner();
@@ -107,6 +132,13 @@ extern "C" {
     void setCompressorAttack(float attack);
     void setCompressorRelease(float release);
     void setCompressorMix(float mix);
+
+    // Pitch Shift — granular, ±12 semitones em tempo real. Adiciona
+    // ~grainSize/sampleRate de latência ao caminho do efeito (≈40 ms
+    // @ 48 kHz). Lock-free, sem alocações em runtime.
+    void setPitchShiftEnabled(bool enabled);
+    void setPitchShiftSemitones(float semitones);
+    void setPitchShiftMix(float mix);
 
     void setDelayTime(float timeMs);
     void setDelaySyncBPM(bool sync);

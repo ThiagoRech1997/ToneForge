@@ -163,6 +163,9 @@ struct LooperTrack {
 
 static LooperTrack looperTracks[LOOPER_MAX_TRACKS];
 static std::atomic<int> currentTrack{0};
+// armedTrack > -1 força a próxima gravação a entrar nesse slot (overdub
+// explícito). -1 = comportamento histórico de auto-pick. TFR-9.
+static std::atomic<int> armedTrack{-1};
 static std::atomic<int> looperLength{0};
 static std::atomic<int> looperWriteIndex{0};
 static std::atomic<int> looperReadIndex{0};
@@ -280,6 +283,7 @@ enum EffectId : int {
     EFFECT_PHASER,
     EFFECT_EQ,
     EFFECT_COMPRESSOR,
+    EFFECT_PITCH_SHIFT,
     EFFECT_COUNT
 };
 static constexpr uint64_t EFFECT_END_NIBBLE = 0xFULL;
@@ -307,6 +311,7 @@ static int effectIdFromName(const char* name) {
     if (strcmp(name, "Phaser") == 0)     return EFFECT_PHASER;
     if (strcmp(name, "EQ") == 0)         return EFFECT_EQ;
     if (strcmp(name, "Compressor") == 0) return EFFECT_COMPRESSOR;
+    if (strcmp(name, "Pitch Shift") == 0) return EFFECT_PITCH_SHIFT;
     return -1;
 }
 
@@ -401,6 +406,29 @@ static std::atomic<int> compressorSampleRate{48000};
 static std::atomic<float> compressorEnvelope{0.0f};     // Envelope detector
 static std::atomic<float> compressorGain{1.0f};         // Gain reduction
 
+// Pitch Shift — granular shifter com 2 grãos sobrepostos (TFR-10).
+// Cada grão lê de um circular buffer em velocidade speed = 2^(semis/12),
+// envelopado por Hann, defasado em 180° do outro pra esconder os pontos
+// de costura. Buffer pré-alocado pro pior caso (4× grainSize @
+// MAX_SAMPLE_RATE) — nunca redimensiona em runtime. Latência ≈
+// grainSize/sampleRate (≈40 ms @ 48 kHz). Range fixo em ±12 semitons
+// porque é o que cabe no buffer com folga (speed máx = 2.0).
+static std::atomic<bool> pitchShiftEnabled{false};
+static std::atomic<float> pitchShiftSemitones{0.0f};
+static std::atomic<float> pitchShiftMix{1.0f};
+static std::atomic<int> pitchShiftSampleRate{48000};
+static std::vector<float> pitchShiftBuffer;
+static std::atomic<int> pitchShiftBufferSize{0};
+static std::atomic<int> pitchShiftWriteIndex{0};
+static std::atomic<int> pitchShiftGrainSize{0};
+// Offsets em samples atrás do write head (lag). Cada grão começa em
+// 2*grainSize de lag e drifta por (1-speed) por sample de saída.
+static std::atomic<float> pitchShiftPosA{0.0f};
+static std::atomic<float> pitchShiftPosB{0.0f};
+// Fase 0..1 dentro do grão; o grão reseta quando phase atinge 1.
+static std::atomic<float> pitchShiftPhaseA{0.0f};
+static std::atomic<float> pitchShiftPhaseB{0.5f};
+
 static std::atomic<int> reverbType{0}; // 0=Hall, 1=Plate, 2=Spring
 
 // === FASE 6: INTEGRAÇÃO AVANÇADA ===
@@ -475,7 +503,23 @@ void initAudioEngine() {
     flangerBufferIndex.store(0);
     phaserBufferSize.store(modBufferSize);
     phaserBufferIndex.store(0);
-    
+
+    // Pitch shift: pior caso = 4× grainSize @ MAX_SAMPLE_RATE.
+    // grainSize = 0.04 * SR (≈40 ms). Em 192 kHz: grainSize=7680, buf=30720.
+    const int pitchGrainHardMax = (int)(MAX_SAMPLE_RATE * 0.04f);
+    const int pitchHardMax = pitchGrainHardMax * 4 + 1024;
+    pitchShiftBuffer.assign(pitchHardMax, 0.0f);
+    int pitchGrain = (int)(currentSampleRate * 0.04f);
+    if (pitchGrain < 64) pitchGrain = 64;
+    int pitchActiveBuf = std::min(pitchGrain * 4, (int)pitchShiftBuffer.size());
+    pitchShiftGrainSize.store(pitchGrain);
+    pitchShiftBufferSize.store(pitchActiveBuf);
+    pitchShiftWriteIndex.store(0);
+    pitchShiftPosA.store((float)(pitchGrain * 2));
+    pitchShiftPosB.store((float)(pitchGrain * 2));
+    pitchShiftPhaseA.store(0.0f);
+    pitchShiftPhaseB.store(0.5f);
+
     // Inicializar reverb de cauda do looper
     int reverbTailSize = (int)(looperReverbTailDecay.load() * currentSampleRate);
     looperReverbTailSize.store(reverbTailSize);
@@ -536,15 +580,17 @@ void initAudioEngine() {
     looperMidiCCMapping[67] = 3; // CC67 = Clear
 
     // Ordem default da cadeia de efeitos. Ordem canônica: dinâmicas
-    // antes, modulação no meio, espaciais no fim. setEffectOrder pode
-    // sobrescrever isso em runtime.
+    // antes, modulação no meio, espaciais no fim. Pitch shift entra
+    // junto com a modulação. setEffectOrder pode sobrescrever isso em
+    // runtime.
     const int kDefaultOrder[] = {
         EFFECT_GAIN, EFFECT_DISTORTION,
         EFFECT_CHORUS, EFFECT_FLANGER, EFFECT_PHASER,
+        EFFECT_PITCH_SHIFT,
         EFFECT_EQ, EFFECT_COMPRESSOR,
         EFFECT_DELAY, EFFECT_REVERB
     };
-    effectOrderPacked.store(packEffectOrder(kDefaultOrder, 9),
+    effectOrderPacked.store(packEffectOrder(kDefaultOrder, 10),
                             std::memory_order_release);
 
     // Inicializar coeficientes das 3 bandas do EQ em unity (0 dB) para
@@ -651,6 +697,7 @@ void setSampleRate(int rate) {
     phaserSampleRate.store(rate);
     eqSampleRate.store(rate);
     compressorSampleRate.store(rate);
+    pitchShiftSampleRate.store(rate);
 
     // Os buffers do hot path foram pré-alocados com folga em initAudioEngine
     // para o pior caso em MAX_SAMPLE_RATE — não redimensionamos em runtime.
@@ -673,6 +720,18 @@ void setSampleRate(int rate) {
     flangerBufferIndex.store(0);
     phaserBufferSize.store(modBufferSize);
     phaserBufferIndex.store(0);
+
+    // Pitch shift: grainSize ≈ 40 ms, buffer ativo = 4× grainSize.
+    int pitchGrain = (int)(rate * 0.04f);
+    if (pitchGrain < 64) pitchGrain = 64;
+    int pitchActiveBuf = std::min(pitchGrain * 4, (int)pitchShiftBuffer.size());
+    pitchShiftGrainSize.store(pitchGrain);
+    pitchShiftBufferSize.store(pitchActiveBuf);
+    pitchShiftWriteIndex.store(0);
+    pitchShiftPosA.store((float)(pitchGrain * 2));
+    pitchShiftPosB.store((float)(pitchGrain * 2));
+    pitchShiftPhaseA.store(0.0f);
+    pitchShiftPhaseB.store(0.5f);
 
     // Reverb tail e looper tracks não estão no hot-path de processSample
     // (são usados em features separadas) — mantemos o resize protegido.
@@ -796,34 +855,34 @@ void startLooperRecording() {
     }
 
     looperRecording = true;
-    looperPlaying = false;
+    // TFR-9: NÃO desligar looperPlaying — outras tracks ativas continuam
+    // tocando enquanto a track armada grava (overdub natural). Quem quiser
+    // gravar em silêncio basta dar Stop antes.
     looperWriteIndex = 0;
 
     // Resetar contadores de fade
     looperFadeInCounter = 0;
     looperFadeOutCounter.store(0);
 
-    // Encontrar próxima faixa disponível
-    bool foundTrack = false;
-    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-        if (!looperTracks[i].active) {
-            currentTrack = i;
-            foundTrack = true;
-            break;
+    // Selecionar track destino: armada explícita > primeiro slot livre > 0.
+    int target = armedTrack.load();
+    if (target < 0 || target >= LOOPER_MAX_TRACKS) {
+        target = -1;
+        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+            if (!looperTracks[i].active) {
+                target = i;
+                break;
+            }
         }
+        if (target < 0) target = 0;
     }
+    currentTrack = target;
 
-    // Se não encontrou faixa disponível, usar a primeira
-    if (!foundTrack) {
-        currentTrack = 0;
-    }
-
-    // Limpar buffer da faixa atual
+    // Limpar buffer da faixa atual. Mantém volume/mute/solo do slot caso o
+    // usuário tenha pré-configurado.
     std::fill(looperTracks[currentTrack].buffer.begin(), looperTracks[currentTrack].buffer.end(), 0.0f);
     looperTracks[currentTrack].length = 0;
-    looperTracks[currentTrack].volume = 1.0f;
-    looperTracks[currentTrack].muted = false;
-    looperTracks[currentTrack].soloed = false;
+    looperTracks[currentTrack].position = 0;
     looperTracks[currentTrack].active = true;
 
     // Atualizar estado da notificação
@@ -834,27 +893,39 @@ void stopLooperRecording() {
     looperRecording = false;
     if (looperWriteIndex > 0) {
         looperTracks[currentTrack].length.store(looperWriteIndex.load());
+        looperTracks[currentTrack].position.store(0);
     }
     looperReadIndex = 0;
-    
+    // Reset armed após uso — usuário precisa armar de novo pra forçar slot.
+    armedTrack.store(-1);
+
     // Atualizar estado da notificação
     looperNotificationState = "stopped";
 }
 
 void startLooperPlayback() {
-    if (looperTracks[currentTrack].length > 0) {
-        looperPlaying = true;
-        looperReadIndex = 0;
-        
-        // Configurar fade in se habilitado
-        if (looperAutoFadeInEnabled) {
-            looperFadeInCounter = 0;
-            looperFadeInSamples = (int)(looperFadeInDuration * looperSampleRate);
+    // TFR-9: toca todas as tracks ativas com conteúdo. Cada uma usa sua
+    // própria position pra dar volta no próprio length.
+    bool anyContent = false;
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (looperTracks[i].active.load() && looperTracks[i].length.load() > 0) {
+            looperTracks[i].position.store(0);
+            anyContent = true;
         }
-        
-        // Atualizar estado da notificação
-        looperNotificationState = "playing";
     }
+    if (!anyContent) return;
+
+    looperPlaying = true;
+    looperReadIndex = 0;
+
+    // Configurar fade in se habilitado
+    if (looperAutoFadeInEnabled) {
+        looperFadeInCounter = 0;
+        looperFadeInSamples = (int)(looperFadeInDuration * looperSampleRate);
+    }
+
+    // Atualizar estado da notificação
+    looperNotificationState = "playing";
 }
 
 void stopLooperPlayback() {
@@ -876,11 +947,13 @@ void clearLooper() {
     looperWriteIndex = 0;
     looperReadIndex = 0;
     currentTrack = 0;
-    
+    armedTrack.store(-1);
+
     // Limpar todas as faixas
     for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
         std::fill(looperTracks[i].buffer.begin(), looperTracks[i].buffer.end(), 0.0f);
         looperTracks[i].length = 0;
+        looperTracks[i].position = 0;
         looperTracks[i].volume = 1.0f;
         looperTracks[i].muted = false;
         looperTracks[i].soloed = false;
@@ -969,6 +1042,22 @@ void setCompressorRatio(float ratio) { compressorRatio = ratio; }
 void setCompressorAttack(float attack) { compressorAttack = attack; }
 void setCompressorRelease(float release) { compressorRelease = release; }
 void setCompressorMix(float mix) { compressorMix = mix; }
+
+void setPitchShiftEnabled(bool enabled) { pitchShiftEnabled = enabled; }
+
+void setPitchShiftSemitones(float semitones) {
+    // Range fixo em ±12 semitons — speed máx = 2.0, que é o que cabe no
+    // buffer pré-alocado (4× grainSize) com folga.
+    if (semitones < -12.0f) semitones = -12.0f;
+    if (semitones > 12.0f) semitones = 12.0f;
+    pitchShiftSemitones = semitones;
+}
+
+void setPitchShiftMix(float mix) {
+    if (mix < 0.0f) mix = 0.0f;
+    if (mix > 1.0f) mix = 1.0f;
+    pitchShiftMix = mix;
+}
 
 void setReverbType(int type) {
     reverbType = type;
@@ -1296,6 +1385,86 @@ float processSample(float input) {
                 }
                 break;
             }
+            case EFFECT_PITCH_SHIFT: {
+                // Granular pitch shifter — duas leituras sobrepostas defasadas
+                // em 180° sobre um circular buffer. Cada grão lê em
+                // speed = 2^(semis/12), envelopado por Hann; quando a fase do
+                // grão completa, o ponteiro reseta a 2× grainSize atrás do
+                // write head pra preservar headroom mesmo no octave-up. As
+                // costuras ficam no envelope zero do outro grão, escondendo
+                // a descontinuidade. Lock-free, zero allocs.
+                if (pitchShiftEnabled.load()) {
+                    const int bufSize = pitchShiftBufferSize.load();
+                    const int grainSize = pitchShiftGrainSize.load();
+                    if (bufSize > 0 && grainSize > 0
+                        && bufSize <= (int)pitchShiftBuffer.size()) {
+                        const int wi = pitchShiftWriteIndex.load();
+                        // Escreve a sample atual (saída dos efeitos anteriores).
+                        pitchShiftBuffer[wi] = output;
+                        const int wiNext = (wi + 1) % bufSize;
+                        pitchShiftWriteIndex.store(wiNext);
+
+                        const float semis = pitchShiftSemitones.load();
+                        const float speed = powf(2.0f, semis * (1.0f / 12.0f));
+                        const float drift = 1.0f - speed; // > 0 = pitch down
+                        const float phaseInc = 1.0f / (float)grainSize;
+                        const float bufSizeF = (float)bufSize;
+                        const float twoPi = 6.2831853f;
+                        const float resetLag = (float)(grainSize * 2);
+
+                        // --- Grão A ---
+                        float posA = pitchShiftPosA.load();
+                        float phA = pitchShiftPhaseA.load();
+                        float readA = (float)wi - posA;
+                        if (readA < 0.0f) readA += bufSizeF;
+                        if (readA >= bufSizeF) readA -= bufSizeF;
+                        int aIdx0 = (int)readA;
+                        int aIdx1 = aIdx0 + 1;
+                        if (aIdx1 >= bufSize) aIdx1 -= bufSize;
+                        const float aFrac = readA - (float)aIdx0;
+                        const float sampleA = pitchShiftBuffer[aIdx0] * (1.0f - aFrac)
+                                            + pitchShiftBuffer[aIdx1] * aFrac;
+                        const float envA = 0.5f - 0.5f * cosf(twoPi * phA);
+
+                        posA += drift;
+                        phA += phaseInc;
+                        if (phA >= 1.0f) {
+                            phA -= 1.0f;
+                            posA = resetLag;
+                        }
+                        pitchShiftPosA.store(posA);
+                        pitchShiftPhaseA.store(phA);
+
+                        // --- Grão B (180° fora de fase) ---
+                        float posB = pitchShiftPosB.load();
+                        float phB = pitchShiftPhaseB.load();
+                        float readB = (float)wi - posB;
+                        if (readB < 0.0f) readB += bufSizeF;
+                        if (readB >= bufSizeF) readB -= bufSizeF;
+                        int bIdx0 = (int)readB;
+                        int bIdx1 = bIdx0 + 1;
+                        if (bIdx1 >= bufSize) bIdx1 -= bufSize;
+                        const float bFrac = readB - (float)bIdx0;
+                        const float sampleB = pitchShiftBuffer[bIdx0] * (1.0f - bFrac)
+                                            + pitchShiftBuffer[bIdx1] * bFrac;
+                        const float envB = 0.5f - 0.5f * cosf(twoPi * phB);
+
+                        posB += drift;
+                        phB += phaseInc;
+                        if (phB >= 1.0f) {
+                            phB -= 1.0f;
+                            posB = resetLag;
+                        }
+                        pitchShiftPosB.store(posB);
+                        pitchShiftPhaseB.store(phB);
+
+                        const float wet = sampleA * envA + sampleB * envB;
+                        const float mix = pitchShiftMix.load();
+                        output = output * (1.0f - mix) + wet * mix;
+                    }
+                }
+                break;
+            }
             default:
                 break;
         }
@@ -1352,24 +1521,45 @@ static void processLooperIO(float* output, int numSamples) {
         }
     }
 
-    // --- Playback (mix into output) ----------------------------------------
-    // MVP single-track: lê do currentTrack apenas. Quando TFR-46 chegar,
-    // essa iteração se expande pra todas as tracks ativas/não-muted com
-    // respeito a solo. Por ora, segue simples.
+    // --- Playback (mix all active tracks) ---------------------------------
+    // TFR-9: somamos todos os tracks ativos com conteúdo, honrando solo>mute.
+    // Cada track tem sua própria position pra dar volta no próprio length —
+    // tracks de tamanhos diferentes fazem polirritmo livre. Lock-free, sem
+    // alocações: 8 tracks × numSamples é trivial em pior caso (≈3840 ops).
     if (looperPlaying.load()) {
-        int track = currentTrack.load();
-        if (track >= 0 && track < LOOPER_MAX_TRACKS) {
-            auto& t = looperTracks[track];
-            const int len = t.length.load();
-            if (len > 0 && t.active.load() && !t.muted.load()) {
-                const float vol = t.volume.load();
-                int ri = looperReadIndex.load();
-                for (int i = 0; i < numSamples; ++i) {
-                    if (ri >= len) ri = 0; // wrap no fim do loop
-                    output[i] += t.buffer[ri] * vol;
-                    ++ri;
-                }
-                looperReadIndex.store(ri);
+        bool anySoloed = false;
+        for (int t = 0; t < LOOPER_MAX_TRACKS; ++t) {
+            if (looperTracks[t].active.load() && looperTracks[t].soloed.load()) {
+                anySoloed = true;
+                break;
+            }
+        }
+        for (int t = 0; t < LOOPER_MAX_TRACKS; ++t) {
+            auto& tr = looperTracks[t];
+            if (!tr.active.load()) continue;
+            const int len = tr.length.load();
+            if (len <= 0) continue;
+            if (anySoloed) {
+                if (!tr.soloed.load()) continue;
+            } else {
+                if (tr.muted.load()) continue;
+            }
+            const float vol = tr.volume.load();
+            int pos = tr.position.load();
+            if (pos < 0 || pos >= len) pos = 0;
+            for (int i = 0; i < numSamples; ++i) {
+                output[i] += tr.buffer[pos] * vol;
+                ++pos;
+                if (pos >= len) pos = 0;
+            }
+            tr.position.store(pos);
+        }
+        // Backwards-compat: looperReadIndex segue a primeira track ativa
+        // pra que getLooperPosition() (legacy) reporte algo sensato.
+        for (int t = 0; t < LOOPER_MAX_TRACKS; ++t) {
+            if (looperTracks[t].active.load() && looperTracks[t].length.load() > 0) {
+                looperReadIndex.store(looperTracks[t].position.load());
+                break;
             }
         }
     }
@@ -1646,25 +1836,130 @@ void setLooperTrackSoloed(int trackIndex, bool soloed) {
 }
 
 void removeLooperTrack(int trackIndex) {
-    if (trackIndex >= 0 && trackIndex < LOOPER_MAX_TRACKS) {
-        // Limpar a faixa
-        std::fill(looperTracks[trackIndex].buffer.begin(), looperTracks[trackIndex].buffer.end(), 0.0f);
-        looperTracks[trackIndex].length = 0;
-        looperTracks[trackIndex].volume = 1.0f;
-        looperTracks[trackIndex].muted = false;
-        looperTracks[trackIndex].soloed = false;
-        looperTracks[trackIndex].active = false;
-        
-        // Se era a faixa atual, encontrar próxima faixa ativa
-        if (trackIndex == currentTrack) {
-            for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
-                if (looperTracks[i].active) {
-                    currentTrack = i;
-                    break;
-                }
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return;
+
+    // Se a track era a atual e está gravando, parar gravação primeiro.
+    if (trackIndex == currentTrack.load() && looperRecording.load()) {
+        looperRecording.store(false);
+    }
+    std::fill(looperTracks[trackIndex].buffer.begin(), looperTracks[trackIndex].buffer.end(), 0.0f);
+    looperTracks[trackIndex].length = 0;
+    looperTracks[trackIndex].position = 0;
+    looperTracks[trackIndex].volume = 1.0f;
+    looperTracks[trackIndex].muted = false;
+    looperTracks[trackIndex].soloed = false;
+    looperTracks[trackIndex].active = false;
+
+    // Se era a faixa atual, mover currentTrack pra próxima ativa (ou 0).
+    if (trackIndex == currentTrack) {
+        int next = 0;
+        for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+            if (looperTracks[i].active) {
+                next = i;
+                break;
             }
         }
+        currentTrack = next;
     }
+    // TFR-9: se não sobrou nenhuma track ativa, parar a playback global.
+    bool anyActive = false;
+    for (int i = 0; i < LOOPER_MAX_TRACKS; i++) {
+        if (looperTracks[i].active.load() && looperTracks[i].length.load() > 0) {
+            anyActive = true;
+            break;
+        }
+    }
+    if (!anyActive) {
+        looperPlaying.store(false);
+    }
+}
+
+// --- Multi-track introspection / control (TFR-9) ---------------------------
+
+int getLooperMaxTracks() { return LOOPER_MAX_TRACKS; }
+
+int getCurrentLooperTrack() { return currentTrack.load(); }
+
+void setLooperArmedTrack(int trackIndex) {
+    if (trackIndex >= -1 && trackIndex < LOOPER_MAX_TRACKS) {
+        armedTrack.store(trackIndex);
+    }
+}
+
+int getLooperArmedTrack() { return armedTrack.load(); }
+
+bool isLooperTrackActive(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return false;
+    return looperTracks[trackIndex].active.load();
+}
+
+int getLooperTrackLength(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return 0;
+    return looperTracks[trackIndex].length.load();
+}
+
+int getLooperTrackPosition(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return 0;
+    // Em recording, position do track sendo gravado é o write index global.
+    if (looperRecording.load() && trackIndex == currentTrack.load()) {
+        return looperWriteIndex.load();
+    }
+    return looperTracks[trackIndex].position.load();
+}
+
+float getLooperTrackVolume(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return 0.0f;
+    return looperTracks[trackIndex].volume.load();
+}
+
+bool isLooperTrackMuted(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return false;
+    return looperTracks[trackIndex].muted.load();
+}
+
+bool isLooperTrackSoloed(int trackIndex) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return false;
+    return looperTracks[trackIndex].soloed.load();
+}
+
+float* getLooperTrackBuffer(int trackIndex, int* outLength) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) {
+        if (outLength) *outLength = 0;
+        return nullptr;
+    }
+    auto& t = looperTracks[trackIndex];
+    if (!t.active.load()) {
+        if (outLength) *outLength = 0;
+        return nullptr;
+    }
+    const int len = t.length.load();
+    if (len <= 0) {
+        if (outLength) *outLength = 0;
+        return nullptr;
+    }
+    const int capacity = (int)t.buffer.size();
+    const int n = std::min(len, capacity);
+    float* out = new float[n];
+    std::copy(t.buffer.begin(), t.buffer.begin() + n, out);
+    if (outLength) *outLength = n;
+    return out;
+}
+
+void loadLooperTrackFromAudio(int trackIndex, const float* audioData, int length) {
+    if (trackIndex < 0 || trackIndex >= LOOPER_MAX_TRACKS) return;
+    if (audioData == nullptr || length <= 0 || length > LOOPER_MAX_SAMPLES.load()) return;
+
+    auto& t = looperTracks[trackIndex];
+    if (looperRecording.load() && trackIndex == currentTrack.load()) {
+        looperRecording.store(false);
+    }
+    const int capacity = (int)t.buffer.size();
+    const int n = std::min(length, capacity);
+    std::fill(t.buffer.begin(), t.buffer.end(), 0.0f);
+    std::copy(audioData, audioData + n, t.buffer.begin());
+    t.length.store(n);
+    t.position.store(0);
+    t.active.store(true);
 }
 
 void setLooperBPM(int bpm) {

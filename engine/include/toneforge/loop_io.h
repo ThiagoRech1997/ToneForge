@@ -23,6 +23,11 @@ enum {
 // Retorna 0 em sucesso ou um TF_LOOP_IO_ERR_* negativo.
 int looper_save_wav(const char* path, int sample_rate);
 
+// Serializa um track específico do looper em path como WAV mono PCM 16-bit.
+// Retorna 0 em sucesso, TF_LOOP_IO_ERR_INVALID_ARG se trackIndex estiver
+// fora de [0, max_tracks), TF_LOOP_IO_ERR_EMPTY se o track estiver vazio.
+int looper_save_track_wav(int track_index, const char* path, int sample_rate);
+
 #ifdef __cplusplus
 }
 #endif

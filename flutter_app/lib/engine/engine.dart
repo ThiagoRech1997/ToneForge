@@ -95,12 +95,13 @@ class ToneforgeEngine {
   set phaserEnabled(bool v) => _bindings.setPhaserEnabled(v);
   set eqEnabled(bool v) => _bindings.setEQEnabled(v);
   set compressorEnabled(bool v) => _bindings.setCompressorEnabled(v);
+  set pitchShiftEnabled(bool v) => _bindings.setPitchShiftEnabled(v);
 
   /// Empurra a nova ordem da cadeia de efeitos para o engine. As strings em
   /// [order] precisam bater exatamente com as keys esperadas pelo native
   /// (definidas em `engine/src/audio_engine.cpp`, `effectOrder`):
   ///   "Ganho", "Distorção", "Delay", "Reverb", "Chorus", "Flanger",
-  ///   "Phaser", "EQ", "Compressor".
+  ///   "Phaser", "EQ", "Compressor", "Pitch Shift".
   /// Divergências são silenciosamente ignoradas pelo C++.
   ///
   /// Aloca um `Pointer<Pointer<Char>>` + um `Pointer<Utf8>` por entrada,
@@ -217,6 +218,13 @@ class ToneforgeEngine {
   void setCompressorRelease(double ms) => _bindings.setCompressorRelease(ms);
   void setCompressorMix(double v) => _bindings.setCompressorMix(v);
 
+  // Pitch Shift (TFR-10) — granular shifter ±12 semitons. Adiciona ~40 ms
+  // de latência ao caminho do efeito (limitação fundamental do algoritmo
+  // granular). O setter de semitones já clampa no native em ±12.
+  void setPitchShiftSemitones(double semitones) =>
+      _bindings.setPitchShiftSemitones(semitones);
+  void setPitchShiftMix(double v) => _bindings.setPitchShiftMix(v);
+
   // ========================================================================
   // Recorder — captura mono pós-FX no buffer interno do engine. O callback
   // Oboe alimenta automaticamente quando ativo. Ver Fase 3.Recorder.
@@ -260,6 +268,98 @@ class ToneforgeEngine {
   int get looperLength => _bindings.getLooperLength();
   int get looperPosition => _bindings.getLooperPosition();
   void setLooperPosition(int frame) => _bindings.setLooperPosition(frame);
+
+  // --- Multi-track (TFR-9) -------------------------------------------------
+
+  /// Número máximo de tracks suportadas pelo engine (constante de compile-time
+  /// no C++; expomos via getter pra UI dimensionar a fileira).
+  int get looperMaxTracks => _bindings.getLooperMaxTracks();
+
+  /// Track no qual a próxima gravação irá entrar. -1 = auto-pick (engine
+  /// escolhe o primeiro slot livre, comportamento histórico).
+  int get looperArmedTrack => _bindings.getLooperArmedTrack();
+  set looperArmedTrack(int trackIndex) =>
+      _bindings.setLooperArmedTrack(trackIndex);
+
+  /// Track sendo gravada agora (ou último track gravado).
+  int get looperCurrentTrack => _bindings.getCurrentLooperTrack();
+
+  bool isLooperTrackActive(int trackIndex) =>
+      _bindings.isLooperTrackActive(trackIndex);
+  int looperTrackLength(int trackIndex) =>
+      _bindings.getLooperTrackLength(trackIndex);
+  int looperTrackPosition(int trackIndex) =>
+      _bindings.getLooperTrackPosition(trackIndex);
+  double looperTrackVolume(int trackIndex) =>
+      _bindings.getLooperTrackVolume(trackIndex);
+  bool isLooperTrackMuted(int trackIndex) =>
+      _bindings.isLooperTrackMuted(trackIndex);
+  bool isLooperTrackSoloed(int trackIndex) =>
+      _bindings.isLooperTrackSoloed(trackIndex);
+
+  void setLooperTrackVolume(int trackIndex, double volume) =>
+      _bindings.setLooperTrackVolume(trackIndex, volume);
+  void setLooperTrackMuted(int trackIndex, bool muted) =>
+      _bindings.setLooperTrackMuted(trackIndex, muted);
+  void setLooperTrackSoloed(int trackIndex, bool soloed) =>
+      _bindings.setLooperTrackSoloed(trackIndex, soloed);
+  void removeLooperTrack(int trackIndex) =>
+      _bindings.removeLooperTrack(trackIndex);
+
+  /// Carrega samples num track específico SEM apagar os outros.
+  void loadLooperTrackFromFloats(int trackIndex, Float32List samples) {
+    if (samples.isEmpty) return;
+    final ptr = malloc<ffi.Float>(samples.length);
+    try {
+      ptr.asTypedList(samples.length).setAll(0, samples);
+      _bindings.loadLooperTrackFromAudio(trackIndex, ptr, samples.length);
+    } finally {
+      malloc.free(ptr);
+    }
+  }
+
+  /// Salva o conteúdo de um track específico em [path] como WAV mono PCM
+  /// 16-bit. Retorna 0 em sucesso ou um TF_LOOP_IO_ERR_* negativo.
+  int saveLooperTrackToWav(int trackIndex, String path, {int? sampleRate}) {
+    final sr = sampleRate ?? (this.sampleRate > 0 ? this.sampleRate : 48000);
+    final pathPtr = path.toNativeUtf8();
+    try {
+      return _bindings.looper_save_track_wav(trackIndex, pathPtr.cast(), sr);
+    } finally {
+      malloc.free(pathPtr);
+    }
+  }
+
+  /// Snapshot peak-detector do buffer de um track específico (waveform thumb).
+  /// Retorna null se o track estiver vazio. O buffer nativo é alocado pelo
+  /// engine e liberado via releaseLooperMix (mesmo allocator).
+  List<double>? snapshotLooperTrack(int trackIndex, {int targetPoints = 120}) {
+    final outLen = malloc<ffi.Int>();
+    ffi.Pointer<ffi.Float> ptr = ffi.nullptr;
+    try {
+      ptr = _bindings.getLooperTrackBuffer(trackIndex, outLen);
+      final len = outLen.value;
+      if (ptr == ffi.nullptr || len <= 0) return null;
+      final samples = ptr.asTypedList(len);
+      final pts = targetPoints.clamp(1, len);
+      final out = List<double>.filled(pts, 0.0);
+      final bucket = len / pts;
+      for (var i = 0; i < pts; i++) {
+        final start = (i * bucket).floor();
+        final end = ((i + 1) * bucket).floor().clamp(start + 1, len);
+        var peak = 0.0;
+        for (var j = start; j < end; j++) {
+          final a = samples[j].abs();
+          if (a > peak) peak = a;
+        }
+        out[i] = peak;
+      }
+      return out;
+    } finally {
+      if (ptr != ffi.nullptr) _bindings.releaseLooperMix(ptr);
+      malloc.free(outLen);
+    }
+  }
 
   // --- Slicing (TFR-48) -----------------------------------------------------
 

@@ -1,7 +1,8 @@
-// Looper: timer circular com progress ring em accentLooper, waveform card
-// abaixo, transport Rec/Play/Clear e save to library. TFR-48 acrescenta
-// slicing overlay — toggle de modo, tap no waveform para criar pontos,
-// long-press para remover, e pads numerados para disparar segmentos.
+// Looper multi-track (TFR-9). Topo: timer circular com progress ring,
+// waveform da track armada / mix, transport (Rec/Play/Clear, Slicing).
+// Abaixo: fileira vertical de tracks (8 slots) com arm/mute/solo/volume/
+// thumbnail/clear/save por track. Slicing continua operando sobre a track
+// armada, preservando a UX da TFR-48.
 
 import 'dart:math' as math;
 
@@ -58,21 +59,67 @@ class _LooperView extends StatelessWidget {
     return true;
   }
 
-  Future<void> _onSaveLoop(BuildContext context, LooperState state) async {
-    if (!state.hasContent) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Grave um loop primeiro')),
-      );
-      return;
-    }
+  Future<void> _onSaveTrack(
+    BuildContext context,
+    LooperCubit cubit,
+    int trackIndex,
+  ) async {
     final controller = TextEditingController(
-      text: 'loop_${DateTime.now().millisecondsSinceEpoch}',
+      text: 'track${trackIndex + 1}_${DateTime.now().millisecondsSinceEpoch}',
     );
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Salvar loop'),
+        title: Text('Salvar track ${trackIndex + 1}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nome'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    final lib = LoopLibraryCubit();
+    try {
+      final filename = await lib.saveTrack(trackIndex, name);
+      if (context.mounted) {
+        final msg = filename != null
+            ? 'Track salva como "$filename"'
+            : (lib.state.errorMessage ?? 'Falha ao salvar');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } finally {
+      await lib.close();
+    }
+  }
+
+  Future<void> _onSaveMix(BuildContext context, LooperState state) async {
+    if (!state.hasContent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Grave pelo menos uma track primeiro')),
+      );
+      return;
+    }
+    final controller = TextEditingController(
+      text: 'mix_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Salvar mix'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -96,7 +143,7 @@ class _LooperView extends StatelessWidget {
       final filename = await lib.saveCurrentLoop(name);
       if (context.mounted) {
         final msg = filename != null
-            ? 'Loop salvo como "$filename"'
+            ? 'Mix salvo como "$filename"'
             : (lib.state.errorMessage ?? 'Falha ao salvar');
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(msg)));
@@ -127,9 +174,9 @@ class _LooperView extends StatelessWidget {
           BlocBuilder<LooperCubit, LooperState>(
             builder: (context, state) => IconButton(
               icon: const Icon(Icons.save_outlined),
-              tooltip: 'Salvar loop',
+              tooltip: 'Salvar mix',
               onPressed:
-                  state.hasContent ? () => _onSaveLoop(context, state) : null,
+                  state.hasContent ? () => _onSaveMix(context, state) : null,
             ),
           ),
         ],
@@ -186,7 +233,7 @@ class _LooperView extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Expanded(child: TfSectionLabel('Waveform')),
+                            const Expanded(child: TfSectionLabel('Mix')),
                             TfPill(
                               label: state.slicingEnabled ? 'Slicing on' : 'Slicing',
                               accent: _accent,
@@ -229,6 +276,8 @@ class _LooperView extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _TracksSection(state: state, cubit: cubit, onSaveTrack: (i) => _onSaveTrack(context, cubit, i)),
                 ],
               ),
             ),
@@ -237,6 +286,340 @@ class _LooperView extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TracksSection extends StatelessWidget {
+  const _TracksSection({
+    required this.state,
+    required this.cubit,
+    required this.onSaveTrack,
+  });
+
+  final LooperState state;
+  final LooperCubit cubit;
+  final ValueChanged<int> onSaveTrack;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.maxTracks <= 0) return const SizedBox.shrink();
+    return TfCard(
+      accent: _accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: TfSectionLabel('Tracks')),
+              Text(
+                state.armedTrack >= 0
+                    ? 'Armada: ${state.armedTrack + 1}'
+                    : 'Auto-pick: ${state.effectiveTargetTrack + 1}',
+                style: AppTypography.caption.copyWith(color: _accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final t in state.tracks) ...[
+            _TrackRow(
+              track: t,
+              armed: state.armedTrack == t.index,
+              isCurrentRecording: state.mode == LooperMode.recording &&
+                  state.tracks.isNotEmpty &&
+                  state.effectiveTargetTrack == t.index,
+              isPlaying: state.mode == LooperMode.playing,
+              anySoloed: state.anySoloed,
+              onArm: () => cubit.armTrack(state.armedTrack == t.index ? -1 : t.index),
+              onMute: () => cubit.setTrackMuted(t.index, !t.muted),
+              onSolo: () => cubit.setTrackSoloed(t.index, !t.soloed),
+              onVolume: (v) => cubit.setTrackVolume(t.index, v),
+              onClear: () => cubit.clearTrack(t.index),
+              onSave: () => onSaveTrack(t.index),
+            ),
+            if (t.index < state.tracks.length - 1)
+              const Divider(height: 1, color: AppColors.muted),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TrackRow extends StatelessWidget {
+  const _TrackRow({
+    required this.track,
+    required this.armed,
+    required this.isCurrentRecording,
+    required this.isPlaying,
+    required this.anySoloed,
+    required this.onArm,
+    required this.onMute,
+    required this.onSolo,
+    required this.onVolume,
+    required this.onClear,
+    required this.onSave,
+  });
+
+  final TrackState track;
+  final bool armed;
+  final bool isCurrentRecording;
+  final bool isPlaying;
+  final bool anySoloed;
+  final VoidCallback onArm;
+  final VoidCallback onMute;
+  final VoidCallback onSolo;
+  final ValueChanged<double> onVolume;
+  final VoidCallback onClear;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasContent = track.hasContent;
+    final dimmedByMute = !track.soloed && (track.muted || (anySoloed && !track.soloed));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 36,
+                child: Text(
+                  '${track.index + 1}',
+                  style: AppTypography.monoLarge.copyWith(
+                    fontSize: 18,
+                    color: hasContent ? AppColors.textPrimary : AppColors.textTertiary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _ToggleChip(
+                label: 'Arm',
+                selected: armed,
+                color: AppColors.error,
+                onTap: onArm,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              _ToggleChip(
+                label: 'M',
+                selected: track.muted,
+                color: AppColors.warning,
+                onTap: hasContent ? onMute : null,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              _ToggleChip(
+                label: 'S',
+                selected: track.soloed,
+                color: _accent,
+                onTap: hasContent ? onSolo : null,
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.save_outlined, size: 18),
+                tooltip: 'Salvar track',
+                onPressed: hasContent ? onSave : null,
+                visualDensity: VisualDensity.compact,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 18),
+                tooltip: 'Limpar track',
+                onPressed: hasContent ? onClear : null,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          SizedBox(
+            height: 38,
+            child: _TrackThumbnail(
+              track: track,
+              dimmed: dimmedByMute,
+              recording: isCurrentRecording,
+              showPlayhead: isPlaying || isCurrentRecording,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              const Icon(Icons.volume_up, size: 16, color: AppColors.textSecondary),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: _accent,
+                    thumbColor: _accent,
+                    overlayShape: SliderComponentShape.noOverlay,
+                    trackHeight: 2,
+                  ),
+                  child: Slider(
+                    min: 0,
+                    max: 2,
+                    value: track.volume.clamp(0.0, 2.0),
+                    onChanged: hasContent ? onVolume : null,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  '${(track.volume * 100).round()}%',
+                  textAlign: TextAlign.right,
+                  style: AppTypography.caption,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleChip extends StatelessWidget {
+  const _ToggleChip({
+    required this.label,
+    required this.selected,
+    required this.color,
+    this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: selected ? color.withValues(alpha: 0.22) : AppColors.elevated,
+          border: Border.all(
+            color: selected ? color : AppColors.muted,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: selected
+                ? color
+                : (enabled ? AppColors.textPrimary : AppColors.textTertiary),
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackThumbnail extends StatelessWidget {
+  const _TrackThumbnail({
+    required this.track,
+    required this.dimmed,
+    required this.recording,
+    required this.showPlayhead,
+  });
+
+  final TrackState track;
+  final bool dimmed;
+  final bool recording;
+  final bool showPlayhead;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!track.active && !recording) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.elevated,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'Vazio',
+          style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+        ),
+      );
+    }
+    if (track.waveform.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.elevated,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          recording ? 'Gravando…' : 'Sem preview',
+          style: AppTypography.caption,
+        ),
+      );
+    }
+    final waveColor = dimmed ? AppColors.muted : _accent;
+    final progress = track.lengthFrames > 0
+        ? (track.positionFrames / track.lengthFrames).clamp(0.0, 1.0)
+        : 0.0;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        color: AppColors.elevated,
+        child: CustomPaint(
+          painter: _ThumbnailPainter(
+            samples: track.waveform,
+            progress: showPlayhead ? progress : 0.0,
+            waveColor: waveColor,
+          ),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+}
+
+class _ThumbnailPainter extends CustomPainter {
+  _ThumbnailPainter({
+    required this.samples,
+    required this.progress,
+    required this.waveColor,
+  });
+
+  final List<double> samples;
+  final double progress;
+  final Color waveColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (samples.isEmpty) return;
+    final mid = size.height / 2;
+    final stepX = size.width / samples.length;
+    final paint = Paint()
+      ..color = waveColor
+      ..strokeWidth = 1.0;
+    for (var i = 0; i < samples.length; i++) {
+      final amp = samples[i].clamp(0.0, 1.0) * mid;
+      final x = i * stepX + stepX / 2;
+      canvas.drawLine(Offset(x, mid - amp), Offset(x, mid + amp), paint);
+    }
+    if (progress > 0) {
+      final playPaint = Paint()
+        ..color = AppColors.textPrimary
+        ..strokeWidth = 1.5;
+      final px = size.width * progress;
+      canvas.drawLine(Offset(px, 0), Offset(px, size.height), playPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThumbnailPainter old) =>
+      old.samples != samples ||
+      old.progress != progress ||
+      old.waveColor != waveColor;
 }
 
 class _WaveformArea extends StatelessWidget {
@@ -495,7 +878,6 @@ class _WaveformPainter extends CustomPainter {
     if (samples.isEmpty) return;
     final mid = size.height / 2;
 
-    // Highlight do slice ativo, se houver.
     if (showSlices &&
         activeSliceIndex >= 0 &&
         activeSliceIndex < activeBoundaries.length - 1 &&
@@ -508,7 +890,6 @@ class _WaveformPainter extends CustomPainter {
       canvas.drawRect(Rect.fromLTRB(x0, 0, x1, size.height), fill);
     }
 
-    // Waveform peaks.
     final stepX = size.width / samples.length;
     final paint = Paint()
       ..color = waveColor
@@ -520,7 +901,6 @@ class _WaveformPainter extends CustomPainter {
       canvas.drawLine(Offset(x, mid - amp), Offset(x, mid + amp), paint);
     }
 
-    // Slice markers (linha vertical tracejada + chapéu triangular no topo).
     if (showSlices && lengthFrames > 0) {
       final markerPaint = Paint()
         ..color = waveColor.withValues(alpha: 0.85)
@@ -528,7 +908,6 @@ class _WaveformPainter extends CustomPainter {
       final headPaint = Paint()..color = waveColor;
       for (final p in slicePoints) {
         final x = (p / lengthFrames) * size.width;
-        // Linha tracejada manual — 4px on / 3px off.
         double y = 0;
         while (y < size.height) {
           canvas.drawLine(
@@ -593,7 +972,7 @@ class _Transport extends StatelessWidget {
     final isRecording = state.mode == LooperMode.recording;
     final isPlaying = state.mode == LooperMode.playing;
     final canPlay = state.hasContent && !isRecording;
-    final canClear = state.hasContent && !isRecording && !isPlaying;
+    final canClear = state.hasContent && !isRecording;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -603,7 +982,7 @@ class _Transport extends StatelessWidget {
           label: isRecording ? 'Parar' : 'Gravar',
           color: AppColors.error,
           hero: true,
-          onPressed: isPlaying ? null : (isRecording ? onStopRec : onRecord),
+          onPressed: isRecording ? onStopRec : onRecord,
         ),
         _TransportButton(
           icon: isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,

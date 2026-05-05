@@ -86,6 +86,25 @@ class LoopLibraryCubit extends Cubit<LoopLibraryState> {
     return filename;
   }
 
+  /// Salva apenas a track [trackIndex] como WAV. Igual a [saveCurrentLoop]
+  /// porém usa `looper_save_track_wav` no engine. Útil pra exportar takes
+  /// individuais sem misturar com o resto. TFR-9.
+  Future<String?> saveTrack(int trackIndex, String name) async {
+    final dir = await _dir();
+    final cleaned = name.trim().replaceAll(RegExp(r'[^A-Za-z0-9._\- ]'), '_');
+    final filename = '${cleaned.isEmpty ? "track${trackIndex + 1}_${DateTime.now().millisecondsSinceEpoch}" : cleaned}.wav';
+    final path = '${dir.path}/$filename';
+
+    final rc = _engine.saveLooperTrackToWav(trackIndex, path);
+    if (rc != 0) {
+      emit(state.copyWith(
+          errorMessage: 'looper_save_track_wav falhou (code=$rc)'));
+      return null;
+    }
+    await refresh();
+    return filename;
+  }
+
   /// Carrega um WAV mono PCM 16-bit no buffer do looper. Não inicia
   /// reprodução — quem chama decide.
   Future<bool> loadLoop(LoopFile loop) async {
@@ -96,6 +115,24 @@ class LoopLibraryCubit extends Cubit<LoopLibraryState> {
         return false;
       }
       _engine.loadLooperFromFloats(wav.samples);
+      emit(state.copyWith(clearError: true));
+      return true;
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Falha ao carregar: $e'));
+      return false;
+    }
+  }
+
+  /// Carrega um WAV num track específico do looper SEM apagar os outros.
+  /// Usado pelo loader "carregar em slot N" do loop library. TFR-9.
+  Future<bool> loadLoopIntoTrack(LoopFile loop, int trackIndex) async {
+    try {
+      final wav = readWavMono16(loop.file);
+      if (wav == null) {
+        emit(state.copyWith(errorMessage: 'WAV inválido (precisa ser mono PCM 16-bit)'));
+        return false;
+      }
+      _engine.loadLooperTrackFromFloats(trackIndex, wav.samples);
       emit(state.copyWith(clearError: true));
       return true;
     } catch (e) {

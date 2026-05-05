@@ -324,6 +324,153 @@ class ToneforgeEngineBindings {
   late final _setLooperSyncEnabled = _setLooperSyncEnabledPtr
       .asFunction<void Function(bool)>();
 
+  /// Multi-track introspection / control (TFR-9). O engine sempre teve um array
+  /// de tracks internamente; estes getters expõem o estado por track para o
+  /// lado Flutter, e setLooperArmedTrack permite escolher em qual slot a
+  /// próxima gravação vai cair (-1 = auto-pick do primeiro slot livre,
+  /// comportamento histórico).
+  int getLooperMaxTracks() {
+    return _getLooperMaxTracks();
+  }
+
+  late final _getLooperMaxTracksPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>('getLooperMaxTracks');
+  late final _getLooperMaxTracks = _getLooperMaxTracksPtr
+      .asFunction<int Function()>();
+
+  int getCurrentLooperTrack() {
+    return _getCurrentLooperTrack();
+  }
+
+  late final _getCurrentLooperTrackPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>('getCurrentLooperTrack');
+  late final _getCurrentLooperTrack = _getCurrentLooperTrackPtr
+      .asFunction<int Function()>();
+
+  void setLooperArmedTrack(int trackIndex) {
+    return _setLooperArmedTrack(trackIndex);
+  }
+
+  late final _setLooperArmedTrackPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>(
+        'setLooperArmedTrack',
+      );
+  late final _setLooperArmedTrack = _setLooperArmedTrackPtr
+      .asFunction<void Function(int)>();
+
+  int getLooperArmedTrack() {
+    return _getLooperArmedTrack();
+  }
+
+  late final _getLooperArmedTrackPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>('getLooperArmedTrack');
+  late final _getLooperArmedTrack = _getLooperArmedTrackPtr
+      .asFunction<int Function()>();
+
+  bool isLooperTrackActive(int trackIndex) {
+    return _isLooperTrackActive(trackIndex);
+  }
+
+  late final _isLooperTrackActivePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Int)>>(
+        'isLooperTrackActive',
+      );
+  late final _isLooperTrackActive = _isLooperTrackActivePtr
+      .asFunction<bool Function(int)>();
+
+  int getLooperTrackLength(int trackIndex) {
+    return _getLooperTrackLength(trackIndex);
+  }
+
+  late final _getLooperTrackLengthPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int)>>(
+        'getLooperTrackLength',
+      );
+  late final _getLooperTrackLength = _getLooperTrackLengthPtr
+      .asFunction<int Function(int)>();
+
+  int getLooperTrackPosition(int trackIndex) {
+    return _getLooperTrackPosition(trackIndex);
+  }
+
+  late final _getLooperTrackPositionPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Int)>>(
+        'getLooperTrackPosition',
+      );
+  late final _getLooperTrackPosition = _getLooperTrackPositionPtr
+      .asFunction<int Function(int)>();
+
+  double getLooperTrackVolume(int trackIndex) {
+    return _getLooperTrackVolume(trackIndex);
+  }
+
+  late final _getLooperTrackVolumePtr =
+      _lookup<ffi.NativeFunction<ffi.Float Function(ffi.Int)>>(
+        'getLooperTrackVolume',
+      );
+  late final _getLooperTrackVolume = _getLooperTrackVolumePtr
+      .asFunction<double Function(int)>();
+
+  bool isLooperTrackMuted(int trackIndex) {
+    return _isLooperTrackMuted(trackIndex);
+  }
+
+  late final _isLooperTrackMutedPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Int)>>(
+        'isLooperTrackMuted',
+      );
+  late final _isLooperTrackMuted = _isLooperTrackMutedPtr
+      .asFunction<bool Function(int)>();
+
+  bool isLooperTrackSoloed(int trackIndex) {
+    return _isLooperTrackSoloed(trackIndex);
+  }
+
+  late final _isLooperTrackSoloedPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Int)>>(
+        'isLooperTrackSoloed',
+      );
+  late final _isLooperTrackSoloed = _isLooperTrackSoloedPtr
+      .asFunction<bool Function(int)>();
+
+  /// Snapshot do buffer de um track específico. O caller DEVE liberar chamando
+  /// releaseLooperMix (mesmo allocator que getLooperMix). Retorna NULL com
+  /// *outLength=0 se a track estiver vazia.
+  ffi.Pointer<ffi.Float> getLooperTrackBuffer(
+    int trackIndex,
+    ffi.Pointer<ffi.Int> outLength,
+  ) {
+    return _getLooperTrackBuffer(trackIndex, outLength);
+  }
+
+  late final _getLooperTrackBufferPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<ffi.Float> Function(ffi.Int, ffi.Pointer<ffi.Int>)
+        >
+      >('getLooperTrackBuffer');
+  late final _getLooperTrackBuffer = _getLooperTrackBufferPtr
+      .asFunction<ffi.Pointer<ffi.Float> Function(int, ffi.Pointer<ffi.Int>)>();
+
+  /// Carrega samples num track específico SEM apagar os outros. Marca o track
+  /// como active. Para limpar, use removeLooperTrack(trackIndex).
+  void loadLooperTrackFromAudio(
+    int trackIndex,
+    ffi.Pointer<ffi.Float> audioData,
+    int length,
+  ) {
+    return _loadLooperTrackFromAudio(trackIndex, audioData, length);
+  }
+
+  late final _loadLooperTrackFromAudioPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int, ffi.Pointer<ffi.Float>, ffi.Int)
+        >
+      >('loadLooperTrackFromAudio');
+  late final _loadLooperTrackFromAudio = _loadLooperTrackFromAudioPtr
+      .asFunction<void Function(int, ffi.Pointer<ffi.Float>, int)>();
+
   /// Afinador
   void startTuner() {
     return _startTuner();
@@ -798,6 +945,42 @@ class ToneforgeEngineBindings {
         'setCompressorMix',
       );
   late final _setCompressorMix = _setCompressorMixPtr
+      .asFunction<void Function(double)>();
+
+  /// Pitch Shift — granular, ±12 semitones em tempo real. Adiciona
+  /// ~grainSize/sampleRate de latência ao caminho do efeito (≈40 ms @ 48 kHz).
+  /// Lock-free, sem alocações em runtime.
+  void setPitchShiftEnabled(bool enabled) {
+    return _setPitchShiftEnabled(enabled);
+  }
+
+  late final _setPitchShiftEnabledPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>(
+        'setPitchShiftEnabled',
+      );
+  late final _setPitchShiftEnabled = _setPitchShiftEnabledPtr
+      .asFunction<void Function(bool)>();
+
+  void setPitchShiftSemitones(double semitones) {
+    return _setPitchShiftSemitones(semitones);
+  }
+
+  late final _setPitchShiftSemitonesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Float)>>(
+        'setPitchShiftSemitones',
+      );
+  late final _setPitchShiftSemitones = _setPitchShiftSemitonesPtr
+      .asFunction<void Function(double)>();
+
+  void setPitchShiftMix(double mix) {
+    return _setPitchShiftMix(mix);
+  }
+
+  late final _setPitchShiftMixPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Float)>>(
+        'setPitchShiftMix',
+      );
+  late final _setPitchShiftMix = _setPitchShiftMixPtr
       .asFunction<void Function(double)>();
 
   void setDelayTime(double timeMs) {
@@ -1901,6 +2084,26 @@ class ToneforgeEngineBindings {
       >('looper_save_wav');
   late final _looper_save_wav = _looper_save_wavPtr
       .asFunction<int Function(ffi.Pointer<ffi.Char>, int)>();
+
+  /// Serializa um track específico do looper em path como WAV mono PCM 16-bit.
+  /// Retorna 0 em sucesso, TF_LOOP_IO_ERR_INVALID_ARG se trackIndex estiver
+  /// fora de [0, max_tracks), TF_LOOP_IO_ERR_EMPTY se o track estiver vazio.
+  int looper_save_track_wav(
+    int track_index,
+    ffi.Pointer<ffi.Char> path,
+    int sample_rate,
+  ) {
+    return _looper_save_track_wav(track_index, path, sample_rate);
+  }
+
+  late final _looper_save_track_wavPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(ffi.Int, ffi.Pointer<ffi.Char>, ffi.Int)
+        >
+      >('looper_save_track_wav');
+  late final _looper_save_track_wav = _looper_save_track_wavPtr
+      .asFunction<int Function(int, ffi.Pointer<ffi.Char>, int)>();
 }
 
 const int TF_RECORDER_OK = 0;
