@@ -68,6 +68,19 @@ class ToneforgeEngine {
 
   int get sampleRate => _bindings.audio_engine_get_sample_rate();
 
+  /// Frames por burst do stream de saída — tamanho típico de cada callback.
+  /// 0 quando o pipeline está parado. Em devices Android com fast path,
+  /// fica em 128-256; quando AAudio cai em shared (devices budget), pula
+  /// para 480/960 e a latência fim-a-fim sobe junto.
+  int get framesPerBurst => _bindings.audio_engine_get_frames_per_burst();
+
+  /// True só quando o pipeline rodou com baixa latência efetiva. Em Android,
+  /// exige perfMode=LowLatency E sharingMode=Exclusive nos dois streams (ver
+  /// TFR-14: devices budget MediaTek/Qualcomm caem em fallback shared). Em
+  /// iOS, considera-se low-latency quando IOBufferDuration ≤ 10ms. Sempre
+  /// false quando o engine não está rodando.
+  bool get isLowLatencyPath => _bindings.audio_engine_is_low_latency_path();
+
   // ========================================================================
   // Efeitos — enable/disable. Parâmetros dos efeitos ainda não expostos
   // neste wrapper (cobertura se expande feature-a-feature em Fase 3).

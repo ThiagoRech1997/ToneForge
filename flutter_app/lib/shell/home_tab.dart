@@ -15,6 +15,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 import '../widgets/tf_accent_icon_tile.dart';
+import '../widgets/tf_low_latency_banner.dart';
 import '../widgets/tf_pill.dart';
 import '../widgets/tf_section_label.dart';
 import '../widgets/tf_stat_cell.dart';
@@ -45,6 +46,7 @@ class HomeTab extends StatelessWidget {
           children: [
             _Header(),
             const SizedBox(height: AppSpacing.xl),
+            const TfLowLatencyBanner(),
             _FeatureGrid(onSwitchTab: onSwitchTab, onPush: _push),
             const SizedBox(height: AppSpacing.xl),
             const _ActiveChainSection(),

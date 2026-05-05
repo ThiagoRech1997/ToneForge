@@ -257,4 +257,25 @@ int audio_engine_get_sample_rate() {
     return g_sample_rate.load();
 }
 
+int audio_engine_get_frames_per_burst() {
+    if (!g_running.load()) return 0;
+    AVAudioSession* s = [AVAudioSession sharedInstance];
+    const double sr = s.sampleRate;
+    if (sr <= 0) return 0;
+    // IOBufferDuration é o burst efetivo; converte para frames.
+    const double frames = s.IOBufferDuration * sr;
+    return static_cast<int>(frames + 0.5);
+}
+
+bool audio_engine_is_low_latency_path() {
+    // Em iOS moderno, RemoteIO + AVAudioSessionModeMeasurement entrega
+    // sempre o caminho de baixa latência (não há analog do "fast path
+    // negado" do AAudio em devices MediaTek). Considera-se low-latency
+    // sempre que a session estiver rodando com IOBufferDuration <= ~10ms,
+    // que é o teto razoável pra monitoramento ao vivo.
+    if (!g_running.load()) return false;
+    AVAudioSession* s = [AVAudioSession sharedInstance];
+    return s.IOBufferDuration > 0 && s.IOBufferDuration <= 0.010;
+}
+
 } // extern "C"

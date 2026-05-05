@@ -37,6 +37,8 @@ class SettingsState {
     required this.sampleRate,
     required this.latencyMs,
     required this.xrunCount,
+    required this.framesPerBurst,
+    required this.isLowLatencyPath,
     this.errorMessage,
     this.infoMessage,
   });
@@ -48,6 +50,8 @@ class SettingsState {
     sampleRate: 0,
     latencyMs: -1,
     xrunCount: 0,
+    framesPerBurst: 0,
+    isLowLatencyPath: false,
   );
 
   /// true depois que o SharedPreferences foi carregado pelo menos uma vez.
@@ -62,6 +66,13 @@ class SettingsState {
   final double latencyMs;
   final int xrunCount;
 
+  /// Frames por callback do stream de saída — diagnostica fast path
+  /// (128-256 = AAudio LowLatency moderno; 480/960 = shared/non-low-latency).
+  final int framesPerBurst;
+
+  /// Engine reportou caminho de baixa latência efetivo (TFR-14).
+  final bool isLowLatencyPath;
+
   /// Erro transitório (ex.: falha em limpar diretório).
   final String? errorMessage;
 
@@ -75,6 +86,8 @@ class SettingsState {
     int? sampleRate,
     double? latencyMs,
     int? xrunCount,
+    int? framesPerBurst,
+    bool? isLowLatencyPath,
     String? errorMessage,
     String? infoMessage,
     bool clearError = false,
@@ -87,6 +100,8 @@ class SettingsState {
       sampleRate: sampleRate ?? this.sampleRate,
       latencyMs: latencyMs ?? this.latencyMs,
       xrunCount: xrunCount ?? this.xrunCount,
+      framesPerBurst: framesPerBurst ?? this.framesPerBurst,
+      isLowLatencyPath: isLowLatencyPath ?? this.isLowLatencyPath,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       infoMessage: clearInfo ? null : (infoMessage ?? this.infoMessage),
     );
@@ -119,13 +134,16 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (isClosed) return;
 
     final show = _prefs?.getBool(kPrefShowBenchmarkTelemetry) ?? true;
+    final running = _engine.isRunning;
     emit(state.copyWith(
       ready: true,
       showBenchmarkTelemetry: show,
-      pipelineRunning: _engine.isRunning,
+      pipelineRunning: running,
       sampleRate: _engine.sampleRate,
-      latencyMs: _engine.isRunning ? _engine.latencyMs : -1,
+      latencyMs: running ? _engine.latencyMs : -1,
       xrunCount: _engine.xrunCount,
+      framesPerBurst: running ? _engine.framesPerBurst : 0,
+      isLowLatencyPath: running && _engine.isLowLatencyPath,
     ));
 
     _startPolling();
@@ -141,6 +159,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         sampleRate: _engine.sampleRate,
         latencyMs: running ? _engine.latencyMs : -1,
         xrunCount: _engine.xrunCount,
+        framesPerBurst: running ? _engine.framesPerBurst : 0,
+        isLowLatencyPath: running && _engine.isLowLatencyPath,
       ));
     });
   }
@@ -155,6 +175,8 @@ class SettingsCubit extends Cubit<SettingsState> {
       sampleRate: _engine.sampleRate,
       latencyMs: running ? _engine.latencyMs : -1,
       xrunCount: _engine.xrunCount,
+      framesPerBurst: running ? _engine.framesPerBurst : 0,
+      isLowLatencyPath: running && _engine.isLowLatencyPath,
     ));
   }
 

@@ -210,6 +210,27 @@ public:
         return mOutputStream->getSampleRate();
     }
 
+    int getFramesPerBurst() {
+        std::lock_guard<std::mutex> lock(mLifecycleMutex);
+        if (!mOutputStream) return 0;
+        return mOutputStream->getFramesPerBurst();
+    }
+
+    // True só se BOTH streams (input e output) tiverem perfMode=LowLatency e
+    // sharingMode=Exclusive — espelha a heurística de logStreamDiagnostics.
+    // Se qualquer um cair em fallback (Shared, None, PowerSaving), retorna false.
+    bool isLowLatencyPath() {
+        std::lock_guard<std::mutex> lock(mLifecycleMutex);
+        if (!mIsRunning.load() || !mInputStream || !mOutputStream) return false;
+        const bool outOk =
+            mOutputStream->getPerformanceMode() == oboe::PerformanceMode::LowLatency &&
+            mOutputStream->getSharingMode() == oboe::SharingMode::Exclusive;
+        const bool inOk =
+            mInputStream->getPerformanceMode() == oboe::PerformanceMode::LowLatency &&
+            mInputStream->getSharingMode() == oboe::SharingMode::Exclusive;
+        return outOk && inOk;
+    }
+
     // oboe::AudioStreamDataCallback — invocado na thread de áudio.
     // HOT PATH: zero locks, zero allocs, zero I/O.
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* outputStream,
@@ -348,6 +369,14 @@ int audio_engine_get_xrun_count() {
 
 int audio_engine_get_sample_rate() {
     return getEngine().getSampleRate();
+}
+
+int audio_engine_get_frames_per_burst() {
+    return getEngine().getFramesPerBurst();
+}
+
+bool audio_engine_is_low_latency_path() {
+    return getEngine().isLowLatencyPath();
 }
 
 } // extern "C"

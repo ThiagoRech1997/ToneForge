@@ -1778,6 +1778,36 @@ class ToneforgeEngineBindings {
   late final _audio_engine_get_sample_rate = _audio_engine_get_sample_ratePtr
       .asFunction<int Function()>();
 
+  /// Frames por burst do stream de saída (tamanho típico de callback). 0 se não
+  /// rodando. Ajuda a diagnosticar fast path: 128-256 = AAudio LowLatency
+  /// moderno; 480/960 = caminho shared/non-low-latency em devices budget.
+  int audio_engine_get_frames_per_burst() {
+    return _audio_engine_get_frames_per_burst();
+  }
+
+  late final _audio_engine_get_frames_per_burstPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>(
+        'audio_engine_get_frames_per_burst',
+      );
+  late final _audio_engine_get_frames_per_burst =
+      _audio_engine_get_frames_per_burstPtr.asFunction<int Function()>();
+
+  /// True só se o pipeline está num caminho de baixa latência: Android: input E
+  /// output abertos com perfMode=LowLatency E sharingMode=Exclusive. iOS:
+  /// pipeline rodando (RemoteIO + measurement = sempre low-latency em iOS
+  /// moderno). False se não rodando ou se o backend caiu em fallback degradado
+  /// (TFR-14).
+  bool audio_engine_is_low_latency_path() {
+    return _audio_engine_is_low_latency_path();
+  }
+
+  late final _audio_engine_is_low_latency_pathPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function()>>(
+        'audio_engine_is_low_latency_path',
+      );
+  late final _audio_engine_is_low_latency_path =
+      _audio_engine_is_low_latency_pathPtr.asFunction<bool Function()>();
+
   /// Pré-aloca buffer para até max_seconds de áudio mono no sample_rate dado e
   /// ativa a captura. Chamadas subsequentes ao recorder_feed do callback Oboe
   /// vão acumulando samples no buffer.

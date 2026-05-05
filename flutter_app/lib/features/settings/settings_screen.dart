@@ -76,6 +76,8 @@ class _SettingsView extends StatelessWidget {
             children: [
               _AboutSection(),
               const SizedBox(height: 12),
+              _DeviceInfoSection(state: state),
+              const SizedBox(height: 12),
               _AudioSection(state: state),
               const SizedBox(height: 12),
               _PreferencesSection(state: state),
@@ -225,6 +227,129 @@ class _PreferencesSection extends StatelessWidget {
           value: state.showBenchmarkTelemetry,
           onChanged: (v) =>
               context.read<SettingsCubit>().setShowBenchmarkTelemetry(v),
+        ),
+      ],
+    );
+  }
+}
+
+class _DeviceInfoSection extends StatelessWidget {
+  const _DeviceInfoSection({required this.state});
+  final SettingsState state;
+
+  Color get _statusColor {
+    if (!state.pipelineRunning) return AppColors.textTertiary;
+    return state.isLowLatencyPath ? AppColors.success : AppColors.warning;
+  }
+
+  String get _statusText {
+    if (!state.pipelineRunning) return 'Aguardando primeiro uso';
+    return state.isLowLatencyPath ? 'Fast path ativo' : 'Fallback (sem fast path)';
+  }
+
+  IconData get _statusIcon {
+    if (!state.pipelineRunning) return Icons.help_outline;
+    return state.isLowLatencyPath
+        ? Icons.check_circle_rounded
+        : Icons.warning_amber_rounded;
+  }
+
+  void _openDetails(BuildContext context) {
+    final s = state;
+    final lat = s.pipelineRunning && s.latencyMs >= 0
+        ? '${s.latencyMs.toStringAsFixed(2)} ms'
+        : '—';
+    final burst = s.framesPerBurst > 0 ? '${s.framesPerBurst} frames' : '—';
+    final sr = s.sampleRate > 0 ? '${s.sampleRate} Hz' : '—';
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Detalhes técnicos'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _KeyValueRow(label: 'Status', value: _statusText),
+              _KeyValueRow(label: 'Sample rate', value: sr),
+              _KeyValueRow(label: 'Burst', value: burst),
+              _KeyValueRow(label: 'Latência', value: lat),
+              _KeyValueRow(label: 'Xruns', value: s.xrunCount.toString()),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              if (s.pipelineRunning && !s.isLowLatencyPath)
+                const Text(
+                  'O HAL deste device não expõe android.hardware.audio.low_latency, '
+                  'então o AAudio cai num caminho compartilhado com burst maior. '
+                  'Tocar com efeitos em tempo real terá delay perceptível. '
+                  'Afinador, metrônomo, looper e gravador funcionam normalmente.',
+                  style: TextStyle(fontSize: 13, height: 1.35),
+                )
+              else if (s.pipelineRunning && s.isLowLatencyPath)
+                const Text(
+                  'O device suporta o caminho de baixa latência do sistema. '
+                  'Burst pequeno e latência fim-a-fim na faixa adequada para '
+                  'monitoramento ao vivo com efeitos.',
+                  style: TextStyle(fontSize: 13, height: 1.35),
+                )
+              else
+                const Text(
+                  'O pipeline ainda não foi iniciado nesta sessão. Abra '
+                  'Effects, Tuner ou Looper para que o engine consiga '
+                  'reportar o estado do device.',
+                  style: TextStyle(fontSize: 13, height: 1.35),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lat = state.pipelineRunning && state.latencyMs >= 0
+        ? '${state.latencyMs.toStringAsFixed(2)} ms'
+        : '—';
+    final burst = state.framesPerBurst > 0
+        ? '${state.framesPerBurst} frames'
+        : '—';
+    return _SectionCard(
+      title: 'Informações do dispositivo',
+      children: [
+        Row(
+          children: [
+            Icon(_statusIcon, color: _statusColor, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _statusText,
+                style: TextStyle(
+                  color: _statusColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _KeyValueRow(label: 'Latência (round-trip)', value: lat),
+        _KeyValueRow(label: 'Burst (frames/callback)', value: burst),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => _openDetails(context),
+            child: const Text('Detalhes técnicos'),
+          ),
         ),
       ],
     );

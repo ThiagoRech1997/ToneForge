@@ -32,6 +32,17 @@ int audio_engine_get_xrun_count();
 // Sample rate efetivo escolhido pelo Oboe (pode diferir do solicitado). 0 se não rodando.
 int audio_engine_get_sample_rate();
 
+// Frames por burst do stream de saída (tamanho típico de callback). 0 se não rodando.
+// Ajuda a diagnosticar fast path: 128-256 = AAudio LowLatency moderno;
+// 480/960 = caminho shared/non-low-latency em devices budget.
+int audio_engine_get_frames_per_burst();
+
+// True só se o pipeline está num caminho de baixa latência:
+//   Android: input E output abertos com perfMode=LowLatency E sharingMode=Exclusive.
+//   iOS: pipeline rodando (RemoteIO + measurement = sempre low-latency em iOS moderno).
+// False se não rodando ou se o backend caiu em fallback degradado (TFR-14).
+bool audio_engine_is_low_latency_path();
+
 #ifdef __cplusplus
 }
 #endif
