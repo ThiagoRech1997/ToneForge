@@ -21,15 +21,15 @@ Live dashboard of the Java → Flutter migration. Updated as things change.
 | **Metronome** | ✅ | Fixed palette; no tap tempo, no persistence (parity with legacy). |
 | **Effects** | ✅ | 10 efeitos com cobertura completa de parâmetros (TFR-10 acresceu Pitch Shift). Drag-and-drop reorder via Chain Order. |
 | **Recorder** | ✅ | Implemented for the first time (legacy stubs were empty). Pre-allocated buffer, 10-minute cap. |
-| **Looper** | ✅ MVP | Single track only. No reverse / speed / pitch shift / slicing / quantization — all supported by the engine, UI pending. |
-| **Presets** | ✅ | JSON schema v1. No export/share. No chain order (add when reorder lands). |
-| **Loop Library** | ✅ | Save/load WAV mono PCM 16-bit. No import via file picker. No sample rate metadata. |
-| **Settings** | ✅ placeholder | Info-only card (pipeline state, SR, latency, backend). Real configuration pending. |
+| **Looper** | ✅ | Multi-track (até 8 tracks, volume/mute/solo/save por track — TFR-9) + slicing com tap-to-mark e pads (TFR-48). No reverse / speed / pitch shift / quantization — supported by the engine, UI pending. |
+| **Presets** | ✅ | JSON schema v1, inclui `effectOrder` (chain order). No export/share. |
+| **Loop Library** | ✅ | Save/load WAV mono PCM 16-bit, save por track do looper. No import via file picker. No sample rate metadata. |
+| **Settings** | ✅ | Tela real (TFR-49): snapshot de áudio (SR, latency, xruns, framesPerBurst), warning de low-latency (TFR-14), info do app/device. Latency mode / buffer size selection ainda pendente (precisa de nova engine API). |
 | **Home** | ✅ | Grid 3×3 com accents por feature + bottom navigation de 4 tabs. Replaces the Fase 3 vertical ListView. |
 | **Automation** | ✅ MVP | Self-contained screen with 4-parameter palette. No global effects integration, no persistence. |
 | **MIDI Learn** | ✅ MVP | USB/BLE via `flutter_midi_command`. Same 4-parameter palette as Automation. No persistence. |
 | **Benchmark** | ✅ | Debug screen with start/stop and live latency/xrun readout. |
-| **Pedalboard** | 🟡 UI scaffold only | Placeholder screen seguindo o DS (TfComingSoon). Engine já suporta `setEffectOrder`; UI de drag-and-drop pendente. |
+| **Pedalboard** | 🟡 UI scaffold only | Placeholder screen seguindo o DS (TfComingSoon). O reorder drag-and-drop da cadeia já existe na tela de Effects via Chain Order (TFR-45); falta decidir o que a tela Pedalboard vira. |
 | **Learning** | 🟡 UI scaffold only | Placeholder screen seguindo o DS. Exercícios, escalas e acordes — sem lógica ainda. |
 | **Volume** | 🟡 UI scaffold only | Placeholder screen seguindo o DS. Mixer mestre dedicado — sem lógica ainda. |
 
@@ -55,12 +55,12 @@ Flutter UI yet. None are blockers for Fase 4.7 or Fase 5.
 - [ ] Oversampling UI toggles
 
 ### Looper (engine already supports all of these)
-- [ ] Multi-track (up to 8 tracks with volume/mute/solo/remove)
+- [x] Multi-track (up to 8 tracks with volume/mute/solo/remove) — TFR-9
+- [x] Slicing (set points, reorder, randomize, reverse slices) — TFR-48
 - [ ] Reverse
 - [ ] Speed (0.5× – 2×)
 - [ ] Pitch shift (±12 semitones)
 - [ ] Stutter
-- [ ] Slicing (set points, reorder, randomize, reverse slices)
 - [ ] Cut region / fade in / fade out
 - [ ] Auto compression, auto normalization
 - [ ] Low-pass / high-pass filters
@@ -82,8 +82,9 @@ Flutter UI yet. None are blockers for Fase 4.7 or Fase 5.
 ### Settings
 - [ ] Latency mode / buffer size selection (needs new engine API)
 - [ ] Theme selector (Material 3 color seed swapping)
-- [ ] Toggle for C++/Oboe vs `PipelineManager` in the legacy app (currently
-      only exposed in DebugBenchmarkActivity via adb)
+
+(O item "toggle C++/Oboe vs `PipelineManager`" tornou-se obsoleto com a
+remoção do app legado na Fase 5.)
 
 ## Gates pending
 
@@ -146,6 +147,15 @@ The user accepted this consciously to unblock the migration.
 All on branch `flutter-migration`:
 
 ```
+42b40ab feat(flutter,effects): pitch shift UI completes the chain (TFR-10)
+e0fc2f8 feat(engine,looper): multi-track recording, playback and per-track save (TFR-9)
+929d2d1 feat(engine,flutter): warn user when device lacks low-latency audio (TFR-14)
+0f0bb0c feat(engine,dsp): implement chorus, flanger, phaser, EQ and compressor (TFR-53)
+a376ee5 fix(engine,looper): wire recording/playback feed in audio callback (TFR-54)
+4551980 feat(flutter,effects): drag-and-drop reorder da cadeia de efeitos (TFR-45)
+6587d66 feat(flutter,settings): replace placeholder with real settings screen (TFR-49)
+0af72a3 feat(flutter,looper): add slicing UI with tap-to-mark and pad triggers (TFR-48)
+ee900a5 chore(phase5): remove legacy Android Java app and root gradle infrastructure
 f8f18eb feat(legacy,settings): expose C++/Oboe pipeline toggle (last legacy change)
 1335679 fix(debug): capture benchmark report before stopping the pipeline
 a595ab3 feat(engine,ios): add CoreAudio backend and iOS pod glue for phase 4
